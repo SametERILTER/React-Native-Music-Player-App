@@ -1,8 +1,16 @@
+import 'react-native-reanimated';
 import { registerRootComponent } from 'expo';
+import TrackPlayer from 'react-native-track-player';
 
 import App from './App';
+import { PlaybackService } from './src/services/trackPlayerService';
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
 registerRootComponent(App);
+
+// Arka plan oynatma servisini kaydet (TrackPlayer)
+try {
+  TrackPlayer.registerPlaybackService(() => PlaybackService);
+} catch (error) {
+  // Expo Go veya native modülsüz ortamlarda sessizce yutulur
+}
