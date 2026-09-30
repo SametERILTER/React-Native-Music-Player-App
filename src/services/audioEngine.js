@@ -1,7 +1,3 @@
-/**
- * Ses Oynatma Motoru (Expo SDK 57 Uyumlu)
- * expo-audio tabanlı, hata vermeyen güvenli ses oynatıcı
- */
 import { createAudioPlayer } from 'expo-audio';
 
 class AudioEngine {
@@ -14,7 +10,6 @@ class AudioEngine {
   async loadAndPlay(uri, statusCallback) {
     this.onStatusUpdate = statusCallback;
 
-    // Önceki oynatıcıyı temizle
     await this.cleanup();
 
     if (!uri) return;
@@ -26,7 +21,6 @@ class AudioEngine {
 
       this.player.play();
 
-      // Süre ve pozisyon takibi için dinleme
       this.startStatusPolling();
     } catch (error) {
       console.warn('AudioEngine çalma hatası:', error);
@@ -54,7 +48,6 @@ class AudioEngine {
           });
         }
       } catch (e) {
-        // Sessiz hata yakalama
       }
     }, 500);
   }
@@ -102,7 +95,6 @@ class AudioEngine {
           this.player.remove();
         }
       } catch (e) {
-        // ignore
       }
       this.player = null;
     }

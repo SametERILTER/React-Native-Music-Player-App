@@ -1,6 +1,3 @@
-/**
- * Spacing, Radius ve Ultra Hafif Shadow Tanımları
- */
 
 export const spacing = {
   xxs: 4,

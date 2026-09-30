@@ -1,42 +1,83 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Image } from 'react-native';
 import { Disc3, Music2, Radio, AudioWaveform } from 'lucide-react-native';
 import { colors, radius } from '../../theme';
+import { getTrackCoverSource } from '../../constants/playlistCovers';
 
-export const AlbumArtwork = ({ size = 52, index = 0 }) => {
-  const iconVariants = [
-    <Disc3 size={size * 0.44} color={colors.textPrimary} strokeWidth={1.5} />,
-    <AudioWaveform size={size * 0.44} color={colors.textPrimary} strokeWidth={1.5} />,
-    <Radio size={size * 0.44} color={colors.textPrimary} strokeWidth={1.5} />,
-    <Music2 size={size * 0.44} color={colors.textPrimary} strokeWidth={1.5} />,
-  ];
+export const AlbumArtwork = React.memo(({
+  size = 52,
+  width,
+  height,
+  index = 0,
+  coverId = null,
+  artwork = null,
+  borderRadius = radius.md,
+  borderWidth = 0,
+  borderColor = 'transparent',
+}) => {
+  const w = width || size;
+  const h = height || size;
+  const coverSource = getTrackCoverSource(coverId) || (artwork ? (typeof artwork === 'string' ? { uri: artwork } : artwork) : null);
 
-  const currentIcon = iconVariants[index % iconVariants.length];
+  if (coverSource) {
+    return (
+      <View style={[styles.artworkContainer, { width: w, height: h, borderRadius, borderWidth, borderColor }]}>
+        <Image
+          source={coverSource}
+          style={styles.coverImage}
+          resizeMode="cover"
+        />
+      </View>
+    );
+  }
+
+  const iconBase = Math.min(w, h);
+  const iconSize = iconBase * 0.44;
+  const variant = Math.abs(index) % 4;
+
+  const renderIcon = () => {
+    switch (variant) {
+      case 0:
+        return <Disc3 size={iconSize} color={colors.textPrimary} strokeWidth={1.5} />;
+      case 1:
+        return <AudioWaveform size={iconSize} color={colors.textPrimary} strokeWidth={1.5} />;
+      case 2:
+        return <Radio size={iconSize} color={colors.textPrimary} strokeWidth={1.5} />;
+      case 3:
+      default:
+        return <Music2 size={iconSize} color={colors.textPrimary} strokeWidth={1.5} />;
+    }
+  };
 
   return (
-    <View style={[styles.artworkContainer, { width: size, height: size }]}>
+    <View style={[styles.artworkContainer, { width: w, height: h, borderRadius, borderWidth, borderColor }]}>
       <View style={styles.innerPattern}>
         <View style={styles.centerDot} />
-        {currentIcon}
+        {renderIcon()}
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   artworkContainer: {
-    backgroundColor: '#F0F1F3',
+    backgroundColor: '#FFFFFF',
     borderRadius: radius.md,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    borderWidth: 0,
+  },
+  coverImage: {
+    width: '100%',
+    height: '100%',
   },
   innerPattern: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F5F6F8',
+    backgroundColor: '#fafafaff',
   },
   centerDot: {
     position: 'absolute',
@@ -46,7 +87,9 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: colors.textTertiary,
-  }
+  },
 });
+
+AlbumArtwork.displayName = 'AlbumArtwork';
 
 export default AlbumArtwork;

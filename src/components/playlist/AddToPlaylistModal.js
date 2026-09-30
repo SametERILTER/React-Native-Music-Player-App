@@ -9,7 +9,11 @@ import {
   TextInput,
   ScrollView,
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -20,245 +24,309 @@ import Animated, {
 import { Plus, Check, ListMusic, X } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../theme';
 import { usePlayer } from '../../context/PlayerContext';
+import { getPlaylistCoverSource } from '../../constants/playlistCovers';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 
-const OPEN_MS = 340;
-const CLOSE_MS = 260;
+const OPEN_MS = 320;
+const CLOSE_MS = 220;
 const EASE_OUT = Easing.bezier(0.16, 1, 0.3, 1);
 const EASE_IN = Easing.bezier(0.7, 0, 0.84, 0);
 
 export const AddToPlaylistModal = ({ visible, track, onClose }) => {
+  const insets = useSafeAreaInsets();
   const { playlists, createPlaylist, toggleTrackInPlaylist } = usePlayer();
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [activeTrack, setActiveTrack] = useState(track);
 
-  const translateY = useSharedValue(SCREEN_HEIGHT);
-  const overlayOpacity = useSharedValue(0);
-
-  useEffect(() => {
-    if (track) {
-      setActiveTrack(track);
-    }
-  }, [track]);
+  const translateY = useSharedValue(SCREEN_HEIGHT * 0.6);
 
   useEffect(() => {
     if (visible) {
-      translateY.value = SCREEN_HEIGHT;
-      overlayOpacity.value = 0;
+      translateY.value = SCREEN_HEIGHT * 0.6;
       translateY.value = withTiming(0, { duration: OPEN_MS, easing: EASE_OUT });
-      overlayOpacity.value = withTiming(1, { duration: OPEN_MS, easing: EASE_OUT });
     }
-  }, [visible]);
+  }, [visible, translateY]);
 
   const handleClose = useCallback(() => {
-    overlayOpacity.value = withTiming(0, { duration: CLOSE_MS, easing: EASE_IN });
-    translateY.value = withTiming(SCREEN_HEIGHT, { duration: CLOSE_MS, easing: EASE_IN }, (finished) => {
-      if (finished) runOnJS(onClose)();
+    setIsCreating(false);
+    setNewPlaylistName('');
+    // eslint-disable-next-line react-hooks/immutability
+    translateY.value = withTiming(SCREEN_HEIGHT * 0.6, { duration: CLOSE_MS, easing: EASE_IN }, (finished) => {
+      if (finished) {
+        runOnJS(onClose)();
+      }
     });
-  }, [onClose]);
+  }, [onClose, translateY]);
 
-  const sheetStyle = useAnimatedStyle(() => ({
+  const sheetAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
 
-  const overlayStyle = useAnimatedStyle(() => ({
-    opacity: overlayOpacity.value,
-  }));
-
-  const currentDisplayTrack = track || activeTrack;
-
   const handleCreate = () => {
-    if (newPlaylistName.trim() && currentDisplayTrack) {
-      const newPl = createPlaylist(newPlaylistName);
-      if (newPl) toggleTrackInPlaylist(newPl.id, currentDisplayTrack.id);
+    const trimmed = newPlaylistName.trim();
+    if (trimmed && track) {
+      const newPl = createPlaylist(trimmed);
+      if (newPl) {
+        toggleTrackInPlaylist(newPl.id, track.id);
+      }
       setNewPlaylistName('');
       setIsCreating(false);
     }
   };
 
-  if (!visible && !activeTrack) return null;
-  if (!currentDisplayTrack) return null;
-
   return (
     <Modal
       visible={visible}
       transparent
-      animationType="none"
+      animationType="fade"
       statusBarTranslucent
       onRequestClose={handleClose}
     >
-      <View style={styles.root}>
-        {/* Yumuşak kararan animated koyu arka plan (overlay) */}
-        <Animated.View
-          style={[StyleSheet.absoluteFillObject, styles.overlay, overlayStyle]}
-        />
+      <View style={styles.overlayRoot}>
         <Pressable
           style={StyleSheet.absoluteFillObject}
           onPress={handleClose}
         />
 
-        {/* Bottom Sheet */}
-        <Animated.View style={[styles.sheetContainer, sheetStyle]}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.keyboardWrap}
+        >
+          <Animated.View
+            style={[
+              styles.sheetContainer,
+              { paddingBottom: Math.max(insets.bottom, spacing.lg) + spacing.xs },
+              sheetAnimatedStyle,
+            ]}
+          >
+            <View style={styles.handleBar} />
 
-          {/* Tutamaç çizgisi */}
-          <View style={styles.handleBar} />
+            <View style={styles.headerRow}>
+              <View style={styles.headerTextWrap}>
+                <Text style={styles.headerSubtitle}>LİSTEYE EKLE</Text>
+                <Text style={styles.trackTitle} numberOfLines={1}>
+                  {track?.title || 'Müzik'}
+                </Text>
+                {track?.artist ? (
+                  <Text style={styles.trackArtist} numberOfLines={1}>
+                    {track.artist}
+                  </Text>
+                ) : null}
+              </View>
 
-          {/* Başlık & Kapat */}
-          <View style={styles.headerRow}>
-            <View style={styles.headerTextWrap}>
-              <Text style={styles.headerSubtitle}>LİSTEYE EKLE</Text>
-              <Text style={styles.trackTitle} numberOfLines={1}>
-                {currentDisplayTrack.title}
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={handleClose}
-              activeOpacity={0.7}
-            >
-              <X size={18} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Yeni Liste Oluşturma */}
-          {isCreating ? (
-            <View style={styles.createInputRow}>
-              <TextInput
-                style={styles.input}
-                placeholder="Liste adı yazın..."
-                placeholderTextColor={colors.textMuted}
-                value={newPlaylistName}
-                onChangeText={setNewPlaylistName}
-                autoFocus
-              />
               <TouchableOpacity
-                style={styles.addBtn}
-                onPress={handleCreate}
-                activeOpacity={0.8}
+                style={styles.closeBtn}
+                onPress={handleClose}
+                activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Text style={styles.addBtnText}>Oluştur</Text>
+                <X size={18} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.newPlaylistBtn}
-              onPress={() => setIsCreating(true)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.newPlaylistIconBox}>
-                <Plus size={18} color={colors.primaryContrast} />
-              </View>
-              <Text style={styles.newPlaylistBtnText}>Yeni Çalma Listesi Oluştur</Text>
-            </TouchableOpacity>
-          )}
 
-          {/* Çalma Listeleri */}
-          <ScrollView
-            style={styles.playlistsScroll}
-            showsVerticalScrollIndicator={false}
-          >
-            {playlists.length === 0 ? (
-              <View style={styles.emptyWrap}>
-                <Text style={styles.emptyText}>Henüz çalma listesi bulunmuyor.</Text>
-              </View>
-            ) : (
-              playlists.map((pl) => {
-                const isAdded = currentDisplayTrack ? pl.trackIds.includes(currentDisplayTrack.id) : false;
-                return (
+            {isCreating ? (
+              <View style={styles.createInputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Liste adı yazın..."
+                  placeholderTextColor={colors.textMuted}
+                  value={newPlaylistName}
+                  onChangeText={setNewPlaylistName}
+                  autoFocus
+                  maxLength={40}
+                  returnKeyType="done"
+                  onSubmitEditing={handleCreate}
+                />
+                <View style={styles.createActionsRow}>
                   <TouchableOpacity
-                    key={pl.id}
-                    style={[
-                      styles.playlistItem,
-                      isAdded && styles.playlistItemAdded,
-                    ]}
-                    onPress={() => currentDisplayTrack && toggleTrackInPlaylist(pl.id, currentDisplayTrack.id)}
+                    style={styles.cancelBtn}
+                    onPress={() => {
+                      setIsCreating(false);
+                      setNewPlaylistName('');
+                    }}
                     activeOpacity={0.7}
                   >
-                    <View style={styles.playlistLeft}>
-                      <View style={styles.playlistIconWrap}>
-                        <ListMusic size={18} color={colors.textPrimary} />
-                      </View>
-                      <View>
-                        <Text style={styles.playlistName}>{pl.name}</Text>
-                        <Text style={styles.playlistCount}>
-                          {pl.trackIds.length} parça
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View
-                      style={[
-                        styles.checkCircle,
-                        isAdded && styles.checkCircleActive,
-                      ]}
-                    >
-                      {isAdded && (
-                        <Check size={14} color={colors.primaryContrast} strokeWidth={2.5} />
-                      )}
-                    </View>
+                    <Text style={styles.cancelBtnText}>Vazgeç</Text>
                   </TouchableOpacity>
-                );
-              })
+                  <TouchableOpacity
+                    style={[
+                      styles.addBtn,
+                      !newPlaylistName.trim() && styles.addBtnDisabled,
+                    ]}
+                    onPress={handleCreate}
+                    disabled={!newPlaylistName.trim()}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.addBtnText}>Oluştur</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.newPlaylistBtn}
+                onPress={() => setIsCreating(true)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.newPlaylistIconBox}>
+                  <Plus size={18} color={colors.primaryContrast} strokeWidth={2.4} />
+                </View>
+                <Text style={styles.newPlaylistBtnText}>Yeni Çalma Listesi Oluştur</Text>
+              </TouchableOpacity>
             )}
-          </ScrollView>
-        </Animated.View>
+
+            <ScrollView
+              style={styles.playlistsScroll}
+              contentContainerStyle={styles.playlistsContent}
+              showsVerticalScrollIndicator={false}
+              bounces={false}
+            >
+              {playlists.length === 0 ? (
+                <View style={styles.emptyWrap}>
+                  <View style={styles.emptyIconBox}>
+                    <ListMusic size={26} color={colors.textMuted} />
+                  </View>
+                  <Text style={styles.emptyTitle}>Henüz çalma listeniz yok</Text>
+                  <Text style={styles.emptyText}>
+                    Yukarıdaki butona dokunarak ilk çalma listenizi oluşturabilirsiniz.
+                  </Text>
+                </View>
+              ) : (
+                playlists.map((pl) => {
+                  const isAdded = track ? pl.trackIds.includes(track.id) : false;
+
+                  return (
+                    <TouchableOpacity
+                      key={pl.id}
+                      style={[
+                        styles.playlistItem,
+                        isAdded && styles.playlistItemAdded,
+                      ]}
+                      onPress={() => {
+                        if (track) {
+                          toggleTrackInPlaylist(pl.id, track.id);
+                        }
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.playlistLeft}>
+                        <View
+                          style={[
+                            styles.playlistIconWrap,
+                            isAdded && styles.playlistIconWrapActive,
+                            getPlaylistCoverSource(pl.coverId) && styles.playlistIconWrapCover,
+                          ]}
+                        >
+                          {getPlaylistCoverSource(pl.coverId) ? (
+                            <Image
+                              source={getPlaylistCoverSource(pl.coverId)}
+                              style={styles.playlistThumbImage}
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <ListMusic
+                              size={18}
+                              color={isAdded ? colors.primaryContrast : colors.textPrimary}
+                            />
+                          )}
+                        </View>
+                        <View style={styles.playlistTextWrap}>
+                          <Text style={styles.playlistName} numberOfLines={1}>
+                            {pl.name}
+                          </Text>
+                          <Text style={styles.playlistCount}>
+                            {pl.trackIds.length} parça
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View
+                        style={[
+                          styles.checkCircle,
+                          isAdded && styles.checkCircleActive,
+                        ]}
+                      >
+                        {isAdded && (
+                          <Check
+                            size={13}
+                            color={colors.primaryContrast}
+                            strokeWidth={2.6}
+                          />
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+          </Animated.View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  root: {
+  overlayRoot: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'flex-end',
   },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+  keyboardWrap: {
+    justifyContent: 'flex-end',
   },
   sheetContainer: {
     backgroundColor: colors.card,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.xxl,
-    maxHeight: '88%',
+    paddingTop: spacing.sm,
+    maxHeight: SCREEN_HEIGHT * 0.78,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 20,
   },
   handleBar: {
-    width: 36,
+    width: 38,
     height: 4,
     borderRadius: radius.full,
     backgroundColor: colors.borderMuted,
     alignSelf: 'center',
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
+    opacity: 0.7,
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     paddingBottom: spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(0,0,0,0.06)',
+    borderBottomColor: colors.borderLight,
   },
   headerTextWrap: {
     flex: 1,
-    marginRight: spacing.sm,
+    marginRight: spacing.md,
   },
   headerSubtitle: {
     fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.xxs,
+    fontSize: 10,
     color: colors.textMuted,
-    letterSpacing: typography.letterSpacing.wider,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   trackTitle: {
     fontFamily: typography.fonts.bold,
     fontSize: typography.sizes.base,
     color: colors.textPrimary,
     marginTop: 2,
+  },
+  trackArtist: {
+    fontFamily: typography.fonts.regular,
+    fontSize: typography.sizes.xs,
+    color: colors.textSecondary,
+    marginTop: 1,
   },
   closeBtn: {
     width: 32,
@@ -267,6 +335,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 2,
   },
   newPlaylistBtn: {
     flexDirection: 'row',
@@ -287,27 +356,44 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     color: colors.textPrimary,
   },
-  createInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  createInputContainer: {
+    paddingVertical: spacing.sm,
     gap: spacing.xs,
-    marginVertical: spacing.sm,
   },
   input: {
-    flex: 1,
     backgroundColor: colors.backgroundSecondary,
-    borderRadius: radius.full,
+    borderRadius: radius.md,
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontFamily: typography.fonts.regular,
     fontSize: typography.sizes.sm,
     color: colors.textPrimary,
   },
+  createActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xxs,
+  },
+  cancelBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+  },
+  cancelBtnText: {
+    fontFamily: typography.fonts.medium,
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
+  },
   addBtn: {
     backgroundColor: colors.primary,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: radius.full,
+  },
+  addBtnDisabled: {
+    opacity: 0.4,
   },
   addBtnText: {
     fontFamily: typography.fonts.semiBold,
@@ -317,17 +403,20 @@ const styles = StyleSheet.create({
   playlistsScroll: {
     marginTop: spacing.xs,
   },
+  playlistsContent: {
+    paddingBottom: spacing.sm,
+  },
   playlistItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
+    paddingVertical: 9,
     paddingHorizontal: 8,
     borderRadius: radius.md,
     marginBottom: 4,
   },
   playlistItemAdded: {
-    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    backgroundColor: 'rgba(0, 0, 0, 0.035)',
   },
   playlistLeft: {
     flexDirection: 'row',
@@ -342,6 +431,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
+  },
+  playlistIconWrapCover: {
+    backgroundColor: 'transparent',
+  },
+  playlistThumbImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: radius.md,
+  },
+  playlistIconWrapActive: {
+    backgroundColor: colors.primary,
+  },
+  playlistTextWrap: {
+    flex: 1,
+    paddingRight: spacing.xs,
   },
   playlistName: {
     fontFamily: typography.fonts.semiBold,
@@ -370,11 +475,29 @@ const styles = StyleSheet.create({
   emptyWrap: {
     paddingVertical: spacing.xl,
     alignItems: 'center',
+    gap: spacing.xs,
+  },
+  emptyIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.full,
+    backgroundColor: colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  emptyTitle: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
   },
   emptyText: {
     fontFamily: typography.fonts.regular,
     fontSize: typography.sizes.xs,
     color: colors.textMuted,
+    textAlign: 'center',
+    paddingHorizontal: spacing.xl,
+    lineHeight: 18,
   },
 });
 

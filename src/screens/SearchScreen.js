@@ -17,9 +17,6 @@ import { usePlayer } from '../context/PlayerContext';
 import Header from '../components/common/Header';
 import SearchBar from '../components/common/SearchBar';
 import SongItem from '../components/home/SongItem';
-import MiniPlayer from '../components/player/MiniPlayer';
-import FullPlayerModal from '../components/player/FullPlayerModal';
-import AddToPlaylistModal from '../components/playlist/AddToPlaylistModal';
 
 export const SearchScreen = () => {
   const insets = useSafeAreaInsets();
@@ -31,11 +28,10 @@ export const SearchScreen = () => {
     playTrack,
     toggleFavorite,
     onScrollForPlayer,
+    openAddToPlaylist,
   } = usePlayer();
 
   const [query, setQuery] = useState('');
-  const [isPlayerModalVisible, setIsPlayerModalVisible] = useState(false);
-  const [playlistTargetTrack, setPlaylistTargetTrack] = useState(null);
 
   const searchInputRef = useRef(null);
   const flatListRef = useRef(null);
@@ -52,7 +48,6 @@ export const SearchScreen = () => {
   useEffect(() => {
     let timeoutId = null;
     if (isFocused) {
-      // Geçiş animasyonu bittikten sonra FAB göster
       timeoutId = setTimeout(() => {
         Animated.parallel([
           Animated.spring(animScale, {
@@ -95,7 +90,6 @@ export const SearchScreen = () => {
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 16) + spacing.sm;
   const bottomPadding = 220;
 
-  // Arama filtreleme (Memoized for high performance)
   const displayedTracks = useMemo(() => {
     if (query.trim() === '') return tracks;
     const q = query.toLowerCase();
@@ -109,7 +103,7 @@ export const SearchScreen = () => {
   }, [query, tracks]);
 
   const handleClear = useCallback(() => setQuery(''), []);
-  const handleOpenPlaylist = useCallback((track) => setPlaylistTargetTrack(track), []);
+  const handleOpenPlaylist = useCallback((track) => openAddToPlaylist(track), [openAddToPlaylist]);
 
   const renderHeader = useCallback(() => (
     <View style={styles.headerContainer}>
@@ -153,7 +147,7 @@ export const SearchScreen = () => {
         data={displayedTracks}
         keyExtractor={(item) => item.id.toString()}
         onScroll={onScrollForPlayer}
-        scrollEventThrottle={16}
+        scrollEventThrottle={64}
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={7}
@@ -170,13 +164,12 @@ export const SearchScreen = () => {
             <SearchIcon size={32} color={colors.textTertiary} />
             <Text style={styles.emptyTitle}>Sonuç Bulunamadı</Text>
             <Text style={styles.emptyDesc}>
-              "{query}" ile eşleşen bir şarkı veya sanatçı bulunamadı.
+              {`"${query}" ile eşleşen bir şarkı veya sanatçı bulunamadı.`}
             </Text>
           </View>
         }
       />
 
-      {/* Ekranın En Üstündeki Yumuşak Kaybolma Gradienti */}
       <LinearGradient
         colors={[
           colors.background,
@@ -188,7 +181,6 @@ export const SearchScreen = () => {
         pointerEvents="none"
       />
 
-      {/* Native Driver Animated FAB: Music Player'ın üstünde sağda yuvarlak Arama ikonu */}
       <Animated.View
         style={[
           styles.fabContainer,
@@ -227,21 +219,6 @@ export const SearchScreen = () => {
         </TouchableOpacity>
       </Animated.View>
 
-      {/* Yüzen Tab Bar'ın üstündeki Mini Player */}
-      <MiniPlayer onOpenFullPlayer={() => setIsPlayerModalVisible(true)} />
-
-      {/* Tam Ekran Player Modal */}
-      <FullPlayerModal
-        visible={isPlayerModalVisible}
-        onClose={() => setIsPlayerModalVisible(false)}
-      />
-
-      {/* Şarkıyı Çalma Listesine Ekleme Modalı */}
-      <AddToPlaylistModal
-        visible={!!playlistTargetTrack}
-        track={playlistTargetTrack}
-        onClose={() => setPlaylistTargetTrack(null)}
-      />
     </View>
   );
 };
@@ -277,13 +254,12 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   listContent: {
-    // Dinamik paddingTop ve paddingBottom ile desteklenir
   },
   headerContainer: {
     paddingBottom: spacing.xs,
   },
   listTitleRow: {
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.lg,
     marginTop: spacing.md,
     marginBottom: spacing.xxs,
   },

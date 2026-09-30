@@ -30,6 +30,8 @@ export const SearchBar = React.forwardRef(({ value, onChangeText, onClear, place
   );
 });
 
+SearchBar.displayName = 'SearchBar';
+
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',

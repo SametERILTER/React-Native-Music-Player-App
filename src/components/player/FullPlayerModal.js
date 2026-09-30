@@ -6,7 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   Dimensions,
-  StatusBar,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,77 +25,118 @@ import {
   Shuffle,
   Repeat,
   Heart,
-  Volume2,
+  MoreVertical,
 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
-import { usePlayer } from '../../context/PlayerContext';
+import { usePlayer, usePlayerProgress } from '../../context/PlayerContext';
 import { formatTime } from '../../services/musicService';
+import { getCoverGradientColors } from '../../constants/playlistCovers';
 import AlbumArtwork from '../home/AlbumArtwork';
+import EditSongModal from './EditSongModal';
 
-const { width, height } = Dimensions.get('screen');  // status bar dahil tam ekran yüksekliği
-const SLIDE_DISTANCE = height + 50;  // ekranın tamamen dışına çıksın
-const ARTWORK_SIZE = width - 64;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
+const ARTWORK_WIDTH = SCREEN_WIDTH - 56;
+const ARTWORK_HEIGHT = Math.min(Math.round(ARTWORK_WIDTH * 0.94), 310);
 
-// Animasyon parametreleri — yaylanma yok, Apple tarzı ease eğrisi
-const OPEN_DURATION = 400;
-const CLOSE_DURATION = 320;
-const EASE_OUT = Easing.bezier(0.16, 1, 0.3, 1);   // açılış: hızlı başla yavaşla
-const EASE_IN  = Easing.bezier(0.7, 0, 0.84, 0);    // kapanış: yavaşla hızlan
+const OPEN_DURATION = 360;
+const CLOSE_DURATION = 240;
+const EASE_OUT = Easing.bezier(0.16, 1, 0.3, 1);
+const EASE_IN = Easing.bezier(0.7, 0, 0.84, 0);
+const START_TRANSLATE_Y = 180;
 
 export const FullPlayerModal = ({ visible, onClose }) => {
   const insets = useSafeAreaInsets();
   const {
     currentTrack,
     isPlaying,
-    position,
-    duration,
     togglePlayPause,
     playNext,
     playPrevious,
-    seekTo,
     favorites,
     toggleFavorite,
     isShuffle,
     toggleShuffle,
-    repeatMode,
+    isArtworkGradientEnabled,
   } = usePlayer();
+  const { position, duration, seekTo } = usePlayerProgress();
 
-  const translateY = useSharedValue(SLIDE_DISTANCE);
+  const [isEditSongModalVisible, setIsEditSongModalVisible] = useState(false);
+
+  const translateY = useSharedValue(START_TRANSLATE_Y);
+  const sheetOpacity = useSharedValue(0);
+  const sheetScale = useSharedValue(0.97);
   const overlayOpacity = useSharedValue(0);
+  const artworkScale = useSharedValue(0.95);
 
-  // Açılış animasyonu
   useEffect(() => {
     if (visible) {
-      translateY.value = SLIDE_DISTANCE;
+      translateY.value = START_TRANSLATE_Y;
+      sheetOpacity.value = 0;
+      sheetScale.value = 0.97;
       overlayOpacity.value = 0;
-      translateY.value = withTiming(0, { duration: OPEN_DURATION, easing: EASE_OUT });
-      overlayOpacity.value = withTiming(1, { duration: OPEN_DURATION, easing: EASE_OUT });
-    }
-  }, [visible]);
+      artworkScale.value = 0.95;
 
-  // Kapanış: translateY animasyonu bitince onClose tetiklenir
+      translateY.value = withTiming(0, { duration: OPEN_DURATION, easing: EASE_OUT });
+      sheetOpacity.value = withTiming(1, { duration: OPEN_DURATION - 50, easing: EASE_OUT });
+      sheetScale.value = withTiming(1, { duration: OPEN_DURATION, easing: EASE_OUT });
+      overlayOpacity.value = withTiming(1, { duration: OPEN_DURATION, easing: EASE_OUT });
+      artworkScale.value = withTiming(1, { duration: OPEN_DURATION + 40, easing: EASE_OUT });
+    }
+  }, [visible, artworkScale, overlayOpacity, sheetOpacity, sheetScale, translateY]);
+
   const handleClose = useCallback(() => {
+    // eslint-disable-next-line react-hooks/immutability
     overlayOpacity.value = withTiming(0, { duration: CLOSE_DURATION, easing: EASE_IN });
-    translateY.value = withTiming(SLIDE_DISTANCE, { duration: CLOSE_DURATION, easing: EASE_IN }, (finished) => {
+    // eslint-disable-next-line react-hooks/immutability
+    sheetOpacity.value = withTiming(0, { duration: CLOSE_DURATION - 40, easing: EASE_IN });
+    // eslint-disable-next-line react-hooks/immutability
+    sheetScale.value = withTiming(0.97, { duration: CLOSE_DURATION, easing: EASE_IN });
+    // eslint-disable-next-line react-hooks/immutability
+    artworkScale.value = withTiming(0.95, { duration: CLOSE_DURATION, easing: EASE_IN });
+    // eslint-disable-next-line react-hooks/immutability
+    translateY.value = withTiming(START_TRANSLATE_Y, { duration: CLOSE_DURATION, easing: EASE_IN }, (finished) => {
       if (finished) runOnJS(onClose)();
     });
-  }, [onClose]);
+  }, [onClose, artworkScale, overlayOpacity, sheetOpacity, sheetScale, translateY]);
 
   const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
+    opacity: sheetOpacity.value,
+    transform: [
+      { translateY: translateY.value },
+      { scale: sheetScale.value },
+    ],
   }));
 
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: overlayOpacity.value,
   }));
 
+  const artworkAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: artworkScale.value }],
+  }));
+
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekingValue, setSeekingValue] = useState(0);
+
+  const handleBackRequest = useCallback(() => {
+    if (isEditSongModalVisible) {
+      setIsEditSongModalVisible(false);
+      return;
+    }
+    handleClose();
+  }, [isEditSongModalVisible, handleClose]);
 
   if (!currentTrack) return null;
 
   const isFav = favorites.includes(currentTrack.id);
   const currentPosition = isSeeking ? seekingValue : position;
+  const showGradient = isArtworkGradientEnabled !== false;
+  const gradientColors = getCoverGradientColors(
+    currentTrack.coverId,
+    currentTrack.title || currentTrack.id || currentTrack.trackNumber || 1,
+    '#F3F3F4'
+  );
 
   return (
     <Modal
@@ -104,23 +144,27 @@ export const FullPlayerModal = ({ visible, onClose }) => {
       transparent
       animationType="none"
       statusBarTranslucent
-      onRequestClose={handleClose}
+      onRequestClose={handleBackRequest}
     >
-      {/* Arkaplan overlay */}
       <Animated.View
         style={[StyleSheet.absoluteFillObject, styles.overlay, overlayStyle]}
         pointerEvents="none"
       />
 
-      {/* Tam ekran sheet */}
       <Animated.View style={[styles.sheet, sheetStyle]}>
-        {/* Status bar alanı */}
+        {showGradient && (
+          <LinearGradient
+            colors={gradientColors}
+            locations={[0, 0.38, 0.72, 1.0]}
+            style={styles.gradientBackground}
+            pointerEvents="none"
+          />
+        )}
+
         <View style={{ height: insets.top }} />
 
-        {/* İçerik */}
-        <View style={[styles.container, { paddingBottom: insets.bottom + spacing.md }]}>
+        <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 16) + spacing.huge + 34 }]}>
 
-          {/* Üst Bar: Kapat Butonu & Başlık */}
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.closeBtn}
@@ -138,143 +182,163 @@ export const FullPlayerModal = ({ visible, onClose }) => {
             </View>
 
             <TouchableOpacity
-              style={styles.favBtn}
-              onPress={() => toggleFavorite(currentTrack.id)}
+              style={styles.moreBtn}
+              onPress={() => setIsEditSongModalVisible(true)}
               activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Heart
-                size={22}
-                color={isFav ? colors.textPrimary : colors.textTertiary}
-                fill={isFav ? colors.textPrimary : 'transparent'}
-              />
+              <MoreVertical size={20} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 
-          {/* Büyük Monokrom Kapak Kartı */}
-          <View style={styles.artworkSection}>
+          <Animated.View style={[styles.artworkSection, artworkAnimStyle]}>
             <View style={styles.artworkCard}>
               <AlbumArtwork
-                size={ARTWORK_SIZE - 20}
+                width={ARTWORK_WIDTH}
+                height={ARTWORK_HEIGHT}
                 index={currentTrack.trackNumber || 1}
+                coverId={currentTrack.coverId}
+                borderRadius={radius.xl}
               />
             </View>
-          </View>
+          </Animated.View>
 
-          {/* Şarkı ve Sanatçı Bilgisi */}
-          <View style={styles.metaSection}>
-            <Text style={styles.trackTitle} numberOfLines={1}>
-              {currentTrack.title}
-            </Text>
-            <Text style={styles.trackArtist} numberOfLines={1}>
-              {currentTrack.artist}
-            </Text>
-          </View>
+          <View style={styles.bottomSection}>
+            <View style={styles.metaSection}>
+              <View style={styles.titleRow}>
+                <View style={styles.titleTextWrap}>
+                  <Text style={styles.trackTitle} numberOfLines={1}>
+                    {currentTrack.title}
+                  </Text>
+                  <Text style={styles.trackArtist} numberOfLines={1}>
+                    {currentTrack.artist}
+                  </Text>
+                </View>
 
-          {/* İlerleme Çubuğu ve Süreler */}
-          <View style={styles.progressSection}>
-            <Slider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={duration > 0 ? duration : 1}
-              value={currentPosition}
-              minimumTrackTintColor={colors.primary}
-              maximumTrackTintColor={colors.border}
-              thumbTintColor={colors.primary}
-              onValueChange={(val) => {
-                setIsSeeking(true);
-                setSeekingValue(val);
-              }}
-              onSlidingComplete={(val) => {
-                setIsSeeking(false);
-                seekTo(val);
-              }}
-            />
-
-            <View style={styles.timeRow}>
-              <Text style={styles.timeText}>{formatTime(currentPosition)}</Text>
-              <Text style={styles.timeText}>{formatTime(duration)}</Text>
+                <TouchableOpacity
+                  style={styles.heartBtn}
+                  onPress={() => toggleFavorite(currentTrack.id)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Heart
+                    size={22}
+                    color={isFav ? colors.textPrimary : colors.textTertiary}
+                    fill={isFav ? colors.textPrimary : 'transparent'}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
 
-          {/* Ana Kontroller */}
-          <View style={styles.controlsSection}>
-            <TouchableOpacity
-              style={styles.secondaryControl}
-              onPress={toggleShuffle}
-              activeOpacity={0.7}
-            >
-              <Shuffle
-                size={20}
-                color={isShuffle ? colors.textPrimary : colors.textTertiary}
+            <View style={styles.progressSection}>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={duration > 0 ? duration : 1}
+                value={currentPosition}
+                minimumTrackTintColor={colors.primary}
+                maximumTrackTintColor={colors.border}
+                thumbTintColor={colors.primary}
+                onValueChange={(val) => {
+                  setIsSeeking(true);
+                  setSeekingValue(val);
+                }}
+                onSlidingComplete={(val) => {
+                  setIsSeeking(false);
+                  seekTo(val);
+                }}
               />
-            </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.skipBtn}
-              onPress={playPrevious}
-              activeOpacity={0.7}
-            >
-              <SkipBack size={26} color={colors.textPrimary} fill={colors.textPrimary} />
-            </TouchableOpacity>
+              <View style={styles.timeRow}>
+                <Text style={styles.timeText}>{formatTime(currentPosition)}</Text>
+                <Text style={styles.timeText}>{formatTime(duration)}</Text>
+              </View>
+            </View>
 
-            <TouchableOpacity
-              style={styles.mainPlayBtn}
-              onPress={togglePlayPause}
-              activeOpacity={0.85}
-            >
-              {isPlaying ? (
-                <Pause size={28} color={colors.primaryContrast} fill={colors.primaryContrast} />
-              ) : (
-                <Play
-                  size={28}
-                  color={colors.primaryContrast}
-                  fill={colors.primaryContrast}
-                  style={{ marginLeft: 3 }}
+            <View style={styles.controlsSection}>
+              <TouchableOpacity
+                style={styles.secondaryControl}
+                onPress={toggleShuffle}
+                activeOpacity={0.7}
+              >
+                <Shuffle
+                  size={20}
+                  color={isShuffle ? colors.textPrimary : colors.textTertiary}
                 />
-              )}
-            </TouchableOpacity>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.skipBtn}
-              onPress={playNext}
-              activeOpacity={0.7}
-            >
-              <SkipForward size={26} color={colors.textPrimary} fill={colors.textPrimary} />
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.skipBtn}
+                onPress={playPrevious}
+                activeOpacity={0.7}
+              >
+                <SkipBack size={26} color={colors.textPrimary} fill={colors.textPrimary} />
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.secondaryControl}
-              activeOpacity={0.7}
-            >
-              <Repeat size={20} color={colors.textTertiary} />
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={styles.mainPlayBtn}
+                onPress={togglePlayPause}
+                activeOpacity={0.85}
+              >
+                {isPlaying ? (
+                  <Pause size={28} color={colors.primaryContrast} fill={colors.primaryContrast} />
+                ) : (
+                  <Play
+                    size={28}
+                    color={colors.primaryContrast}
+                    fill={colors.primaryContrast}
+                    style={{ marginLeft: 3 }}
+                  />
+                )}
+              </TouchableOpacity>
 
-          {/* Alt Footer Bilgisi */}
-          <View style={styles.footerSection}>
-            <Volume2 size={16} color={colors.textTertiary} />
-            <Text style={styles.footerText}>
-              {currentTrack.isLocal ? 'Cihaz İçi Yerel Depolama' : 'Kaydedilmiş Ses Akışı'}
-            </Text>
+              <TouchableOpacity
+                style={styles.skipBtn}
+                onPress={playNext}
+                activeOpacity={0.7}
+              >
+                <SkipForward size={26} color={colors.textPrimary} fill={colors.textPrimary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.secondaryControl}
+                activeOpacity={0.7}
+              >
+                <Repeat size={20} color={colors.textTertiary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
         </View>
       </Animated.View>
+
+      <EditSongModal
+        visible={isEditSongModalVisible}
+        track={currentTrack}
+        onClose={() => setIsEditSongModalVisible(false)}
+      />
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   overlay: {
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
   },
   sheet: {
     position: 'absolute',
     top: 0,
     left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: colors.background,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+    backgroundColor: '#F3F3F4',
+  },
+  gradientBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
   },
   container: {
     flex: 1,
@@ -285,7 +349,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
   },
   closeBtn: {
     width: 40,
@@ -314,7 +378,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginTop: 2,
   },
-  favBtn: {
+  moreBtn: {
     width: 40,
     height: 40,
     borderRadius: radius.full,
@@ -326,36 +390,63 @@ const styles = StyleSheet.create({
   },
   artworkSection: {
     alignItems: 'center',
-    marginVertical: spacing.md,
+    marginTop: -56,
+    marginBottom: spacing.xxs,
   },
   artworkCard: {
-    backgroundColor: colors.card,
     borderRadius: radius.xl,
-    padding: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.card,
+    borderWidth: 0,
+    padding: 0,
+    backgroundColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  bottomSection: {
+    width: '100%',
+    paddingBottom: spacing.sm,
+    marginTop: -72,
   },
   metaSection: {
+    marginBottom: spacing.xs,
+    paddingHorizontal: 4,
+  },
+  titleRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: spacing.sm,
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  titleTextWrap: {
+    flex: 1,
+    marginRight: spacing.sm,
   },
   trackTitle: {
     fontFamily: typography.fonts.bold,
     fontSize: typography.sizes.xl,
     color: colors.textPrimary,
     letterSpacing: typography.letterSpacing.tight,
-    textAlign: 'center',
   },
   trackArtist: {
     fontFamily: typography.fonts.regular,
     fontSize: typography.sizes.base,
     color: colors.textMuted,
-    marginTop: 4,
-    textAlign: 'center',
+    marginTop: 2,
+  },
+  heartBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: radius.full,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   progressSection: {
-    marginVertical: spacing.sm,
+    marginBottom: spacing.xs,
     paddingHorizontal: 2,
   },
   slider: {
@@ -379,7 +470,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.sm,
-    marginVertical: spacing.md,
+    marginTop: spacing.xxs,
   },
   secondaryControl: {
     padding: spacing.sm,
@@ -395,17 +486,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...shadows.floating,
-  },
-  footerSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  footerText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xs,
-    color: colors.textTertiary,
   },
 });
 

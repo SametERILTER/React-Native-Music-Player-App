@@ -1,4 +1,4 @@
-import * as MediaLibrary from 'expo-media-library';
+import * as MediaLibrary from 'expo-media-library/legacy';
 
 export const formatTime = (seconds) => {
   if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
@@ -7,9 +7,6 @@ export const formatTime = (seconds) => {
   return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 };
 
-/**
- * Cihaz Medya Erişim İzni İsteği
- */
 export const requestMediaPermissions = async () => {
   try {
     if (!MediaLibrary || typeof MediaLibrary.requestPermissionsAsync !== 'function') {
@@ -23,9 +20,68 @@ export const requestMediaPermissions = async () => {
   }
 };
 
-/**
- * Cihazdaki Ses / Müzik Dosyalarını Otomatik Tarar ve Formatlar
- */
+export const isJunkOrVoiceRecording = (asset) => {
+  if (!asset) return true;
+
+  const filename = (asset.filename || '').toLowerCase();
+  const uri = (asset.uri || '').toLowerCase();
+  const duration = Number(asset.duration) || 0;
+
+  if (
+    filename.endsWith('.opus') ||
+    filename.endsWith('.amr') ||
+    uri.endsWith('.opus') ||
+    uri.endsWith('.amr')
+  ) {
+    return true;
+  }
+
+  const isWhatsApp =
+    /^ptt-\d+/i.test(filename) ||
+    /^aud-\d+.*-wa/i.test(filename) ||
+    /-wa\d+/i.test(filename) ||
+    filename.includes('whatsapp');
+
+  if (isWhatsApp) return true;
+
+  const isRecording =
+    /^(rec|recording|record)[_-]/i.test(filename) ||
+    /^(voice|voicerecord|soundrecord)[_-]/i.test(filename) ||
+    /^(call|callrec|callrecording)[_-]/i.test(filename) ||
+    /ses[_\s-]?kayd/i.test(filename);
+
+  if (isRecording) return true;
+
+  const junkPathKeywords = [
+    'whatsapp voice notes',
+    'whatsapp audio',
+    'whatsapp/media',
+    'com.whatsapp',
+    'telegram audio',
+    'voice recorder',
+    'voicerecorder',
+    'sound recorder',
+    'soundrecorder',
+    'call recording',
+    'callrecordings',
+    'recordings',
+    '/notifications',
+    '/ringtones',
+    '/alarms',
+    '/system/media',
+  ];
+
+  if (junkPathKeywords.some((keyword) => uri.includes(keyword) || filename.includes(keyword))) {
+    return true;
+  }
+
+  if (duration > 0 && duration < 30) {
+    return true;
+  }
+
+  return false;
+};
+
 export const fetchDeviceAudioTracks = async () => {
   try {
     if (!MediaLibrary || typeof MediaLibrary.requestPermissionsAsync !== 'function') {
@@ -44,15 +100,17 @@ export const fetchDeviceAudioTracks = async () => {
 
     const media = await MediaLibrary.getAssetsAsync({
       mediaType: 'audio',
-      first: 300,
-      sortBy: MediaLibrary.SortBy ? MediaLibrary.SortBy.creationTime : 'creationTime',
+      first: 1000,
+      sortBy: 'creationTime',
     });
 
     if (!media || !media.assets || media.assets.length === 0) {
       return { success: true, tracks: [] };
     }
 
-    const tracks = media.assets.map((asset, index) => {
+    const validAssets = media.assets.filter((asset) => !isJunkOrVoiceRecording(asset));
+
+    const tracks = validAssets.map((asset, index) => {
       let title = asset.filename || `Parça ${index + 1}`;
       if (title.includes('.')) {
         title = title.substring(0, title.lastIndexOf('.'));
@@ -61,7 +119,7 @@ export const fetchDeviceAudioTracks = async () => {
       return {
         id: `local-${asset.id}`,
         title: title,
-        artist: asset.artist || 'Cihaz Sanatçısı',
+        artist: asset.artist || 'Yerel',
         album: asset.album || 'Cihaz Müzikleri',
         duration: Math.round(asset.duration || 0),
         uri: asset.uri,
@@ -94,13 +152,13 @@ export const fetchDeviceAudioTracks = async () => {
   }
 };
 
-export const DEMO_TRACKS = [
+const RAW_DEMO_TRACKS = [
   {
     id: 'demo-1',
     title: 'Midnight Resonance',
     artist: 'Mono Studio',
     album: 'Architectural Silence',
-    duration: 218, // 3:38
+    duration: 218,
     uri: 'https://example.com/audio1.mp3',
     coverArt: null,
     isLocal: true,
@@ -112,7 +170,7 @@ export const DEMO_TRACKS = [
     title: 'White Noise & Shadows',
     artist: 'Kroma',
     album: 'Swiss Grid',
-    duration: 264, // 4:24
+    duration: 264,
     uri: 'https://example.com/audio2.mp3',
     coverArt: null,
     isLocal: true,
@@ -124,7 +182,7 @@ export const DEMO_TRACKS = [
     title: 'Kinetic Flow',
     artist: 'Forma Collective',
     album: 'Modernist Wave',
-    duration: 185, // 3:05
+    duration: 185,
     uri: 'https://example.com/audio3.mp3',
     coverArt: null,
     isLocal: true,
@@ -136,7 +194,7 @@ export const DEMO_TRACKS = [
     title: 'Bauhaus Frequency',
     artist: 'Dieter R.',
     album: 'Less But Better',
-    duration: 312, // 5:12
+    duration: 312,
     uri: 'https://example.com/audio4.mp3',
     coverArt: null,
     isLocal: true,
@@ -148,7 +206,7 @@ export const DEMO_TRACKS = [
     title: 'Subtle Elements',
     artist: 'Echo Nine',
     album: 'Monochrome Drift',
-    duration: 198, // 3:18
+    duration: 198,
     uri: 'https://example.com/audio5.mp3',
     coverArt: null,
     isLocal: true,
@@ -160,7 +218,7 @@ export const DEMO_TRACKS = [
     title: 'Parallel Structures',
     artist: 'Vektor Sound',
     album: 'Grid Systems',
-    duration: 245, // 4:05
+    duration: 245,
     uri: 'https://example.com/audio6.mp3',
     coverArt: null,
     isLocal: true,
@@ -172,7 +230,7 @@ export const DEMO_TRACKS = [
     title: 'Tactile Horizon',
     artist: 'Loom',
     album: 'Objects in Space',
-    duration: 172, // 2:52
+    duration: 172,
     uri: 'https://example.com/audio7.mp3',
     coverArt: null,
     isLocal: true,
@@ -184,7 +242,7 @@ export const DEMO_TRACKS = [
     title: 'Analog Daylight',
     artist: 'Solis Duo',
     album: 'Warm Spectra',
-    duration: 231, // 3:51
+    duration: 231,
     uri: 'https://example.com/audio8.mp3',
     coverArt: null,
     isLocal: true,
@@ -196,7 +254,7 @@ export const DEMO_TRACKS = [
     title: 'Concrete Symmetry',
     artist: 'Brutalist Ensemble',
     album: 'Heavy Grain',
-    duration: 289, // 4:49
+    duration: 289,
     uri: 'https://example.com/audio9.mp3',
     coverArt: null,
     isLocal: true,
@@ -208,7 +266,7 @@ export const DEMO_TRACKS = [
     title: 'Silent Velocity',
     artist: 'Aurae',
     album: 'Zero Gravity',
-    duration: 204, // 3:24
+    duration: 204,
     uri: 'https://example.com/audio10.mp3',
     coverArt: null,
     isLocal: true,
@@ -220,7 +278,7 @@ export const DEMO_TRACKS = [
     title: 'Nordic Contour',
     artist: 'Kaldur',
     album: 'Fjord Silence',
-    duration: 340, // 5:40
+    duration: 340,
     uri: 'https://example.com/audio11.mp3',
     coverArt: null,
     isLocal: true,
@@ -232,7 +290,7 @@ export const DEMO_TRACKS = [
     title: 'Pulse Modulation',
     artist: 'Modul8',
     album: 'Synth Waves',
-    duration: 215, // 3:35
+    duration: 215,
     uri: 'https://example.com/audio12.mp3',
     coverArt: null,
     isLocal: true,
@@ -244,7 +302,7 @@ export const DEMO_TRACKS = [
     title: 'Paper Architecture',
     artist: 'Origami Beats',
     album: 'Folds & Creases',
-    duration: 168, // 2:48
+    duration: 168,
     uri: 'https://example.com/audio13.mp3',
     coverArt: null,
     isLocal: true,
@@ -256,7 +314,7 @@ export const DEMO_TRACKS = [
     title: 'After Hours Protocol',
     artist: 'Night Transit',
     album: 'Metro Lines',
-    duration: 276, // 4:36
+    duration: 276,
     uri: 'https://example.com/audio14.mp3',
     coverArt: null,
     isLocal: true,
@@ -268,7 +326,7 @@ export const DEMO_TRACKS = [
     title: 'Reflective Surface',
     artist: 'Glassworks',
     album: 'Optics',
-    duration: 195, // 3:15
+    duration: 195,
     uri: 'https://example.com/audio15.mp3',
     coverArt: null,
     isLocal: true,
@@ -280,7 +338,7 @@ export const DEMO_TRACKS = [
     title: 'Monolith Frequency',
     artist: 'Onyx Phase',
     album: 'Dark Matter',
-    duration: 254, // 4:14
+    duration: 254,
     uri: 'https://example.com/audio16.mp3',
     coverArt: null,
     isLocal: true,
@@ -292,7 +350,7 @@ export const DEMO_TRACKS = [
     title: 'Silver Needle',
     artist: 'Vinyl Archives',
     album: 'Dust & Grooves',
-    duration: 228, // 3:48
+    duration: 228,
     uri: 'https://example.com/audio17.mp3',
     coverArt: null,
     isLocal: true,
@@ -304,7 +362,7 @@ export const DEMO_TRACKS = [
     title: 'Horizon Scanning',
     artist: 'Sonar',
     album: 'Deep Water',
-    duration: 305, // 5:05
+    duration: 305,
     uri: 'https://example.com/audio18.mp3',
     coverArt: null,
     isLocal: true,
@@ -316,7 +374,7 @@ export const DEMO_TRACKS = [
     title: 'Linear Progression',
     artist: 'Studio 101',
     album: 'Vector Space',
-    duration: 189, // 3:09
+    duration: 189,
     uri: 'https://example.com/audio19.mp3',
     coverArt: null,
     isLocal: true,
@@ -328,7 +386,7 @@ export const DEMO_TRACKS = [
     title: 'Subtle Tension',
     artist: 'Frame Theory',
     album: 'Composure',
-    duration: 242, // 4:02
+    duration: 242,
     uri: 'https://example.com/audio20.mp3',
     coverArt: null,
     isLocal: true,
@@ -340,7 +398,7 @@ export const DEMO_TRACKS = [
     title: 'Distant Signal',
     artist: 'Telemetry',
     album: 'Deep Sky',
-    duration: 261, // 4:21
+    duration: 261,
     uri: 'https://example.com/audio21.mp3',
     coverArt: null,
     isLocal: true,
@@ -352,7 +410,7 @@ export const DEMO_TRACKS = [
     title: 'Mechanical Bloom',
     artist: 'Cortex Duo',
     album: 'Synthetic Garden',
-    duration: 210, // 3:30
+    duration: 210,
     uri: 'https://example.com/audio22.mp3',
     coverArt: null,
     isLocal: true,
@@ -364,7 +422,7 @@ export const DEMO_TRACKS = [
     title: 'Static & Velvet',
     artist: 'Nocturne Lab',
     album: 'Silk Sound',
-    duration: 197, // 3:17
+    duration: 197,
     uri: 'https://example.com/audio23.mp3',
     coverArt: null,
     isLocal: true,
@@ -376,7 +434,7 @@ export const DEMO_TRACKS = [
     title: 'Minimalist Motion',
     artist: 'Chronos',
     album: 'Timepieces',
-    duration: 278, // 4:38
+    duration: 278,
     uri: 'https://example.com/audio24.mp3',
     coverArt: null,
     isLocal: true,
@@ -388,7 +446,7 @@ export const DEMO_TRACKS = [
     title: 'Ethereal Axis',
     artist: 'Orbit 9',
     album: 'Celestial Geometry',
-    duration: 315, // 5:15
+    duration: 315,
     uri: 'https://example.com/audio25.mp3',
     coverArt: null,
     isLocal: true,
@@ -400,7 +458,7 @@ export const DEMO_TRACKS = [
     title: 'Sub-Zero Resonance',
     artist: 'Polaris',
     album: 'Frost Patterns',
-    duration: 234, // 3:54
+    duration: 234,
     uri: 'https://example.com/audio26.mp3',
     coverArt: null,
     isLocal: true,
@@ -412,7 +470,7 @@ export const DEMO_TRACKS = [
     title: 'Urban Geometry',
     artist: 'Metropolis',
     album: 'Grid Lines',
-    duration: 202, // 3:22
+    duration: 202,
     uri: 'https://example.com/audio27.mp3',
     coverArt: null,
     isLocal: true,
@@ -424,7 +482,7 @@ export const DEMO_TRACKS = [
     title: 'Obsidian Waves',
     artist: 'Black Sand',
     album: 'Volcanic Shore',
-    duration: 248, // 4:08
+    duration: 248,
     uri: 'https://example.com/audio28.mp3',
     coverArt: null,
     isLocal: true,
@@ -436,7 +494,7 @@ export const DEMO_TRACKS = [
     title: 'Harmonic Pulse',
     artist: 'Sine Wave Co.',
     album: 'Pure Tones',
-    duration: 180, // 3:00
+    duration: 180,
     uri: 'https://example.com/audio29.mp3',
     coverArt: null,
     isLocal: true,
@@ -448,7 +506,7 @@ export const DEMO_TRACKS = [
     title: 'Zenith',
     artist: 'Aero Static',
     album: 'High Altitude',
-    duration: 290, // 4:50
+    duration: 290,
     uri: 'https://example.com/audio30.mp3',
     coverArt: null,
     isLocal: true,
@@ -456,3 +514,28 @@ export const DEMO_TRACKS = [
     genre: 'Dream Minimal',
   }
 ];
+
+const DEMO_COVER_IDS = [
+  'cyber_waves',
+  'solaris_amber',
+  'electric_pulse',
+  'crimson_nebula',
+  'violet_aurora',
+  'ocean_resonance',
+  'amber_geometry',
+  'emerald_flow',
+  'neon_flow',
+  'quantum_prism',
+  'liquid_prism',
+  'cosmic_aura',
+  'amber_spectrum',
+  'midnight_echo',
+  'ceramic_flow',
+  'warm_geometry',
+  'liquid_chrome',
+];
+
+export const DEMO_TRACKS = RAW_DEMO_TRACKS.map((t, idx) => ({
+  ...t,
+  coverId: t.coverId || DEMO_COVER_IDS[idx % DEMO_COVER_IDS.length],
+}));

@@ -40,7 +40,6 @@ export const MiniPlayer = ({ onOpenFullPlayer }) => {
     };
   });
 
-  // Sanatçı adı kaybolunca başlık dikey olarak ortalansın diye aşağı kayar
   const titleWrapperAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [{ translateY: compactProgress.value * 7 }],
@@ -82,10 +81,9 @@ export const MiniPlayer = ({ onOpenFullPlayer }) => {
       >
         <Animated.View style={[styles.container, containerAnimatedStyle]}>
           <View style={styles.contentRow}>
-            {/* Sol: Kapak ve Şarkı Bilgisi */}
             <View style={styles.leftInfo}>
               <Animated.View style={artworkAnimatedStyle}>
-                <AlbumArtwork size={40} index={currentTrack.trackNumber || 1} />
+                <AlbumArtwork size={40} index={currentTrack.trackNumber || 1} coverId={currentTrack.coverId} />
               </Animated.View>
 
               <Animated.View style={[styles.textWrapper, titleWrapperAnimatedStyle]}>
@@ -100,7 +98,6 @@ export const MiniPlayer = ({ onOpenFullPlayer }) => {
               </Animated.View>
             </View>
 
-            {/* Sağ: Kontroller */}
             <View style={styles.controlsRow}>
               <Animated.View style={heartAnimatedStyle}>
                 <TouchableOpacity

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Heart } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../theme';
+import { colors, spacing } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
 import Header from '../components/common/Header';
 import SongItem from '../components/home/SongItem';
-import MiniPlayer from '../components/player/MiniPlayer';
-import FullPlayerModal from '../components/player/FullPlayerModal';
-import AddToPlaylistModal from '../components/playlist/AddToPlaylistModal';
 
 export const FavoritesScreen = () => {
   const insets = useSafeAreaInsets();
@@ -27,16 +24,15 @@ export const FavoritesScreen = () => {
     playTrack,
     toggleFavorite,
     onScrollForPlayer,
+    openAddToPlaylist,
   } = usePlayer();
-
-  const [isPlayerModalVisible, setIsPlayerModalVisible] = useState(false);
-  const [playlistTargetTrack, setPlaylistTargetTrack] = useState(null);
 
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 16) + spacing.sm;
   const bottomPadding = 220;
 
-  // Favori parçalar
-  const favoriteTracks = tracks.filter((t) => favorites.includes(t.id));
+  const favoriteTracks = useMemo(() => {
+    return tracks.filter((t) => favorites.includes(t.id));
+  }, [tracks, favorites]);
 
   return (
     <View style={styles.mainWrapper}>
@@ -44,7 +40,7 @@ export const FavoritesScreen = () => {
         data={favoriteTracks}
         keyExtractor={(item) => item.id.toString()}
         onScroll={onScrollForPlayer}
-        scrollEventThrottle={16}
+        scrollEventThrottle={64}
         initialNumToRender={8}
         maxToRenderPerBatch={8}
         windowSize={5}
@@ -69,7 +65,7 @@ export const FavoritesScreen = () => {
               isFavorite={true}
               onPress={playTrack}
               onToggleFavorite={toggleFavorite}
-              onOpenPlaylistModal={(track) => setPlaylistTargetTrack(track)}
+              onOpenPlaylistModal={openAddToPlaylist}
             />
           </View>
         )}
@@ -89,7 +85,6 @@ export const FavoritesScreen = () => {
         }
       />
 
-      {/* Ekranın En Üstündeki Yumuşak Kaybolma Gradienti */}
       <LinearGradient
         colors={[
           colors.background,
@@ -99,22 +94,6 @@ export const FavoritesScreen = () => {
         locations={[0, 0.5, 1]}
         style={[styles.gradientTop, { height: topPadding + 16 }]}
         pointerEvents="none"
-      />
-
-      {/* Mini Player */}
-      <MiniPlayer onOpenFullPlayer={() => setIsPlayerModalVisible(true)} />
-
-      {/* Full Player Modal */}
-      <FullPlayerModal
-        visible={isPlayerModalVisible}
-        onClose={() => setIsPlayerModalVisible(false)}
-      />
-
-      {/* Şarkıyı Çalma Listesine Ekleme Modalı */}
-      <AddToPlaylistModal
-        visible={!!playlistTargetTrack}
-        track={playlistTargetTrack}
-        onClose={() => setPlaylistTargetTrack(null)}
       />
     </View>
   );
@@ -133,42 +112,44 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   listContent: {
-    // Dinamik paddingTop ve paddingBottom ile desteklenir
   },
   headerContainer: {
     paddingBottom: spacing.xs,
   },
   listTitleRow: {
-    paddingHorizontal: spacing.lg,
+    marginTop: spacing.sm,
     marginBottom: spacing.xs,
+    paddingHorizontal: spacing.lg,
   },
   listTitle: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-    letterSpacing: typography.letterSpacing.wide,
+    fontFamily: 'Geist_700Bold',
+    fontSize: 14,
+    color: colors.textSecondary,
+    letterSpacing: -0.2,
   },
   songItemWrapper: {
     paddingHorizontal: spacing.sm,
+    marginBottom: spacing.xs,
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.huge,
-    paddingHorizontal: spacing.xl,
-    gap: spacing.xs,
+    paddingVertical: spacing.xxl * 1.5,
+    gap: spacing.sm,
   },
   emptyTitle: {
-    fontFamily: typography.fonts.bold,
-    fontSize: typography.sizes.base,
+    fontFamily: 'Geist_700Bold',
+    fontSize: 16,
     color: colors.textPrimary,
     marginTop: spacing.xs,
   },
   emptyDesc: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
+    fontFamily: 'Geist_400Regular',
+    fontSize: 13,
+    color: colors.textTertiary,
     textAlign: 'center',
+    paddingHorizontal: spacing.xl,
+    lineHeight: 18,
   },
 });
 

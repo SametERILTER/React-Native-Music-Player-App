@@ -5,6 +5,7 @@
   "dependencies": {
     "@expo-google-fonts/doto": "^0.4.1",
     "@expo-google-fonts/geist": "^0.4.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/slider": "5.2.0",
     "@react-navigation/bottom-tabs": "^7.19.2",
     "@react-navigation/native": "^7.4.1",
@@ -31,8 +32,8 @@
   },
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "postinstall": "patch-package",
     "lint": "expo lint"

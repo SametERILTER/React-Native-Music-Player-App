@@ -7,10 +7,9 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import { House, ListMusic, Search, Heart } from 'lucide-react-native';
+import { House, ListMusic, Search, Heart, Settings } from 'lucide-react-native';
 import { colors, radius } from '../../theme';
 
-// Tekil Tab Butonu (Mikro büyüme ve yaylanma animasyonu ile)
 const TabButton = ({
   route,
   isFocused,
@@ -28,6 +27,7 @@ const TabButton = ({
   });
 
   const handlePressIn = () => {
+    // eslint-disable-next-line react-hooks/immutability
     itemScale.value = withSpring(1.08, {
       damping: 12,
       stiffness: 300,
@@ -37,6 +37,7 @@ const TabButton = ({
   };
 
   const handlePressOut = () => {
+    // eslint-disable-next-line react-hooks/immutability
     itemScale.value = withSpring(1, {
       damping: 14,
       stiffness: 260,
@@ -71,7 +72,6 @@ export const FloatingTabBar = ({ state, descriptors, navigation }) => {
   const insets = useSafeAreaInsets();
   const bottomMargin = Math.max(insets.bottom, 16);
 
-  // Tab Bar'ın tamamı için basınca hafif büyüme animasyonu
   const barScale = useSharedValue(1);
 
   const barAnimatedStyle = useAnimatedStyle(() => {
@@ -81,6 +81,7 @@ export const FloatingTabBar = ({ state, descriptors, navigation }) => {
   });
 
   const handleBarPressIn = () => {
+    // eslint-disable-next-line react-hooks/immutability
     barScale.value = withSpring(1.045, {
       damping: 14,
       stiffness: 280,
@@ -89,6 +90,7 @@ export const FloatingTabBar = ({ state, descriptors, navigation }) => {
   };
 
   const handleBarPressOut = () => {
+    // eslint-disable-next-line react-hooks/immutability
     barScale.value = withSpring(1, {
       damping: 14,
       stiffness: 240,
@@ -117,6 +119,8 @@ export const FloatingTabBar = ({ state, descriptors, navigation }) => {
             fill={isFocused ? colors.textInverse : 'transparent'}
           />
         );
+      case 'Settings':
+        return <Settings size={size} color={iconColor} strokeWidth={strokeWidth} />;
       default:
         return <House size={size} color={iconColor} strokeWidth={strokeWidth} />;
     }
@@ -124,7 +128,6 @@ export const FloatingTabBar = ({ state, descriptors, navigation }) => {
 
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
-      {/* Alttan Yukarı Doğru Yumuşak Kaybolma Gradienti */}
       <LinearGradient
         colors={[
           'rgba(243, 243, 243, 0)',
@@ -137,7 +140,6 @@ export const FloatingTabBar = ({ state, descriptors, navigation }) => {
         pointerEvents="none"
       />
 
-      {/* Yüzen Tab Bar */}
       <View style={[styles.tabBarInner, { paddingBottom: bottomMargin }]} pointerEvents="box-none">
         <Animated.View style={[styles.container, barAnimatedStyle]}>
           {state.routes.map((route, index) => {

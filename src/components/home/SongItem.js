@@ -5,7 +5,7 @@ import { colors, typography, spacing, radius } from '../../theme';
 import { formatTime } from '../../services/musicService';
 import AlbumArtwork from './AlbumArtwork';
 
-export const SongItem = ({
+export const SongItem = React.memo(({
   track,
   index,
   isCurrent,
@@ -24,10 +24,14 @@ export const SongItem = ({
       activeOpacity={0.65}
       onPress={() => track && onPress && onPress(track)}
     >
-      {/* Sol Kısım: Albüm Kapak & Şarkı Bilgisi */}
       <View style={styles.leftSection}>
         <View style={styles.artworkContainer}>
-          <AlbumArtwork size={44} index={index + 1} />
+          <AlbumArtwork
+            size={52}
+            borderRadius={radius.md + 2}
+            index={index + 1}
+            coverId={track?.coverId}
+          />
           {isCurrent && isPlaying && (
             <View style={styles.playingOverlay}>
               <View style={styles.playingDot} />
@@ -53,7 +57,6 @@ export const SongItem = ({
         </View>
       </View>
 
-      {/* Sağ Kısım: Süre, Favori & Listeye Ekle */}
       <View style={styles.rightSection}>
         <Text style={styles.duration}>
           {formatTime(track?.duration || 0)}
@@ -85,14 +88,14 @@ export const SongItem = ({
       </View>
     </TouchableOpacity>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 7,
+    paddingVertical: 8,
     paddingHorizontal: spacing.xs,
     borderWidth: 0,
     borderBottomWidth: 0,
@@ -114,9 +117,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: -2,
     right: -2,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: colors.primary,
     borderWidth: 2,
     borderColor: colors.card,
@@ -130,7 +133,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryContrast,
   },
   trackInfo: {
-    marginLeft: spacing.sm + 2,
+    marginLeft: spacing.md - 2,
     flex: 1,
   },
   title: {
@@ -183,4 +186,6 @@ const styles = StyleSheet.create({
   },
 });
 
-export default React.memo(SongItem);
+SongItem.displayName = 'SongItem';
+
+export default SongItem;

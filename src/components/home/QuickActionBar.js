@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { Shuffle, Play, HardDrive, RefreshCw } from 'lucide-react-native';
+import { Shuffle, Play, RefreshCw } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../theme';
 
 export const QuickActionBar = ({
@@ -10,19 +10,12 @@ export const QuickActionBar = ({
   isShuffleActive,
   onScanDevice,
   isScanningDevice,
-  deviceTrackCount = 0,
 }) => {
   return (
     <View style={styles.container}>
       <View style={styles.countWrapper}>
         <Text style={styles.countNumber}>{trackCount}</Text>
         <Text style={styles.countLabel}>PARÇA</Text>
-        {deviceTrackCount > 0 && (
-          <View style={styles.deviceBadge}>
-            <HardDrive size={10} color={colors.textSecondary} />
-            <Text style={styles.deviceBadgeText}>{deviceTrackCount} Yerel</Text>
-          </View>
-        )}
       </View>
 
       <View style={styles.actionsWrapper}>
@@ -99,21 +92,6 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xxs,
     color: colors.textMuted,
     letterSpacing: typography.letterSpacing.wider,
-  },
-  deviceBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.backgroundSecondary,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius.sm,
-    gap: 3,
-    marginLeft: 4,
-  },
-  deviceBadgeText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xxs,
-    color: colors.textSecondary,
   },
   actionsWrapper: {
     flexDirection: 'row',

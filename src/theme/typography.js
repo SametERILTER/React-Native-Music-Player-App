@@ -1,6 +1,3 @@
-/**
- * Google Fonts Geist Tipografi Sistemi
- */
 
 export const typography = {
   fonts: {

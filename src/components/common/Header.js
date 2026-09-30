@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { RefreshCw, Music } from 'lucide-react-native';
+import { RefreshCw } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../theme';
 
-export const Header = ({ title, subtitle, onRefresh, isRefreshing }) => {
+export const Header = ({ title, subtitle, onRefresh, isRefreshing, style }) => {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <View style={styles.titleWrapper}>
         {subtitle ? <Text style={styles.subtitle}>{subtitle.toUpperCase()}</Text> : null}
         <Text style={styles.title}>{title}</Text>

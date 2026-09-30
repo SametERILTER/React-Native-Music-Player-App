@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, ActivityIndicator, StyleSheet, Appearance } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -15,7 +15,20 @@ import { PlayerProvider } from './src/context/PlayerContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { colors } from './src/theme';
 
+if (Appearance && Appearance.setColorScheme) {
+  try {
+    Appearance.setColorScheme('light');
+  } catch (e) {}
+}
+
 export default function App() {
+  useEffect(() => {
+    if (Appearance && Appearance.setColorScheme) {
+      try {
+        Appearance.setColorScheme('light');
+      } catch (e) {}
+    }
+  }, []);
   const [fontsLoaded] = useFonts({
     Geist_400Regular,
     Geist_500Medium,
