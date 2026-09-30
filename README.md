@@ -54,11 +54,6 @@ Most Android media stores lump audio files together, mixing personal music with 
 * **Local Metadata Editing**: Modify track titles, artist names, and album tags locally within the app's database without altering the underlying files on disk.
 * **Favorites System**: Direct one-tap favoriting accessible across track rows, context options sheets, and the main player view.
 
-### 5. Search and Quick Navigation
-* **Debounced Fast Search**: Real-time filtering across titles, artists, and albums without interface lag.
-* **Filter Chips**: Filter by All, Tracks, Artists, or Albums for scoped exploration.
-* **Floating Bottom Tab Bar**: A detached pill bar with spring-damped press feedback, contextual route highlights, and automatic safe-area calculation for edge-to-edge screens.
-
 ---
 
 ## Architecture and Codebase Structure
