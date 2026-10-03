@@ -18,7 +18,7 @@ import { colors } from './src/theme';
 if (Appearance && Appearance.setColorScheme) {
   try {
     Appearance.setColorScheme('light');
-  } catch (e) {}
+  } catch (e) { }
 }
 
 export default function App() {
@@ -26,7 +26,7 @@ export default function App() {
     if (Appearance && Appearance.setColorScheme) {
       try {
         Appearance.setColorScheme('light');
-      } catch (e) {}
+      } catch (e) { }
     }
   }, []);
   const [fontsLoaded] = useFonts({

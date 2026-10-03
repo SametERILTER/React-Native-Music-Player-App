@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { safeStorage } from '../services/storageService';
 import { DEMO_TRACKS, fetchDeviceAudioTracks } from '../services/musicService';
 import { setupTrackPlayer, getTrackPlayer } from '../services/trackPlayerService';
 import { ALL_COVERS } from '../constants/playlistCovers';
+import { colors } from '../theme';
 
 const PlayerContext = createContext(null);
 const PlayerProgressContext = createContext({
@@ -11,6 +13,25 @@ const PlayerProgressContext = createContext({
   duration: 180,
   seekTo: () => {},
 });
+
+const DEFAULT_PLAYLISTS = [
+  {
+    id: 'pl-1',
+    name: 'Gece Dinletisi',
+    coverId: 'ceramic_flow',
+    coverPosition: 'left',
+    trackIds: ['demo-1', 'demo-2', 'demo-5', 'demo-8'],
+    createdAt: 1710000000000,
+  },
+  {
+    id: 'pl-2',
+    name: 'Derin Odaklanma',
+    coverId: 'warm_geometry',
+    coverPosition: 'left',
+    trackIds: ['demo-3', 'demo-4', 'demo-6', 'demo-9', 'demo-12'],
+    createdAt: 1710000050000,
+  },
+];
 
 export const PlayerProgressProvider = ({ isPlaying, currentTrack, onTrackEnded, children }) => {
   const [prevTrackId, setPrevTrackId] = useState(currentTrack?.id);
@@ -77,13 +98,19 @@ export const PlayerProgressProvider = ({ isPlaying, currentTrack, onTrackEnded, 
 };
 
 export const PlayerProvider = ({ children }) => {
-  const [tracks, setTracks] = useState(DEMO_TRACKS);
-  const [currentTrack, setCurrentTrack] = useState(DEMO_TRACKS[0]);
+  const [tracks, setTracks] = useState([]);
+  const [currentTrack, setCurrentTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [favorites, setFavorites] = useState(['demo-1', 'demo-3', 'demo-5']);
+  const [favorites, setFavorites] = useState([]);
+  const [playlists, setPlaylists] = useState(DEFAULT_PLAYLISTS);
   const [isShuffle, setIsShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState('off');
   const [autoPlayNext, setAutoPlayNextState] = useState(true);
+
+  const [isScanningDevice, setIsScanningDevice] = useState(false);
+  const [hasDevicePermission, setHasDevicePermission] = useState(null);
+  const [deviceTrackCount, setDeviceTrackCount] = useState(0);
+  const [isLibraryLoaded, setIsLibraryLoaded] = useState(false);
 
   const [trackCovers, setTrackCovers] = useState({});
   const trackCoversRef = useRef({});
@@ -112,29 +139,114 @@ export const PlayerProvider = ({ children }) => {
     });
   }, []);
 
+  const CACHED_TRACKS_KEY = '@musicplayer_cached_device_tracks';
+
   useEffect(() => {
-    safeStorage.getItem('@musicplayer_track_covers')
-      .then((stored) => {
-        if (stored) {
+    let isMounted = true;
+    const initializeLibrary = async () => {
+      try {
+        const [storedCovers, storedTracks, storedFavorites, storedPlaylists] = await Promise.all([
+          safeStorage.getItem('@musicplayer_track_covers'),
+          safeStorage.getItem(CACHED_TRACKS_KEY),
+          safeStorage.getItem('@musicplayer_favorites'),
+          safeStorage.getItem('@musicplayer_playlists'),
+        ]);
+
+        if (!isMounted) return;
+
+        if (storedPlaylists) {
           try {
-            const parsed = JSON.parse(stored);
-            setTrackCovers(parsed);
-            trackCoversRef.current = parsed;
-            setTracks((prev) =>
-              prev.map((t) => (parsed[t.id] ? { ...t, coverId: parsed[t.id] } : t))
-            );
-            setCurrentTrack((curr) => {
-              if (curr && parsed[curr.id]) {
-                return { ...curr, coverId: parsed[curr.id] };
-              }
-              return curr;
-            });
+            const parsedPl = JSON.parse(storedPlaylists);
+            if (Array.isArray(parsedPl)) setPlaylists(parsedPl);
+          } catch (_) {}
+        }
+
+        if (storedFavorites) {
+          try {
+            const parsedFavs = JSON.parse(storedFavorites);
+            if (Array.isArray(parsedFavs)) setFavorites(parsedFavs);
+          } catch (_) {}
+        }
+
+        let parsedCovers = {};
+        if (storedCovers) {
+          try {
+            parsedCovers = JSON.parse(storedCovers) || {};
+            setTrackCovers(parsedCovers);
+            trackCoversRef.current = parsedCovers;
           } catch (e) {
             console.warn('Cover parse hatası:', e);
           }
         }
-      })
-      .catch((e) => console.warn('Kayıtlı kapaklar yüklenirken hata:', e));
+
+        let deviceTracks = [];
+        if (storedTracks) {
+          try {
+            const parsed = JSON.parse(storedTracks);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              deviceTracks = parsed;
+            }
+          } catch (_) {}
+        }
+
+        // Açılışta cihaz şarkılarını bekleterek tara (böylece ekran açıldığında sayı zaten 31 olur)
+        try {
+          const scanRes = await fetchDeviceAudioTracks();
+          if (scanRes && scanRes.success && Array.isArray(scanRes.tracks)) {
+            setHasDevicePermission(true);
+            if (scanRes.tracks.length > 0) {
+              deviceTracks = scanRes.tracks;
+              safeStorage
+                .setItem(CACHED_TRACKS_KEY, JSON.stringify(scanRes.tracks))
+                .catch(() => {});
+            }
+          }
+        } catch (scanErr) {
+          console.warn('Açılış cihaz tarama uyarısı:', scanErr);
+        }
+
+        if (!isMounted) return;
+
+        const covers = trackCoversRef.current || parsedCovers;
+        const tracksWithCovers = deviceTracks.map((t) => ({
+          ...t,
+          coverId: covers[t.id] || t.coverId || null,
+        }));
+
+        setDeviceTrackCount(deviceTracks.length);
+
+        const demoTracksWithCovers = DEMO_TRACKS.map((t) => ({
+          ...t,
+          coverId: covers[t.id] || t.coverId || null,
+        }));
+
+        const allTracks = [...tracksWithCovers, ...demoTracksWithCovers];
+        setTracks(allTracks);
+
+        setCurrentTrack((curr) => {
+          if (!curr) {
+            return allTracks[0];
+          }
+          return curr;
+        });
+      } catch (err) {
+        console.warn('Kütüphane başlatılırken hata:', err);
+        if (isMounted) {
+          setTracks(DEMO_TRACKS);
+          setCurrentTrack(DEMO_TRACKS[0]);
+        }
+      } finally {
+        if (isMounted) {
+          // Tüm parçalar tam olarak hazır olduktan sonra ekran açılır (asla 30'dan 31'e sıçramaz)
+          setIsLibraryLoaded(true);
+        }
+      }
+    };
+
+    initializeLibrary();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const updateTrackCover = useCallback((trackId, coverId) => {
@@ -225,9 +337,6 @@ export const PlayerProvider = ({ children }) => {
   const closeAddToPlaylist = closeSongOptions;
   const playlistModalTrack = songOptionsTrack;
 
-  const [isScanningDevice, setIsScanningDevice] = useState(false);
-  const [hasDevicePermission, setHasDevicePermission] = useState(null);
-  const [deviceTrackCount, setDeviceTrackCount] = useState(0);
 
   const isTrackPlayerReady = useRef(false);
   const compactProgress = useSharedValue(0);
@@ -271,24 +380,7 @@ export const PlayerProvider = ({ children }) => {
     lastScrollY.current = currentY;
   }, [compactProgress]);
 
-  const [playlists, setPlaylists] = useState([
-    {
-      id: 'pl-1',
-      name: 'Gece Dinletisi',
-      coverId: 'ceramic_flow',
-      coverPosition: 'left',
-      trackIds: ['demo-1', 'demo-2', 'demo-5', 'demo-8'],
-      createdAt: 1710000000000,
-    },
-    {
-      id: 'pl-2',
-      name: 'Derin Odaklanma',
-      coverId: 'warm_geometry',
-      coverPosition: 'left',
-      trackIds: ['demo-3', 'demo-4', 'demo-6', 'demo-9', 'demo-12'],
-      createdAt: 1710000050000,
-    },
-  ]);
+
 
   const playTrack = useCallback(async (track) => {
     if (!track) return;
@@ -393,11 +485,13 @@ export const PlayerProvider = ({ children }) => {
   }, [repeatMode, autoPlayNext, playNext]);
 
   const toggleFavorite = useCallback((trackId) => {
-    setFavorites((prev) =>
-      prev.includes(trackId)
+    setFavorites((prev) => {
+      const next = prev.includes(trackId)
         ? prev.filter((id) => id !== trackId)
-        : [...prev, trackId]
-    );
+        : [...prev, trackId];
+      safeStorage.setItem('@musicplayer_favorites', JSON.stringify(next)).catch(() => {});
+      return next;
+    });
   }, []);
 
   const toggleShuffle = useCallback(() => {
@@ -414,14 +508,18 @@ export const PlayerProvider = ({ children }) => {
       trackIds: [],
       createdAt: Date.now(),
     };
-    setPlaylists((prev) => [newPl, ...prev]);
+    setPlaylists((prev) => {
+      const next = [newPl, ...prev];
+      safeStorage.setItem('@musicplayer_playlists', JSON.stringify(next)).catch(() => {});
+      return next;
+    });
     return newPl;
-  }, []);
+  }, [setPlaylists]);
 
   const updatePlaylist = useCallback((playlistId, updates) => {
     if (!playlistId || !updates) return;
-    setPlaylists((prev) =>
-      prev.map((pl) => {
+    setPlaylists((prev) => {
+      const next = prev.map((pl) => {
         if (pl.id !== playlistId) return pl;
         return {
           ...pl,
@@ -429,17 +527,23 @@ export const PlayerProvider = ({ children }) => {
           ...(updates.coverId !== undefined && { coverId: updates.coverId }),
           ...(updates.coverPosition !== undefined && { coverPosition: updates.coverPosition }),
         };
-      })
-    );
-  }, []);
+      });
+      safeStorage.setItem('@musicplayer_playlists', JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, [setPlaylists]);
 
   const deletePlaylist = useCallback((playlistId) => {
-    setPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
-  }, []);
+    setPlaylists((prev) => {
+      const next = prev.filter((p) => p.id !== playlistId);
+      safeStorage.setItem('@musicplayer_playlists', JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, [setPlaylists]);
 
   const toggleTrackInPlaylist = useCallback((playlistId, trackId) => {
-    setPlaylists((prev) =>
-      prev.map((pl) => {
+    setPlaylists((prev) => {
+      const next = prev.map((pl) => {
         if (pl.id !== playlistId) return pl;
         const exists = pl.trackIds.includes(trackId);
         const updatedTrackIds = exists
@@ -449,23 +553,35 @@ export const PlayerProvider = ({ children }) => {
           ...pl,
           trackIds: updatedTrackIds,
         };
-      })
-    );
-  }, []);
+      });
+      safeStorage.setItem('@musicplayer_playlists', JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, [setPlaylists]);
 
   const deleteTrack = useCallback(async (trackId) => {
     if (!trackId) return;
 
-    setTracks((prev) => prev.filter((t) => t.id !== trackId));
+    setTracks((prev) => {
+      const next = prev.filter((t) => t.id !== trackId);
+      if (trackId.startsWith('local-')) {
+        const remainingLocals = next.filter((t) => t.id.startsWith('local-'));
+        setDeviceTrackCount(remainingLocals.length);
+        safeStorage.setItem(CACHED_TRACKS_KEY, JSON.stringify(remainingLocals)).catch(() => {});
+      }
+      return next;
+    });
 
     setFavorites((prev) => prev.filter((id) => id !== trackId));
 
-    setPlaylists((prev) =>
-      prev.map((pl) => ({
+    setPlaylists((prev) => {
+      const next = prev.map((pl) => ({
         ...pl,
         trackIds: pl.trackIds.filter((id) => id !== trackId),
-      }))
-    );
+      }));
+      safeStorage.setItem('@musicplayer_playlists', JSON.stringify(next)).catch(() => {});
+      return next;
+    });
 
     setCurrentTrack((curr) => {
       if (curr && curr.id === trackId) {
@@ -492,32 +608,77 @@ export const PlayerProvider = ({ children }) => {
         console.warn('Dosya cihazdan silinirken uyarı:', err);
       }
     }
-  }, []);
+  }, [setDeviceTrackCount, setPlaylists]);
 
   const scanDeviceTracks = useCallback(async (isUserTriggered = false) => {
-    setIsScanningDevice(true);
+    if (isUserTriggered) {
+      setIsScanningDevice(true);
+    }
     try {
       const res = await fetchDeviceAudioTracks();
       if (res.success) {
         setHasDevicePermission(true);
         if (res.tracks && res.tracks.length > 0) {
+          const covers = trackCoversRef.current || {};
+          const tracksWithCovers = res.tracks.map((t) => ({
+            ...t,
+            coverId: covers[t.id] || t.coverId || null,
+          }));
+
+          const demoTracksWithCovers = DEMO_TRACKS.map((t) => ({
+            ...t,
+            coverId: covers[t.id] || t.coverId || null,
+          }));
+
           setDeviceTrackCount(res.tracks.length);
+
+          let hasChanges = false;
           setTracks((prev) => {
-            const demoOnly = prev.filter((t) => !t.id.startsWith('local-'));
-            return [...res.tracks, ...demoOnly];
+            const currentLocals = prev.filter((t) => t.id.startsWith('local-'));
+            const isSameCount = currentLocals.length === tracksWithCovers.length;
+            const isSameList =
+              isSameCount && currentLocals.every((t, i) => t.id === tracksWithCovers[i]?.id);
+
+            if (isSameList) {
+              hasChanges = false;
+              return prev;
+            }
+
+            hasChanges = true;
+            return [...tracksWithCovers, ...demoTracksWithCovers];
           });
+
+          // Önbelleğe kaydet
+          safeStorage
+            .setItem(CACHED_TRACKS_KEY, JSON.stringify(res.tracks))
+            .catch((err) => console.warn('Önbellek kayıt hatası:', err));
+
           setCurrentTrack((prev) => {
-            if (!prev || prev.id.startsWith('demo-')) {
-              return res.tracks[0];
+            if (!prev) {
+              return tracksWithCovers[0];
             }
             return prev;
           });
-        } else if (isUserTriggered) {
-          const { Alert } = require('react-native');
-          Alert.alert('Bilgi', 'Cihazınızda oynatılabilir ses dosyası bulunamadı.');
+
+          if (isUserTriggered) {
+            const { Alert } = require('react-native');
+            if (hasChanges) {
+              Alert.alert('Tarama Tamamlandı', `${res.tracks.length} adet müzik kütüphanenize yüklendi.`);
+            } else {
+              Alert.alert('Kütüphane Güncel', `Tüm müzikleriniz (${res.tracks.length} parça) zaten güncel.`);
+            }
+          }
+        } else {
+          setDeviceTrackCount(0);
+          setTracks((prev) => (prev.length === 0 ? DEMO_TRACKS : prev));
+          if (isUserTriggered) {
+            const { Alert } = require('react-native');
+            Alert.alert('Bilgi', 'Cihazınızda oynatılabilir ses dosyası bulunamadı.');
+          }
         }
       } else if (res.reason === 'native_module_unavailable') {
         setHasDevicePermission(false);
+        setTracks((prev) => (prev.length === 0 ? DEMO_TRACKS : prev));
         if (isUserTriggered) {
           const { Alert } = require('react-native');
           Alert.alert(
@@ -535,16 +696,13 @@ export const PlayerProvider = ({ children }) => {
     } catch (err) {
       console.warn('Cihaz müzikleri taranırken hata oluştu:', err);
     } finally {
-      setIsScanningDevice(false);
+      if (isUserTriggered) {
+        setIsScanningDevice(false);
+      }
     }
-  }, []);
+  }, [setDeviceTrackCount]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      scanDeviceTracks();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [scanDeviceTracks]);
+
 
   const playerValue = useMemo(() => ({
     tracks,
@@ -633,6 +791,14 @@ export const PlayerProvider = ({ children }) => {
     closeAddToPlaylist,
   ]);
 
+  if (!isLibraryLoaded) {
+    return (
+      <View style={loadingStyles.container}>
+        <ActivityIndicator size="small" color={colors.textPrimary} />
+      </View>
+    );
+  }
+
   return (
     <PlayerContext.Provider value={playerValue}>
       <PlayerProgressProvider
@@ -645,6 +811,15 @@ export const PlayerProvider = ({ children }) => {
     </PlayerContext.Provider>
   );
 };
+
+const loadingStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
 
 export const usePlayer = () => {
   const context = useContext(PlayerContext);
