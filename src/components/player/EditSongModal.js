@@ -19,7 +19,7 @@ import Animated, {
   Easing,
   runOnJS,
 } from 'react-native-reanimated';
-import { X, Check, CheckCircle2, ListPlus, Sparkles } from 'lucide-react-native';
+import { X, Check, CheckCircle2, ListPlus } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../theme';
 import { ALL_COVERS } from '../../constants/playlistCovers';
 import { usePlayer } from '../../context/PlayerContext';
@@ -129,25 +129,11 @@ const EditSongContent = ({
         </View>
 
         <View style={styles.gradientOptionCard}>
-          <View style={styles.gradientOptionLeft}>
-            <View
-              style={[
-                styles.gradientOptionIconBox,
-                isArtworkGradientEnabled && styles.gradientOptionIconBoxActive,
-              ]}
-            >
-              <Sparkles
-                size={18}
-                color={isArtworkGradientEnabled ? colors.primaryContrast : colors.textPrimary}
-                strokeWidth={2}
-              />
-            </View>
-            <View style={styles.gradientOptionTextWrap}>
-              <Text style={styles.gradientOptionTitle}>Kapak Rengi Gradyanı</Text>
-              <Text style={styles.gradientOptionDesc}>
-                Oynatıcı arka planına kapağın rengini yayar
-              </Text>
-            </View>
+          <View style={styles.gradientOptionTextWrap}>
+            <Text style={styles.gradientOptionTitle}>Kapak Rengi Gradyanı</Text>
+            <Text style={styles.gradientOptionDesc}>
+              Oynatıcı arka planına kapağın rengini yayar
+            </Text>
           </View>
           <Switch
             value={isArtworkGradientEnabled}
@@ -333,8 +319,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 18,
     elevation: 24,
-    height: Math.round(SCREEN_HEIGHT * 0.82),
-    maxHeight: Math.round(SCREEN_HEIGHT * 0.90),
+    height: Math.round(SCREEN_HEIGHT * 0.92),
+    maxHeight: Math.round(SCREEN_HEIGHT * 0.95),
   },
   handleBar: {
     width: 38,
@@ -439,29 +425,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
-  gradientOptionLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: spacing.sm,
-    gap: 12,
-  },
-  gradientOptionIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.md,
-    backgroundColor: colors.card,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  gradientOptionIconBoxActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
   gradientOptionTextWrap: {
     flex: 1,
+    marginRight: spacing.sm,
   },
   gradientOptionTitle: {
     fontFamily: typography.fonts.semiBold,

@@ -8,6 +8,7 @@ import {
   Pressable,
   Image,
   Dimensions,
+  Switch,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -28,7 +29,15 @@ const CLOSE_MS = 220;
 const EASE_OUT = Easing.bezier(0.16, 1, 0.3, 1);
 const EASE_IN = Easing.bezier(0.7, 0, 0.84, 0);
 
-export const PlaylistOptionsModal = ({ visible, playlist, onClose, onAddSongs, onEdit, onDelete }) => {
+export const PlaylistOptionsModal = ({
+  visible,
+  playlist,
+  onClose,
+  onAddSongs,
+  onEdit,
+  onDelete,
+  onToggleGradient,
+}) => {
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(SCREEN_HEIGHT * 0.5);
 
@@ -147,6 +156,24 @@ export const PlaylistOptionsModal = ({ visible, playlist, onClose, onAddSongs, o
                 <Text style={styles.optionTitle}>Düzenle</Text>
                 <Text style={styles.optionDesc}>Çalma listesi adını ve kapak resmini değiştir</Text>
               </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionRow}
+              activeOpacity={0.7}
+              onPress={() => onToggleGradient?.(playlist)}
+            >
+              <View style={styles.optionTextWrap}>
+                <Text style={styles.optionTitle}>Kapak Rengi Gradyanı</Text>
+                <Text style={styles.optionDesc}>Kapağın rengini ekranın üstünden aşağı yayar</Text>
+              </View>
+              <Switch
+                value={Boolean(playlist?.isGradientEnabled)}
+                onValueChange={() => onToggleGradient?.(playlist)}
+                trackColor={{ false: colors.borderLight, true: colors.primary }}
+                thumbColor={colors.card}
+                ios_backgroundColor={colors.borderLight}
+              />
             </TouchableOpacity>
 
             <TouchableOpacity

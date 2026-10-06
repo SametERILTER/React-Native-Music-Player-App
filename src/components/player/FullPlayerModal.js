@@ -26,18 +26,22 @@ import {
   Repeat,
   Heart,
   MoreVertical,
+  Music,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 import { usePlayer, usePlayerProgress } from '../../context/PlayerContext';
 import { formatTime } from '../../services/musicService';
 import { getCoverGradientColors } from '../../constants/playlistCovers';
+import { fetchLyrics } from '../../services/lyricsService';
 import AlbumArtwork from '../home/AlbumArtwork';
 import EditSongModal from './EditSongModal';
+import SyncedLyricsView from './SyncedLyricsView';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const ARTWORK_WIDTH = SCREEN_WIDTH - 56;
 const ARTWORK_HEIGHT = Math.min(Math.round(ARTWORK_WIDTH * 0.94), 310);
+const LYRICS_WIDTH = SCREEN_WIDTH - 28;
 
 const OPEN_DURATION = 360;
 const CLOSE_DURATION = 240;
@@ -62,12 +66,69 @@ export const FullPlayerModal = ({ visible, onClose }) => {
   const { position, duration, seekTo } = usePlayerProgress();
 
   const [isEditSongModalVisible, setIsEditSongModalVisible] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(false);
+  const [hasLyrics, setHasLyrics] = useState(false);
+  const [prevTrackId, setPrevTrackId] = useState(currentTrack?.id);
+
+  if (currentTrack?.id !== prevTrackId) {
+    setPrevTrackId(currentTrack?.id);
+    setShowLyrics(false);
+  }
+
+  useEffect(() => {
+    let isCancelled = false;
+    const check = async () => {
+      if (!currentTrack) {
+        setHasLyrics(false);
+        return;
+      }
+      try {
+        const data = await fetchLyrics(currentTrack);
+        if (!isCancelled) {
+          setHasLyrics(Boolean(data && data.lines && data.lines.length > 0));
+        }
+      } catch (_) {
+        if (!isCancelled) setHasLyrics(false);
+      }
+    };
+    check();
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentTrack]);
 
   const translateY = useSharedValue(START_TRANSLATE_Y);
   const sheetOpacity = useSharedValue(0);
   const sheetScale = useSharedValue(0.97);
   const overlayOpacity = useSharedValue(0);
   const artworkScale = useSharedValue(0.95);
+  const lyricsCrossfade = useSharedValue(0);
+  const lyricsButtonEntrance = useSharedValue(0);
+
+  useEffect(() => {
+    lyricsCrossfade.value = withTiming(showLyrics ? 1 : 0, {
+      duration: 320,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+    });
+  }, [showLyrics, lyricsCrossfade]);
+
+  useEffect(() => {
+    let timeoutId = null;
+    if (visible && hasLyrics) {
+      // Modal ilk açılırken buton hemen çıkmaz, modal açıldıktan sonra kapak hafifçe yukarı kayıp buton belirir
+      timeoutId = setTimeout(() => {
+        lyricsButtonEntrance.value = withTiming(1, {
+          duration: 380,
+          easing: Easing.bezier(0.2, 0, 0, 1),
+        });
+      }, 260);
+    } else {
+      lyricsButtonEntrance.value = 0;
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [visible, hasLyrics, lyricsButtonEntrance]);
 
   useEffect(() => {
     if (visible) {
@@ -86,6 +147,9 @@ export const FullPlayerModal = ({ visible, onClose }) => {
   }, [visible, artworkScale, overlayOpacity, sheetOpacity, sheetScale, translateY]);
 
   const handleClose = useCallback(() => {
+    setShowLyrics(false);
+    // eslint-disable-next-line react-hooks/immutability
+    lyricsButtonEntrance.value = 0;
     // eslint-disable-next-line react-hooks/immutability
     overlayOpacity.value = withTiming(0, { duration: CLOSE_DURATION, easing: EASE_IN });
     // eslint-disable-next-line react-hooks/immutability
@@ -98,7 +162,7 @@ export const FullPlayerModal = ({ visible, onClose }) => {
     translateY.value = withTiming(START_TRANSLATE_Y, { duration: CLOSE_DURATION, easing: EASE_IN }, (finished) => {
       if (finished) runOnJS(onClose)();
     });
-  }, [onClose, artworkScale, overlayOpacity, sheetOpacity, sheetScale, translateY]);
+  }, [onClose, artworkScale, overlayOpacity, sheetOpacity, sheetScale, translateY, lyricsButtonEntrance]);
 
   const sheetStyle = useAnimatedStyle(() => ({
     opacity: sheetOpacity.value,
@@ -113,7 +177,28 @@ export const FullPlayerModal = ({ visible, onClose }) => {
   }));
 
   const artworkAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: artworkScale.value }],
+    transform: [
+      { scale: artworkScale.value },
+      { translateY: lyricsButtonEntrance.value * -14 },
+    ],
+  }));
+
+  const lyricsButtonAnimStyle = useAnimatedStyle(() => ({
+    opacity: lyricsButtonEntrance.value,
+    transform: [
+      { translateY: (1 - lyricsButtonEntrance.value) * 10 },
+      { scale: 0.88 + lyricsButtonEntrance.value * 0.12 },
+    ],
+  }));
+
+  const artworkCrossfadeStyle = useAnimatedStyle(() => ({
+    opacity: 1 - lyricsCrossfade.value,
+    transform: [{ scale: 1 - lyricsCrossfade.value * 0.04 }],
+  }));
+
+  const lyricsCrossfadeStyle = useAnimatedStyle(() => ({
+    opacity: lyricsCrossfade.value,
+    transform: [{ scale: 0.96 + lyricsCrossfade.value * 0.04 }],
   }));
 
   const [isSeeking, setIsSeeking] = useState(false);
@@ -192,18 +277,72 @@ export const FullPlayerModal = ({ visible, onClose }) => {
           </View>
 
           <Animated.View style={[styles.artworkSection, artworkAnimStyle]}>
-            <View style={styles.artworkCard}>
-              <AlbumArtwork
-                width={ARTWORK_WIDTH}
-                height={ARTWORK_HEIGHT}
-                index={currentTrack.trackNumber || 1}
-                coverId={currentTrack.coverId}
-                borderRadius={radius.xl}
-              />
+            <View style={styles.artworkContainer} collapsable={false}>
+              <Animated.View
+                style={[styles.artworkLayer, artworkCrossfadeStyle]}
+                pointerEvents={showLyrics ? 'none' : 'auto'}
+              >
+                <TouchableOpacity
+                  style={styles.artworkCard}
+                  activeOpacity={0.92}
+                  onPress={() => hasLyrics && setShowLyrics(true)}
+                >
+                  <AlbumArtwork
+                    width={ARTWORK_WIDTH}
+                    height={ARTWORK_HEIGHT}
+                    index={currentTrack.trackNumber || 1}
+                    coverId={currentTrack.coverId}
+                    borderRadius={radius.xl}
+                  />
+                </TouchableOpacity>
+              </Animated.View>
+
+              <Animated.View
+                style={[styles.lyricsLayer, lyricsCrossfadeStyle]}
+                pointerEvents={showLyrics ? 'auto' : 'none'}
+                collapsable={false}
+              >
+                <SyncedLyricsView
+                  width={LYRICS_WIDTH}
+                  height={ARTWORK_HEIGHT}
+                  currentTrack={currentTrack}
+                  position={currentPosition}
+                  seekTo={seekTo}
+                  onToggleView={() => setShowLyrics(false)}
+                  gradientColors={showGradient ? gradientColors : null}
+                />
+              </Animated.View>
             </View>
           </Animated.View>
 
           <View style={styles.bottomSection}>
+            {hasLyrics && (
+              <Animated.View style={[styles.lyricsButtonContainer, lyricsButtonAnimStyle]}>
+                <TouchableOpacity
+                  style={[
+                    styles.lyricsPillButton,
+                    showLyrics && styles.lyricsPillButtonActive,
+                  ]}
+                  onPress={() => setShowLyrics((prev) => !prev)}
+                  activeOpacity={0.8}
+                >
+                  <Music
+                    size={12}
+                    color={showLyrics ? colors.primaryContrast : colors.textPrimary}
+                    style={{ marginRight: 5 }}
+                  />
+                  <Text
+                    style={[
+                      styles.lyricsPillText,
+                      showLyrics && styles.lyricsPillTextActive,
+                    ]}
+                  >
+                    {showLyrics ? 'Albüm Kapağı' : 'Şarkı Sözleri'}
+                  </Text>
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+
             <View style={styles.metaSection}>
               <View style={styles.titleRow}>
                 <View style={styles.titleTextWrap}>
@@ -355,9 +494,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.42)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -382,9 +519,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: 'rgba(255, 255, 255, 0.42)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -393,7 +528,36 @@ const styles = StyleSheet.create({
     marginTop: -56,
     marginBottom: spacing.xxs,
   },
+  artworkContainer: {
+    width: ARTWORK_WIDTH,
+    height: ARTWORK_HEIGHT,
+    borderRadius: radius.xl,
+    overflow: 'visible',
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  artworkLayer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: ARTWORK_WIDTH,
+    height: ARTWORK_HEIGHT,
+    borderRadius: radius.xl,
+    overflow: 'hidden',
+  },
+  lyricsLayer: {
+    position: 'absolute',
+    top: 0,
+    left: -(LYRICS_WIDTH - ARTWORK_WIDTH) / 2,
+    width: LYRICS_WIDTH,
+    height: ARTWORK_HEIGHT,
+    borderRadius: radius.xl,
+    overflow: 'hidden',
+  },
   artworkCard: {
+    width: ARTWORK_WIDTH,
+    height: ARTWORK_HEIGHT,
     borderRadius: radius.xl,
     borderWidth: 0,
     padding: 0,
@@ -408,6 +572,31 @@ const styles = StyleSheet.create({
     width: '100%',
     paddingBottom: spacing.sm,
     marginTop: -72,
+  },
+  lyricsButtonContainer: {
+    alignItems: 'center',
+    marginTop: -8,
+    marginBottom: 8,
+  },
+  lyricsPillButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.42)',
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+  },
+  lyricsPillButtonActive: {
+    backgroundColor: 'rgba(26, 26, 26, 0.78)',
+  },
+  lyricsPillText: {
+    fontSize: 11,
+    fontFamily: typography.fonts.bold,
+    color: colors.textPrimary,
+    letterSpacing: 0.2,
+  },
+  lyricsPillTextActive: {
+    color: colors.primaryContrast,
   },
   metaSection: {
     marginBottom: spacing.xs,

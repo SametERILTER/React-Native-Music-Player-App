@@ -37,7 +37,8 @@ import SongItem from '../components/home/SongItem';
 import AlbumArtwork from '../components/home/AlbumArtwork';
 import PlaylistOptionsModal from '../components/playlist/PlaylistOptionsModal';
 import EditPlaylistModal from '../components/playlist/EditPlaylistModal';
-import { getPlaylistCoverSource } from '../constants/playlistCovers';
+import { getPlaylistCoverSource, getPlaylistScreenGradientColors } from '../constants/playlistCovers';
+
 
 export const LibraryScreen = ({ route }) => {
   const insets = useSafeAreaInsets();
@@ -118,9 +119,11 @@ export const LibraryScreen = ({ route }) => {
 
   const [detailOpacity] = useState(() => new Animated.Value(0));
   const [detailTranslateY] = useState(() => new Animated.Value(12));
+  const [detailScrollY] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (selectedPlaylistId) {
+      detailScrollY.setValue(0);
       detailOpacity.setValue(0);
       detailTranslateY.setValue(12);
       const frame = requestAnimationFrame(() => {
@@ -141,9 +144,10 @@ export const LibraryScreen = ({ route }) => {
       });
       return () => cancelAnimationFrame(frame);
     }
-  }, [selectedPlaylistId, detailOpacity, detailTranslateY]);
+  }, [selectedPlaylistId, detailOpacity, detailTranslateY, detailScrollY]);
 
   const handleBackToPlaylists = useCallback(() => {
+    detailScrollY.setValue(0);
     setPlaylistSearchQuery('');
     setIsPlaylistOptionsModalVisible(false);
     setIsAddSongsModalVisible(false);
@@ -165,7 +169,7 @@ export const LibraryScreen = ({ route }) => {
       setSelectedPlaylistId(null);
       detailTranslateY.setValue(0);
     });
-  }, [detailOpacity, detailTranslateY]);
+  }, [detailOpacity, detailTranslateY, detailScrollY]);
 
   useEffect(() => {
     if (!selectedPlaylistId) return;
@@ -311,8 +315,32 @@ export const LibraryScreen = ({ route }) => {
 
   const detailKeyExtractor = useCallback((item) => item.id.toString(), []);
 
+  const handleDetailScroll = useCallback(
+    (event) => {
+      onScrollForPlayer(event);
+      const offsetY = event?.nativeEvent?.contentOffset?.y ?? 0;
+      detailScrollY.setValue(offsetY);
+    },
+    [onScrollForPlayer, detailScrollY]
+  );
+
+  const detailGradientTopOpacity = useMemo(() => {
+    if (!activePlaylist?.isGradientEnabled) {
+      return 1;
+    }
+    return detailScrollY.interpolate({
+      inputRange: [80, 200],
+      outputRange: [0, 1],
+      extrapolate: 'clamp',
+    });
+  }, [activePlaylist?.isGradientEnabled, detailScrollY]);
+
   if (selectedPlaylistId && activePlaylist) {
     const activeCoverSource = getPlaylistCoverSource(activePlaylist.coverId);
+    const playlistGradientColors = getPlaylistScreenGradientColors(
+      activePlaylist.coverId,
+      activePlaylist.name || activePlaylist.id || 1
+    );
 
     return (
       <Animated.View
@@ -322,19 +350,34 @@ export const LibraryScreen = ({ route }) => {
         <FlatList
           data={activePlaylistTracks}
           keyExtractor={detailKeyExtractor}
-          onScroll={onScrollForPlayer}
-          scrollEventThrottle={64}
+          onScroll={handleDetailScroll}
+          scrollEventThrottle={16}
           initialNumToRender={8}
           maxToRenderPerBatch={8}
           windowSize={5}
           removeClippedSubviews={Platform.OS === 'android'}
           ListHeaderComponent={
-            <View style={styles.detailHeaderContainer}>
-              <TouchableOpacity
-                style={styles.backBtn}
-                onPress={handleBackToPlaylists}
-                activeOpacity={0.7}
-              >
+            <View style={styles.detailHeaderWrapper}>
+              {activePlaylist.isGradientEnabled && (
+                <LinearGradient
+                  colors={playlistGradientColors}
+                  locations={[0, 0.22, 0.52, 0.80, 1.0]}
+                  style={[
+                    styles.playlistGradientHeader,
+                    {
+                      top: -topPadding - 180,
+                      height: 520 + topPadding + 180,
+                    },
+                  ]}
+                  pointerEvents="none"
+                />
+              )}
+              <View style={styles.detailHeaderContainer}>
+                <TouchableOpacity
+                  style={styles.backBtn}
+                  onPress={handleBackToPlaylists}
+                  activeOpacity={0.7}
+                >
                 <ChevronLeft size={20} color={colors.textPrimary} />
                 <Text style={styles.backBtnText}>Çalma Listeleri</Text>
               </TouchableOpacity>
@@ -438,7 +481,8 @@ export const LibraryScreen = ({ route }) => {
                 </TouchableOpacity>
               </View>
             </View>
-          }
+          </View>
+        }
           renderItem={renderDetailItem}
           contentContainerStyle={[
             styles.listContent,
@@ -460,16 +504,21 @@ export const LibraryScreen = ({ route }) => {
           }
         />
 
-        <LinearGradient
-          colors={[
-            colors.background,
-            'rgba(243, 243, 243, 0.85)',
-            'rgba(243, 243, 243, 0)',
-          ]}
-          locations={[0, 0.5, 1]}
-          style={[styles.gradientTop, { height: topPadding + 16 }]}
+        <Animated.View
+          style={[styles.gradientTop, { height: topPadding + 16, opacity: detailGradientTopOpacity }]}
           pointerEvents="none"
-        />
+        >
+          <LinearGradient
+            colors={[
+              colors.background,
+              'rgba(243, 243, 243, 0.85)',
+              'rgba(243, 243, 243, 0)',
+            ]}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+        </Animated.View>
 
         <PlaylistOptionsModal
           visible={isPlaylistOptionsModalVisible}
@@ -491,6 +540,14 @@ export const LibraryScreen = ({ route }) => {
             const target = optionsTargetPlaylist || activePlaylist;
             if (target) {
               confirmDeletePlaylist(target.id, target.name);
+            }
+          }}
+          onToggleGradient={() => {
+            const target = optionsTargetPlaylist || activePlaylist;
+            if (target) {
+              const nextVal = !target.isGradientEnabled;
+              updatePlaylist(target.id, { isGradientEnabled: nextVal });
+              setOptionsTargetPlaylist((prev) => (prev ? { ...prev, isGradientEnabled: nextVal } : null));
             }
           }}
         />
@@ -785,6 +842,13 @@ export const LibraryScreen = ({ route }) => {
             confirmDeletePlaylist(optionsTargetPlaylist.id, optionsTargetPlaylist.name);
           }
         }}
+        onToggleGradient={() => {
+          if (optionsTargetPlaylist) {
+            const nextVal = !optionsTargetPlaylist.isGradientEnabled;
+            updatePlaylist(optionsTargetPlaylist.id, { isGradientEnabled: nextVal });
+            setOptionsTargetPlaylist((prev) => (prev ? { ...prev, isGradientEnabled: nextVal } : null));
+          }
+        }}
       />
 
       <EditPlaylistModal
@@ -866,6 +930,15 @@ const styles = StyleSheet.create({
   mainWrapper: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  detailHeaderWrapper: {
+    position: 'relative',
+    overflow: 'visible',
+  },
+  playlistGradientHeader: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
   },
   gradientTop: {
     position: 'absolute',

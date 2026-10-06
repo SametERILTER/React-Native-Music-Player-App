@@ -526,6 +526,7 @@ export const PlayerProvider = ({ children }) => {
           ...(updates.name !== undefined && { name: updates.name.trim() || pl.name }),
           ...(updates.coverId !== undefined && { coverId: updates.coverId }),
           ...(updates.coverPosition !== undefined && { coverPosition: updates.coverPosition }),
+          ...(updates.isGradientEnabled !== undefined && { isGradientEnabled: updates.isGradientEnabled }),
         };
       });
       safeStorage.setItem('@musicplayer_playlists', JSON.stringify(next)).catch(() => {});

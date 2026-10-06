@@ -54,6 +54,11 @@ Most Android media stores lump audio files together, mixing personal music with 
 * **Local Metadata Editing**: Modify track titles, artist names, and album tags locally within the app's database without altering the underlying files on disk.
 * **Favorites System**: Direct one-tap favoriting accessible across track rows, context options sheets, and the main player view.
 
+### 5. Synchronized & Plain Lyrics
+* **Real-time Synchronized Lyrics**: Time-synced `.lrc` playback with smooth automatic scrolling that highlights the active line and keeps upcoming lyrics in view.
+* **Interactive Line Seeking**: Tap any lyric line to instantly jump playback to that timestamp.
+* **Lyrics Provider**: Powered by the open and community-driven **[LRCLIB](https://lrclib.net)** service.
+
 ---
 
 ## Architecture and Codebase Structure
@@ -72,7 +77,7 @@ MusicPlayer/
 │   │   ├── common/               # Shared presentational atoms (Header, SearchBar)
 │   │   ├── home/                 # Home screen atoms (SongItem, QuickActionBar, AlbumCard)
 │   │   ├── navigation/           # FloatingTabBar, TabButton with Reanimated gestures
-│   │   ├── player/               # MiniPlayer, FullPlayerModal, EditSongModal
+│   │   ├── player/               # MiniPlayer, FullPlayerModal, SyncedLyricsView, EditSongModal
 │   │   └── playlist/             # PlaylistOptionsModal, EditPlaylistModal, AddToPlaylistModal
 │   ├── constants/                # Theme presets, cover catalogs, layout metrics
 │   ├── context/
@@ -87,6 +92,7 @@ MusicPlayer/
 │   │   └── SettingsScreen.js     # DSP parameters, library scan controls, and preferences
 │   ├── services/
 │   │   ├── audioEngine.js        # WebAudio / Expo Audio fallback and DSP calculations
+│   │   ├── lyricsService.js      # LRCLIB API client, LRC parser, and lyrics caching
 │   │   ├── musicService.js       # Device storage media scanner and junk regex filters
 │   │   ├── storageService.js     # AsyncStorage serialization for playlists and favorites
 │   │   └── trackPlayerService.js # Native background player event handler
@@ -123,6 +129,7 @@ MusicPlayer/
 * **Storage**: `@react-native-async-storage/async-storage` 2.2.0
 * **Typography**: `@expo-google-fonts/geist`, `@expo-google-fonts/doto`
 * **Icons**: `lucide-react-native`
+* **Lyrics Provider**: [LRCLIB](https://lrclib.net) (Open REST API providing time-synchronized `.lrc` and plain lyrics)
 * **Styling**: Vanilla React Native `StyleSheet` with unified design token primitives
 
 ---

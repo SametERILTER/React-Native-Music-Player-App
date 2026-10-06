@@ -175,3 +175,15 @@ export const getCoverGradientColors = (coverId, trackOrIndex = 0, bg = '#F3F3F4'
   ];
 };
 
+export const getPlaylistScreenGradientColors = (coverId, nameOrId = 1) => {
+  const baseColor = getCoverDominantColor(coverId, nameOrId);
+  return [
+    hexToRgba(baseColor, 0.88),
+    hexToRgba(baseColor, 0.70),
+    hexToRgba(baseColor, 0.42),
+    hexToRgba(baseColor, 0.16),
+    hexToRgba(baseColor, 0),
+  ];
+};
+
+
