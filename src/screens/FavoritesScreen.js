@@ -63,7 +63,12 @@ export const FavoritesScreen = () => {
               isCurrent={currentTrack?.id === item.id}
               isPlaying={isPlaying}
               isFavorite={true}
-              onPress={playTrack}
+              onPress={(t) =>
+                playTrack(t, favoriteTracks, {
+                  type: 'favorites',
+                  name: 'Beğenilen Şarkılar',
+                })
+              }
               onToggleFavorite={toggleFavorite}
               onOpenPlaylistModal={openAddToPlaylist}
             />

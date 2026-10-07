@@ -82,6 +82,81 @@ export const isJunkOrVoiceRecording = (asset) => {
   return false;
 };
 
+export const extractTrackMetadata = (rawTitleOrFilename, rawArtist = null, rawAuthor = null, rawAlbum = null) => {
+  let artist = rawArtist || rawAuthor || null;
+  if (typeof artist === 'string') {
+    artist = artist.trim();
+    if (
+      !artist ||
+      artist.toLowerCase() === 'yerel' ||
+      artist.toLowerCase() === 'unknown' ||
+      artist.toLowerCase() === '<unknown>' ||
+      artist.toLowerCase() === 'bilinmeyen'
+    ) {
+      artist = null;
+    }
+  }
+
+  let text = (rawTitleOrFilename || '').trim();
+  if (text.includes('.')) {
+    text = text.substring(0, text.lastIndexOf('.')).trim();
+  }
+
+  text = text
+    .replace(/\[(?:320\s*kbps|128\s*kbps|256\s*kbps|flac|mp3|official|lyrics?|audio|hq)\]/gi, '')
+    .replace(/\[[^\]]*(?:download|mp3|site|web|com|net|org)[^\]]*\]/gi, '')
+    .replace(/\((?:official\s*(?:video|audio|music\s*video)|lyric\s*video|audio|lyrics?|remastered|hd|4k)\)/gi, '')
+    .trim();
+
+  text = text.replace(/^\d{1,3}[\.\s_-]+\s*/, '').trim();
+
+  let title = text;
+
+  const separatorRegex = /\s*(?: - | – | — | ~ )\s*/;
+  if (separatorRegex.test(text)) {
+    const parts = text.split(separatorRegex);
+    if (parts.length >= 2) {
+      const candidateArtist = parts[0].trim();
+      const candidateTitle = parts.slice(1).join(' - ').trim();
+
+      if (candidateArtist && candidateTitle && !/^\d+$/.test(candidateArtist)) {
+        if (!artist) {
+          artist = candidateArtist;
+        }
+        title = candidateTitle;
+      }
+    }
+  } else if (text.includes(' - ')) {
+    const parts = text.split(' - ');
+    if (parts.length >= 2) {
+      const candidateArtist = parts[0].trim();
+      const candidateTitle = parts.slice(1).join(' - ').trim();
+      if (candidateArtist && candidateTitle) {
+        if (!artist) {
+          artist = candidateArtist;
+        }
+        title = candidateTitle;
+      }
+    }
+  }
+
+  title = title.replace(/^[-–—\s]+|[-–—\s]+$/g, '').trim();
+  if (artist) {
+    artist = artist.replace(/^[-–—\s]+|[-–—\s]+$/g, '').trim();
+  }
+
+  if (!title) {
+    title = rawTitleOrFilename || 'İsimsiz Parça';
+  }
+
+  const finalArtist = artist || rawAuthor || 'Bilinmeyen Sanatçı';
+
+  return {
+    title,
+    artist: finalArtist,
+  };
+};
+
 export const fetchDeviceAudioTracks = async () => {
   try {
     if (!MediaLibrary || typeof MediaLibrary.requestPermissionsAsync !== 'function') {
@@ -111,22 +186,24 @@ export const fetchDeviceAudioTracks = async () => {
     const validAssets = media.assets.filter((asset) => !isJunkOrVoiceRecording(asset));
 
     const tracks = validAssets.map((asset, index) => {
-      let title = asset.filename || `Parça ${index + 1}`;
-      if (title.includes('.')) {
-        title = title.substring(0, title.lastIndexOf('.'));
-      }
+      const { title, artist } = extractTrackMetadata(
+        asset.filename || `Parça ${index + 1}`,
+        asset.artist,
+        asset.author || asset.composer,
+        asset.album
+      );
 
       return {
         id: `local-${asset.id}`,
-        title: title,
-        artist: asset.artist || 'Yerel',
+        title,
+        artist,
         album: asset.album || 'Cihaz Müzikleri',
         duration: Math.round(asset.duration || 0),
         uri: asset.uri,
         coverArt: null,
         isLocal: true,
         trackNumber: index + 1,
-        genre: 'Yerel Müzik',
+        genre: asset.genre || 'Müzik',
         creationTime: asset.creationTime,
       };
     });

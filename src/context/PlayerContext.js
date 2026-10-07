@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { safeStorage } from '../services/storageService';
-import { DEMO_TRACKS, fetchDeviceAudioTracks } from '../services/musicService';
+import { DEMO_TRACKS, fetchDeviceAudioTracks, extractTrackMetadata } from '../services/musicService';
 import { setupTrackPlayer, getTrackPlayer } from '../services/trackPlayerService';
 import { ALL_COVERS } from '../constants/playlistCovers';
 import { colors } from '../theme';
@@ -106,6 +106,16 @@ export const PlayerProvider = ({ children }) => {
   const [isShuffle, setIsShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState('off');
   const [autoPlayNext, setAutoPlayNextState] = useState(true);
+  const [queue, setQueue] = useState([]);
+  const [playbackContext, setPlaybackContext] = useState(null);
+
+  const toggleRepeatMode = useCallback(() => {
+    setRepeatMode((prev) => {
+      if (prev === 'off') return 'all';
+      if (prev === 'all') return 'one';
+      return 'off';
+    });
+  }, []);
 
   const [isScanningDevice, setIsScanningDevice] = useState(false);
   const [hasDevicePermission, setHasDevicePermission] = useState(null);
@@ -114,6 +124,8 @@ export const PlayerProvider = ({ children }) => {
 
   const [trackCovers, setTrackCovers] = useState({});
   const trackCoversRef = useRef({});
+  const [customTrackMeta, setCustomTrackMeta] = useState({});
+  const customTrackMetaRef = useRef({});
 
   const [isArtworkGradientEnabled, setIsArtworkGradientEnabledState] = useState(true);
 
@@ -145,11 +157,12 @@ export const PlayerProvider = ({ children }) => {
     let isMounted = true;
     const initializeLibrary = async () => {
       try {
-        const [storedCovers, storedTracks, storedFavorites, storedPlaylists] = await Promise.all([
+        const [storedCovers, storedTracks, storedFavorites, storedPlaylists, storedCustomMeta] = await Promise.all([
           safeStorage.getItem('@musicplayer_track_covers'),
           safeStorage.getItem(CACHED_TRACKS_KEY),
           safeStorage.getItem('@musicplayer_favorites'),
           safeStorage.getItem('@musicplayer_playlists'),
+          safeStorage.getItem('@musicplayer_custom_track_meta'),
         ]);
 
         if (!isMounted) return;
@@ -179,12 +192,34 @@ export const PlayerProvider = ({ children }) => {
           }
         }
 
+        let parsedCustomMeta = {};
+        if (storedCustomMeta) {
+          try {
+            parsedCustomMeta = JSON.parse(storedCustomMeta) || {};
+            setCustomTrackMeta(parsedCustomMeta);
+            customTrackMetaRef.current = parsedCustomMeta;
+          } catch (e) {
+            console.warn('Custom meta parse hatası:', e);
+          }
+        }
+
         let deviceTracks = [];
         if (storedTracks) {
           try {
             const parsed = JSON.parse(storedTracks);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              deviceTracks = parsed;
+              deviceTracks = parsed.map((t) => {
+                if (!t.artist || t.artist === 'Yerel' || t.artist === 'Bilinmeyen Sanatçı' || t.title?.includes(' - ')) {
+                  const meta = extractTrackMetadata(t.title, t.artist === 'Yerel' ? null : t.artist, t.author);
+                  return {
+                    ...t,
+                    title: meta.title,
+                    artist: meta.artist,
+                  };
+                }
+                return t;
+              });
+              safeStorage.setItem(CACHED_TRACKS_KEY, JSON.stringify(deviceTracks)).catch(() => {});
             }
           } catch (_) {}
         }
@@ -220,8 +255,15 @@ export const PlayerProvider = ({ children }) => {
           coverId: covers[t.id] || t.coverId || null,
         }));
 
-        const allTracks = [...tracksWithCovers, ...demoTracksWithCovers];
+        const allTracks = [...tracksWithCovers, ...demoTracksWithCovers].map((t) => {
+          if (parsedCustomMeta[t.id]) {
+            return { ...t, ...parsedCustomMeta[t.id] };
+          }
+          return t;
+        });
         setTracks(allTracks);
+        setQueue((currQ) => (currQ && currQ.length > 0 ? currQ : allTracks));
+        setPlaybackContext((currCtx) => currCtx || { type: 'library', name: 'Cihaz Müzikleri' });
 
         setCurrentTrack((curr) => {
           if (!curr) {
@@ -233,6 +275,8 @@ export const PlayerProvider = ({ children }) => {
         console.warn('Kütüphane başlatılırken hata:', err);
         if (isMounted) {
           setTracks(DEMO_TRACKS);
+          setQueue(DEMO_TRACKS);
+          setPlaybackContext({ type: 'library', name: 'Cihaz Müzikleri' });
           setCurrentTrack(DEMO_TRACKS[0]);
         }
       } finally {
@@ -269,11 +313,51 @@ export const PlayerProvider = ({ children }) => {
       prev.map((t) => (t.id === trackId ? { ...t, coverId: coverId || null } : t))
     );
 
+    setQueue((prev) =>
+      prev.map((t) => (t.id === trackId ? { ...t, coverId: coverId || null } : t))
+    );
+
     setCurrentTrack((curr) => {
       if (curr && curr.id === trackId) {
         return { ...curr, coverId: coverId || null };
       }
       return curr;
+    });
+  }, []);
+
+  const updateTrackInfo = useCallback((trackId, updates) => {
+    if (!trackId || !updates) return;
+    const cleanUpdates = {};
+    if (updates.title !== undefined && typeof updates.title === 'string' && updates.title.trim()) {
+      cleanUpdates.title = updates.title.trim();
+    }
+    if (updates.artist !== undefined && typeof updates.artist === 'string' && updates.artist.trim()) {
+      cleanUpdates.artist = updates.artist.trim();
+    }
+    if (updates.album !== undefined && typeof updates.album === 'string' && updates.album.trim()) {
+      cleanUpdates.album = updates.album.trim();
+    }
+
+    setTracks((prev) =>
+      prev.map((t) => (t.id === trackId ? { ...t, ...cleanUpdates } : t))
+    );
+    setQueue((prev) =>
+      prev.map((t) => (t.id === trackId ? { ...t, ...cleanUpdates } : t))
+    );
+    setCurrentTrack((curr) => {
+      if (curr && curr.id === trackId) {
+        return { ...curr, ...cleanUpdates };
+      }
+      return curr;
+    });
+
+    setCustomTrackMeta((prev) => {
+      const next = { ...prev, [trackId]: { ...(prev[trackId] || {}), ...cleanUpdates } };
+      customTrackMetaRef.current = next;
+      safeStorage.setItem('@musicplayer_custom_track_meta', JSON.stringify(next)).catch((e) =>
+        console.warn('Custom meta kaydedilirken hata:', e)
+      );
+      return next;
     });
   }, []);
 
@@ -382,12 +466,37 @@ export const PlayerProvider = ({ children }) => {
 
 
 
-  const playTrack = useCallback(async (track) => {
+  const playTrack = useCallback(async (track, newQueue = null, newContext = null) => {
     if (!track) return;
     const activeCover = trackCoversRef.current[track.id] || track.coverId || null;
     const trackWithCover = { ...track, coverId: activeCover };
     setCurrentTrack(trackWithCover);
     setIsPlaying(true);
+
+    if (newQueue && Array.isArray(newQueue) && newQueue.length > 0) {
+      setQueue(newQueue);
+    } else {
+      setQueue((currQueue) => {
+        if (currQueue && currQueue.some((t) => t.id === track.id)) {
+          return currQueue;
+        }
+        return tracks && tracks.length > 0 ? tracks : [trackWithCover];
+      });
+    }
+
+    if (newContext) {
+      setPlaybackContext(newContext);
+    } else {
+      setPlaybackContext((currContext) => {
+        if (currContext && (!newQueue || currContext.id)) {
+          return currContext;
+        }
+        return {
+          type: 'library',
+          name: track.album && track.album !== 'Kütüphane' ? track.album : 'Cihaz Müzikleri',
+        };
+      });
+    }
 
     const TrackPlayer = getTrackPlayer();
     if (isTrackPlayerReady.current && TrackPlayer) {
@@ -397,7 +506,7 @@ export const PlayerProvider = ({ children }) => {
           id: String(track.id),
           url: track.uri,
           title: track.title,
-          artist: track.artist || 'Yerel',
+          artist: track.artist || 'Bilinmeyen Sanatçı',
           album: track.album || 'Kütüphane',
           duration: track.duration,
           artwork: track.coverArt,
@@ -407,7 +516,7 @@ export const PlayerProvider = ({ children }) => {
         console.warn('TrackPlayer parça çalma uyarısı:', err?.message || err);
       }
     }
-  }, []);
+  }, [tracks]);
 
   const togglePlayPause = useCallback(async () => {
     setIsPlaying((prev) => {
@@ -429,42 +538,79 @@ export const PlayerProvider = ({ children }) => {
   }, []);
 
   const playNext = useCallback(() => {
-    setTracks((currentTracks) => {
-      if (!currentTracks || currentTracks.length === 0) return currentTracks;
+    setQueue((currQueue) => {
+      const activeList = currQueue && currQueue.length > 0 ? currQueue : tracks;
+      if (!activeList || activeList.length === 0) return currQueue;
+
       setCurrentTrack((curr) => {
-        const currentIndex = currentTracks.findIndex((t) => t.id === curr?.id);
+        const currentIndex = activeList.findIndex((t) => t.id === curr?.id);
         let nextIndex = 0;
         if (isShuffle) {
-          nextIndex = Math.floor(Math.random() * currentTracks.length);
+          if (activeList.length > 1) {
+            do {
+              nextIndex = Math.floor(Math.random() * activeList.length);
+            } while (nextIndex === currentIndex && activeList.length > 1);
+          } else {
+            nextIndex = 0;
+          }
         } else {
-          nextIndex = (currentIndex + 1) % currentTracks.length;
+          if (currentIndex === -1) {
+            nextIndex = 0;
+          } else if (currentIndex + 1 >= activeList.length) {
+            if (repeatMode === 'off' && !autoPlayNext) {
+              setIsPlaying(false);
+              return curr;
+            }
+            nextIndex = 0;
+          } else {
+            nextIndex = currentIndex + 1;
+          }
         }
-        const nextTrack = currentTracks[nextIndex];
+
+        const nextTrack = activeList[nextIndex];
         if (nextTrack) {
-          playTrack(nextTrack);
+          playTrack(nextTrack, activeList);
         }
         return nextTrack || curr;
       });
-      return currentTracks;
+
+      return currQueue;
     });
-  }, [isShuffle, playTrack]);
+  }, [tracks, isShuffle, repeatMode, autoPlayNext, playTrack]);
 
   const playPrevious = useCallback(() => {
-    setTracks((currentTracks) => {
-      if (!currentTracks || currentTracks.length === 0) return currentTracks;
+    setQueue((currQueue) => {
+      const activeList = currQueue && currQueue.length > 0 ? currQueue : tracks;
+      if (!activeList || activeList.length === 0) return currQueue;
+
       setCurrentTrack((curr) => {
-        const currentIndex = currentTracks.findIndex((t) => t.id === curr?.id);
+        const currentIndex = activeList.findIndex((t) => t.id === curr?.id);
         let prevIndex = currentIndex - 1;
-        if (prevIndex < 0) prevIndex = currentTracks.length - 1;
-        const prevTrack = currentTracks[prevIndex];
+        if (prevIndex < 0) {
+          prevIndex = activeList.length - 1;
+        }
+        const prevTrack = activeList[prevIndex];
         if (prevTrack) {
-          playTrack(prevTrack);
+          playTrack(prevTrack, activeList);
         }
         return prevTrack || curr;
       });
-      return currentTracks;
+
+      return currQueue;
     });
-  }, [playTrack]);
+  }, [tracks, playTrack]);
+
+  const removeFromQueue = useCallback((trackId) => {
+    if (!trackId) return;
+    setQueue((prev) => prev.filter((t) => t.id !== trackId));
+  }, []);
+
+  const clearUpcomingQueue = useCallback(() => {
+    setQueue((prev) => {
+      if (!currentTrack) return prev;
+      return prev.filter((t) => t.id === currentTrack.id);
+    });
+  }, [currentTrack]);
 
   const handleTrackEnded = useCallback(() => {
     if (repeatMode === 'one') {
@@ -574,6 +720,7 @@ export const PlayerProvider = ({ children }) => {
     });
 
     setFavorites((prev) => prev.filter((id) => id !== trackId));
+    setQueue((prev) => prev.filter((t) => t.id !== trackId));
 
     setPlaylists((prev) => {
       const next = prev.map((pl) => ({
@@ -646,7 +793,9 @@ export const PlayerProvider = ({ children }) => {
             }
 
             hasChanges = true;
-            return [...tracksWithCovers, ...demoTracksWithCovers];
+            const updatedAll = [...tracksWithCovers, ...demoTracksWithCovers];
+            setQueue((prevQ) => (prevQ && prevQ.length > 0 ? prevQ : updatedAll));
+            return updatedAll;
           });
 
           // Önbelleğe kaydet
@@ -711,6 +860,13 @@ export const PlayerProvider = ({ children }) => {
     isPlaying,
     favorites,
     playlists,
+    queue,
+    setQueue,
+    playbackContext,
+    setPlaybackContext,
+    removeFromQueue,
+    clearUpcomingQueue,
+    toggleRepeatMode,
     isShuffle,
     repeatMode,
     setRepeatMode,
@@ -733,6 +889,8 @@ export const PlayerProvider = ({ children }) => {
     onScrollForPlayer,
     trackCovers,
     updateTrackCover,
+    customTrackMeta,
+    updateTrackInfo,
     assignRandomCoversToAll,
     resetAllCovers,
     autoPlayNext,
@@ -754,8 +912,15 @@ export const PlayerProvider = ({ children }) => {
     isPlaying,
     favorites,
     playlists,
+    queue,
+    playbackContext,
+    removeFromQueue,
+    clearUpcomingQueue,
+    toggleRepeatMode,
     trackCovers,
     updateTrackCover,
+    customTrackMeta,
+    updateTrackInfo,
     assignRandomCoversToAll,
     resetAllCovers,
     autoPlayNext,

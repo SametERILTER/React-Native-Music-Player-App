@@ -212,17 +212,25 @@ export const LibraryScreen = ({ route }) => {
     }
   };
 
-  const handlePlayPlaylist = (plTracks, shouldShuffle = false) => {
+  const handlePlayPlaylist = useCallback((plTracks, shouldShuffle = false, targetPlaylist = null) => {
     if (plTracks && plTracks.length > 0) {
+      const pl = targetPlaylist || activePlaylist;
+      const playlistContext = pl
+        ? {
+            type: 'playlist',
+            id: pl.id,
+            name: pl.name,
+          }
+        : null;
+
       if (shouldShuffle) {
-        // eslint-disable-next-line react-hooks/purity
         const randomIndex = Math.floor(Math.random() * plTracks.length);
-        playTrack(plTracks[randomIndex]);
+        playTrack(plTracks[randomIndex], plTracks, playlistContext);
       } else {
-        playTrack(plTracks[0]);
+        playTrack(plTracks[0], plTracks, playlistContext);
       }
     }
-  };
+  }, [activePlaylist, playTrack]);
 
   const confirmDeletePlaylist = (playlistId, playlistName) => {
     Alert.alert(
@@ -295,6 +303,21 @@ export const LibraryScreen = ({ route }) => {
     [activePlaylist, toggleTrackInPlaylist]
   );
 
+  const handlePlayFromActivePlaylist = useCallback(
+    (track) => {
+      if (!activePlaylist) {
+        playTrack(track);
+        return;
+      }
+      playTrack(track, activePlaylistTracks, {
+        type: 'playlist',
+        id: activePlaylist.id,
+        name: activePlaylist.name,
+      });
+    },
+    [activePlaylist, activePlaylistTracks, playTrack]
+  );
+
   const renderDetailItem = useCallback(
     ({ item, index }) => (
       <View style={styles.songItemWrapper}>
@@ -304,13 +327,13 @@ export const LibraryScreen = ({ route }) => {
           isCurrent={currentTrack?.id === item.id}
           isPlaying={isPlaying}
           isFavorite={favorites.includes(item.id)}
-          onPress={playTrack}
+          onPress={handlePlayFromActivePlaylist}
           onToggleFavorite={toggleFavorite}
           onOpenPlaylistModal={openAddToPlaylist}
         />
       </View>
     ),
-    [currentTrack?.id, isPlaying, favorites, playTrack, toggleFavorite, openAddToPlaylist]
+    [currentTrack?.id, isPlaying, favorites, handlePlayFromActivePlaylist, toggleFavorite, openAddToPlaylist]
   );
 
   const detailKeyExtractor = useCallback((item) => item.id.toString(), []);
@@ -742,7 +765,7 @@ export const LibraryScreen = ({ route }) => {
                       styles.playlistCardPlayBtn,
                       playlistTracks.length === 0 && styles.disabledPlayBtn,
                     ]}
-                    onPress={() => handlePlayPlaylist(playlistTracks, false)}
+                    onPress={() => handlePlayPlaylist(playlistTracks, false, item)}
                     disabled={playlistTracks.length === 0}
                     activeOpacity={0.8}
                   >

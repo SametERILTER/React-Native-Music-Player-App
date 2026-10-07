@@ -23,10 +23,10 @@ import {
   SkipBack,
   SkipForward,
   Shuffle,
-  Repeat,
   Heart,
   MoreVertical,
   Music,
+  ListMusic,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
@@ -37,6 +37,7 @@ import { fetchLyrics } from '../../services/lyricsService';
 import AlbumArtwork from '../home/AlbumArtwork';
 import EditSongModal from './EditSongModal';
 import SyncedLyricsView from './SyncedLyricsView';
+import QueueModal from './QueueModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const ARTWORK_WIDTH = SCREEN_WIDTH - 56;
@@ -62,10 +63,12 @@ export const FullPlayerModal = ({ visible, onClose }) => {
     isShuffle,
     toggleShuffle,
     isArtworkGradientEnabled,
+    playbackContext,
   } = usePlayer();
   const { position, duration, seekTo } = usePlayerProgress();
 
   const [isEditSongModalVisible, setIsEditSongModalVisible] = useState(false);
+  const [isQueueModalVisible, setIsQueueModalVisible] = useState(false);
   const [showLyrics, setShowLyrics] = useState(false);
   const [hasLyrics, setHasLyrics] = useState(false);
   const [prevTrackId, setPrevTrackId] = useState(currentTrack?.id);
@@ -209,8 +212,18 @@ export const FullPlayerModal = ({ visible, onClose }) => {
       setIsEditSongModalVisible(false);
       return;
     }
+    if (isQueueModalVisible) {
+      setIsQueueModalVisible(false);
+      return;
+    }
     handleClose();
-  }, [isEditSongModalVisible, handleClose]);
+  }, [isEditSongModalVisible, isQueueModalVisible, handleClose]);
+
+  const isPlaylistPlayback = playbackContext?.type === 'playlist' && Boolean(playbackContext?.name);
+  const headerSubtitleText = isPlaylistPlayback ? 'ÇALMA LİSTESİ' : 'OYNATILIYOR';
+  const headerTitleText = isPlaylistPlayback
+    ? playbackContext.name
+    : (currentTrack?.album && currentTrack.album !== 'Kütüphane' ? currentTrack.album : 'Cihaz Müzikleri');
 
   if (!currentTrack) return null;
 
@@ -246,9 +259,7 @@ export const FullPlayerModal = ({ visible, onClose }) => {
           />
         )}
 
-        <View style={{ height: insets.top }} />
-
-        <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 16) + spacing.huge + 34 }]}>
+        <View style={[styles.container, { paddingTop: insets.top + spacing.xs, paddingBottom: Math.max(insets.bottom, 20) + 40 }]}>
 
           <View style={styles.header}>
             <TouchableOpacity
@@ -260,20 +271,22 @@ export const FullPlayerModal = ({ visible, onClose }) => {
             </TouchableOpacity>
 
             <View style={styles.headerTitleWrapper}>
-              <Text style={styles.headerSubtitle}>OYNATILIYOR</Text>
+              <Text style={styles.headerSubtitle}>{headerSubtitleText}</Text>
               <Text style={styles.headerTitle} numberOfLines={1}>
-                {currentTrack.album || 'Kitaplık'}
+                {headerTitleText}
               </Text>
             </View>
 
-            <TouchableOpacity
-              style={styles.moreBtn}
-              onPress={() => setIsEditSongModalVisible(true)}
-              activeOpacity={0.7}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <MoreVertical size={20} color={colors.textPrimary} />
-            </TouchableOpacity>
+            <View style={styles.headerRightGroup}>
+              <TouchableOpacity
+                style={styles.headerIconBtn}
+                onPress={() => setIsEditSongModalVisible(true)}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <MoreVertical size={20} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <Animated.View style={[styles.artworkSection, artworkAnimStyle]}>
@@ -441,9 +454,14 @@ export const FullPlayerModal = ({ visible, onClose }) => {
 
               <TouchableOpacity
                 style={styles.secondaryControl}
+                onPress={() => setIsQueueModalVisible(true)}
                 activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Repeat size={20} color={colors.textTertiary} />
+                <ListMusic
+                  size={20}
+                  color={colors.textPrimary}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -455,6 +473,11 @@ export const FullPlayerModal = ({ visible, onClose }) => {
         visible={isEditSongModalVisible}
         track={currentTrack}
         onClose={() => setIsEditSongModalVisible(false)}
+      />
+
+      <QueueModal
+        visible={isQueueModalVisible}
+        onClose={() => setIsQueueModalVisible(false)}
       />
     </Modal>
   );
@@ -515,9 +538,14 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     marginTop: 2,
   },
-  moreBtn: {
-    width: 40,
-    height: 40,
+  headerRightGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  headerIconBtn: {
+    width: 38,
+    height: 38,
     borderRadius: radius.full,
     backgroundColor: 'rgba(255, 255, 255, 0.42)',
     justifyContent: 'center',
@@ -525,7 +553,7 @@ const styles = StyleSheet.create({
   },
   artworkSection: {
     alignItems: 'center',
-    marginTop: -56,
+    marginTop: -100,
     marginBottom: spacing.xxs,
   },
   artworkContainer: {
@@ -571,7 +599,8 @@ const styles = StyleSheet.create({
   bottomSection: {
     width: '100%',
     paddingBottom: spacing.sm,
-    marginTop: -72,
+    marginTop: -90,
+    marginBottom: 50,
   },
   lyricsButtonContainer: {
     alignItems: 'center',

@@ -42,13 +42,13 @@ export const HomeScreen = () => {
   const recentTracks = useMemo(() => tracks.slice(0, 5), [tracks]);
 
   const handleSongPress = useCallback((track) => {
-    playTrack(track);
+    playTrack(track, tracks, { type: 'library', name: 'Cihaz Müzikleri' });
     openFullPlayer();
-  }, [playTrack, openFullPlayer]);
+  }, [tracks, playTrack, openFullPlayer]);
 
   const handlePlayAll = useCallback(() => {
     if (recentTracks.length > 0) {
-      playTrack(recentTracks[0]);
+      playTrack(recentTracks[0], recentTracks, { type: 'library', name: 'Son Çalınanlar' });
     }
   }, [recentTracks, playTrack]);
 
@@ -58,7 +58,7 @@ export const HomeScreen = () => {
         toggleShuffle();
       }
       const randomIndex = Math.floor(Math.random() * tracks.length);
-      playTrack(tracks[randomIndex]);
+      playTrack(tracks[randomIndex], tracks, { type: 'library', name: 'Cihaz Müzikleri' });
     }
   }, [tracks, isShuffle, toggleShuffle, playTrack]);
 

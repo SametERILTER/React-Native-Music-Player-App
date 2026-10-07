@@ -10,6 +10,7 @@ import {
   ScrollView,
   Dimensions,
   Switch,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
@@ -40,11 +41,16 @@ const EditSongContent = ({
 }) => {
   const {
     updateTrackCover,
+    updateTrackInfo,
     openAddToPlaylist,
     isArtworkGradientEnabled,
     toggleArtworkGradient,
   } = usePlayer();
   const [selectedCoverId, setSelectedCoverId] = useState(track?.coverId || null);
+  const [editedTitle, setEditedTitle] = useState(track?.title || '');
+  const [editedArtist, setEditedArtist] = useState(
+    track?.artist && track.artist !== 'Yerel' ? track.artist : ''
+  );
 
   const handleSave = () => {
     if (!track) return;
@@ -52,8 +58,14 @@ const EditSongContent = ({
       if (typeof updateTrackCover === 'function') {
         updateTrackCover(track.id, selectedCoverId);
       }
+      if (typeof updateTrackInfo === 'function') {
+        updateTrackInfo(track.id, {
+          title: editedTitle.trim() || track.title,
+          artist: editedArtist.trim() || 'Bilinmeyen Sanatçı',
+        });
+      }
     } catch (err) {
-      console.warn('handleSave updateTrackCover error:', err);
+      console.warn('handleSave error:', err);
     }
     if (typeof onClose === 'function') {
       onClose();
@@ -88,7 +100,7 @@ const EditSongContent = ({
       <View style={styles.headerRow}>
         <View style={styles.headerTextWrap}>
           <Text style={styles.headerSubtitle}>ŞARKI SEÇENEKLERİ</Text>
-          <Text style={styles.headerTitle}>Şarkı Kapağını Düzenle</Text>
+          <Text style={styles.headerTitle}>Şarkı Bilgilerini Düzenle</Text>
         </View>
         <TouchableOpacity
           style={styles.closeBtn}
@@ -120,12 +132,27 @@ const EditSongContent = ({
         </View>
 
         <View style={styles.trackInfoBox}>
-          <Text style={styles.trackTitle} numberOfLines={1}>
-            {track?.title}
-          </Text>
-          <Text style={styles.trackArtist} numberOfLines={1}>
-            {track?.artist || 'Bilinmeyen Sanatçı'}
-          </Text>
+          <View style={styles.inputFieldWrap}>
+            <Text style={styles.inputFieldLabel}>ŞARKI ADI</Text>
+            <TextInput
+              style={styles.inputField}
+              value={editedTitle}
+              onChangeText={setEditedTitle}
+              placeholder="Şarkı adı"
+              placeholderTextColor={colors.textTertiary}
+            />
+          </View>
+
+          <View style={[styles.inputFieldWrap, { marginTop: spacing.sm }]}>
+            <Text style={styles.inputFieldLabel}>SANATÇI / YAZAR</Text>
+            <TextInput
+              style={styles.inputField}
+              value={editedArtist}
+              onChangeText={setEditedArtist}
+              placeholder="Sanatçı veya yazar bilgisi"
+              placeholderTextColor={colors.textTertiary}
+            />
+          </View>
         </View>
 
         <View style={styles.gradientOptionCard}>
@@ -395,22 +422,30 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   trackInfoBox: {
-    alignItems: 'center',
-    marginVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
+    marginVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
   },
-  trackTitle: {
-    fontFamily: typography.fonts.bold,
-    fontSize: typography.sizes.base,
-    color: colors.textPrimary,
-    textAlign: 'center',
+  inputFieldWrap: {
+    width: '100%',
   },
-  trackArtist: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xs,
+  inputFieldLabel: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: 10,
     color: colors.textMuted,
-    marginTop: 2,
-    textAlign: 'center',
+    letterSpacing: 1.1,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  inputField: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radius.md,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontFamily: typography.fonts.medium,
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   gradientOptionCard: {
     flexDirection: 'row',

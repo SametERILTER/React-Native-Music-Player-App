@@ -133,12 +133,17 @@ export const SearchScreen = () => {
         isCurrent={currentTrack?.id === item.id}
         isPlaying={isPlaying}
         isFavorite={favorites.includes(item.id)}
-        onPress={playTrack}
+        onPress={(t) =>
+          playTrack(t, displayedTracks, {
+            type: 'search',
+            name: 'Arama Sonuçları',
+          })
+        }
         onToggleFavorite={toggleFavorite}
         onOpenPlaylistModal={handleOpenPlaylist}
       />
     </View>
-  ), [currentTrack?.id, isPlaying, favorites, playTrack, toggleFavorite, handleOpenPlaylist]);
+  ), [currentTrack?.id, isPlaying, favorites, displayedTracks, playTrack, toggleFavorite, handleOpenPlaylist]);
 
   return (
     <View style={styles.mainWrapper}>
