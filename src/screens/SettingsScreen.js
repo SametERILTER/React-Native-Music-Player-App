@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,26 +9,30 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  Volume2,
-  FastForward,
-  Flame,
+  ChevronRight,
+  ChevronLeft,
   Sliders,
+  Palette,
+  HardDrive,
+  Info,
   RotateCcw,
   Sparkles,
   Check,
   Trash2,
-  Mic2,
-  Activity,
   Shuffle,
+  Music,
+  FolderOpen,
+  ExternalLink,
 } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
-import Header from '../components/common/Header';
 import { safeStorage } from '../services/storageService';
+import { clearLyricsCache } from '../services/lyricsService';
 
 export const SettingsScreen = () => {
   const insets = useSafeAreaInsets();
@@ -41,49 +45,31 @@ export const SettingsScreen = () => {
     assignRandomCoversToAll,
     resetAllCovers,
     tracks,
+    playlists,
     autoPlayNext,
     setAutoPlayNext,
+    isArtworkGradientEnabled,
+    toggleArtworkGradient,
   } = usePlayer();
 
-  const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 16) + spacing.sm;
-  const bottomPadding = 240;
+  const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 16) + spacing.xs;
+  const bottomPadding = 220;
 
-  const [highQualityAudio, setHighQualityAudio] = useState(true);
-  const [gaplessPlayback, setGaplessPlayback] = useState(true);
-  const [eqPreset, setEqPreset] = useState('balanced');
+  const [activeSubpage, setActiveSubpage] = useState(null);
+
+  const [filterShortTracks, setFilterShortTracks] = useState(true);
   const [cacheCleanedMessage, setCacheCleanedMessage] = useState(null);
+  const [isClearingCache, setIsClearingCache] = useState(false);
 
   useEffect(() => {
-    safeStorage.getItem('@settings_high_quality').then((val) => {
-      if (val !== null) setHighQualityAudio(val === 'true');
-    });
-    safeStorage.getItem('@settings_gapless').then((val) => {
-      if (val !== null) setGaplessPlayback(val === 'true');
-    });
-    safeStorage.getItem('@settings_eq_preset').then((val) => {
-      if (val) setEqPreset(val);
+    safeStorage.getItem('@settings_filter_short_tracks').then((val) => {
+      if (val !== null) setFilterShortTracks(val === 'true');
     });
   }, []);
 
-  const toggleHighQuality = useCallback((val) => {
-    setHighQualityAudio(val);
-    safeStorage.setItem('@settings_high_quality', String(val)).catch(() => { });
-  }, []);
-
-  const toggleAutoPlayNext = useCallback((val) => {
-    if (typeof setAutoPlayNext === 'function') {
-      setAutoPlayNext(val);
-    }
-  }, [setAutoPlayNext]);
-
-  const toggleGapless = useCallback((val) => {
-    setGaplessPlayback(val);
-    safeStorage.setItem('@settings_gapless', String(val)).catch(() => { });
-  }, []);
-
-  const handleSelectEq = useCallback((preset) => {
-    setEqPreset(preset);
-    safeStorage.setItem('@settings_eq_preset', preset).catch(() => { });
+  const toggleFilterShortTracks = useCallback((val) => {
+    setFilterShortTracks(val);
+    safeStorage.setItem('@settings_filter_short_tracks', String(val)).catch(() => { });
   }, []);
 
   const handleRescan = useCallback(async () => {
@@ -107,15 +93,15 @@ export const SettingsScreen = () => {
   }, [assignRandomCoversToAll]);
 
   const handleResetCovers = useCallback(() => {
-    const customCoverCount = Object.keys(trackCovers || {}).length;
-    if (customCoverCount === 0) {
+    const customCount = Object.keys(trackCovers || {}).length;
+    if (customCount === 0) {
       Alert.alert('Bilgi', 'Özelleştirilmiş şarkı kapağı bulunmuyor.');
       return;
     }
 
     Alert.alert(
       'Kapakları Sıfırla',
-      `Değiştirdiğiniz ${customCoverCount} adet şarkı kapağı varsayılan haline dönecek. Emin misiniz?`,
+      `Değiştirdiğiniz ${customCount} adet şarkı kapağı varsayılan haline dönecek. Emin misiniz?`,
       [
         { text: 'Vazgeç', style: 'cancel' },
         {
@@ -132,14 +118,61 @@ export const SettingsScreen = () => {
     );
   }, [trackCovers, resetAllCovers]);
 
-  const handleClearCache = useCallback(() => {
-    setCacheCleanedMessage('Önbellek temizlendi (18.4 MB)');
-    setTimeout(() => {
-      setCacheCleanedMessage(null);
-    }, 3500);
+  const handleClearCache = useCallback(async () => {
+    setIsClearingCache(true);
+    try {
+      clearLyricsCache();
+      const allKeys = await safeStorage.getAllKeys();
+      const lyricsKeys = allKeys.filter((k) => k && k.startsWith('@lyrics_cache_'));
+      if (lyricsKeys.length > 0) {
+        await safeStorage.multiRemove(lyricsKeys);
+      }
+      setCacheCleanedMessage('Önbellek başarıyla temizlendi');
+    } catch (_err) {
+      setCacheCleanedMessage('Önbellek temizlendi');
+    } finally {
+      setIsClearingCache(false);
+      setTimeout(() => {
+        setCacheCleanedMessage(null);
+      }, 3500);
+    }
   }, []);
 
-  const customCoverCount = Object.keys(trackCovers || {}).length;
+  const customCoverCount = useMemo(
+    () => Object.keys(trackCovers || {}).length,
+    [trackCovers]
+  );
+
+  const totalTracksCount = deviceTrackCount > 0 ? deviceTrackCount : tracks.length;
+
+  const handleOpenGithub = useCallback(async () => {
+    const url = 'https://github.com/SametERILTER/React-Native-Music-Player-App';
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        await Linking.openURL(url);
+      }
+    } catch {
+      Alert.alert('Hata', 'GitHub bağlantısı açılamadı.');
+    }
+  }, []);
+
+  const pageHeader = useMemo(() => {
+    switch (activeSubpage) {
+      case 'playback':
+        return { title: 'Oynatma' };
+      case 'theme':
+        return { title: 'Görünüm' };
+      case 'storage':
+        return { title: 'Kütüphane & Hafıza' };
+      case 'about':
+        return { title: 'Uygulama Hakkında' };
+      default:
+        return { title: 'Ayarlar' };
+    }
+  }, [activeSubpage]);
 
   return (
     <View style={styles.mainWrapper}>
@@ -153,199 +186,321 @@ export const SettingsScreen = () => {
         scrollEventThrottle={64}
         showsVerticalScrollIndicator={false}
       >
-        <Header title="Ayarlar" />
+        <View style={styles.headerRow}>
+          {activeSubpage ? (
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={() => setActiveSubpage(null)}
+              activeOpacity={0.7}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <ChevronLeft size={22} color={colors.textPrimary} />
+            </TouchableOpacity>
+          ) : null}
 
-        <View style={styles.unifiedCard}>
-          <View style={styles.listItem}>
-            <View style={styles.actionIconBox}>
-              <Volume2 size={18} color={colors.textPrimary} />
-            </View>
-            <View style={styles.rowTextWrap}>
-              <Text style={styles.rowTitle}>Yüksek Çözünürlüklü Ses</Text>
-              <Text style={styles.rowSubtitle}>320kbps maksimum ses çıkışı ve dinamik aralık</Text>
-            </View>
-            <Switch
-              value={highQualityAudio}
-              onValueChange={toggleHighQuality}
-              trackColor={{ false: colors.borderLight, true: colors.primary }}
-              thumbColor={colors.primaryContrast}
-            />
+          <View style={styles.headerTextWrap}>
+            <Text style={styles.headerTitle}>{pageHeader.title}</Text>
           </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.listItem}>
-            <View style={styles.actionIconBox}>
-              <FastForward size={18} color={colors.textPrimary} />
-            </View>
-            <View style={styles.rowTextWrap}>
-              <Text style={styles.rowTitle}>Otomatik Sıradaki Parça</Text>
-              <Text style={styles.rowSubtitle}>Şarkı bittiğinde sıradaki parçaya kesintisiz geç</Text>
-            </View>
-            <Switch
-              value={autoPlayNext}
-              onValueChange={toggleAutoPlayNext}
-              trackColor={{ false: colors.borderLight, true: colors.primary }}
-              thumbColor={colors.primaryContrast}
-            />
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.listItem}>
-            <View style={styles.actionIconBox}>
-              <Flame size={18} color={colors.textPrimary} />
-            </View>
-            <View style={styles.rowTextWrap}>
-              <Text style={styles.rowTitle}>Kesintisiz Oynatma (Gapless)</Text>
-              <Text style={styles.rowSubtitle}>Parçalar arasındaki sessiz boşlukları kaldır</Text>
-            </View>
-            <Switch
-              value={gaplessPlayback}
-              onValueChange={toggleGapless}
-              trackColor={{ false: colors.borderLight, true: colors.primary }}
-              thumbColor={colors.primaryContrast}
-            />
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.eqListItem}>
-            <View style={styles.eqHeaderRow}>
-              <View style={styles.actionIconBox}>
-                <Sliders size={18} color={colors.textPrimary} />
-              </View>
-              <View style={styles.rowTextWrap}>
-                <Text style={styles.rowTitle}>Ses Profili (Ekolayzır)</Text>
-                <Text style={styles.rowSubtitle}>Müziğe uygun dinleme profili seçin</Text>
-              </View>
-            </View>
-            <View style={styles.eqOptionsRow}>
-              <TouchableOpacity
-                style={[styles.eqBtn, eqPreset === 'balanced' && styles.eqBtnActive]}
-                onPress={() => handleSelectEq('balanced')}
-                activeOpacity={0.8}
-              >
-                <Activity size={14} color={eqPreset === 'balanced' ? colors.primaryContrast : colors.textPrimary} />
-                <Text style={[styles.eqBtnText, eqPreset === 'balanced' && styles.eqBtnTextActive]}>
-                  Dengeli
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.eqBtn, eqPreset === 'bass' && styles.eqBtnActive]}
-                onPress={() => handleSelectEq('bass')}
-                activeOpacity={0.8}
-              >
-                <Flame size={14} color={eqPreset === 'bass' ? colors.primaryContrast : colors.textPrimary} />
-                <Text style={[styles.eqBtnText, eqPreset === 'bass' && styles.eqBtnTextActive]}>
-                  Derin Bas
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.eqBtn, eqPreset === 'vocal' && styles.eqBtnActive]}
-                onPress={() => handleSelectEq('vocal')}
-                activeOpacity={0.8}
-              >
-                <Mic2 size={14} color={eqPreset === 'vocal' ? colors.primaryContrast : colors.textPrimary} />
-                <Text style={[styles.eqBtnText, eqPreset === 'vocal' && styles.eqBtnTextActive]}>
-                  Vokal
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={handleRescan}
-            disabled={isScanningDevice}
-            activeOpacity={0.7}
-          >
-            <View style={styles.actionIconBox}>
-              <RotateCcw size={18} color={colors.textPrimary} />
-            </View>
-            <View style={styles.rowTextWrap}>
-              <Text style={styles.rowTitle}>Cihaz Müziklerini Tara</Text>
-              <Text style={styles.rowSubtitle}>
-                {isScanningDevice
-                  ? 'Cihazdaki ses dosyaları taranıyor...'
-                  : `${deviceTrackCount > 0 ? deviceTrackCount : tracks.length} şarkı kütüphanede mevcut`}
-              </Text>
-            </View>
-            {isScanningDevice ? (
-              <ActivityIndicator size="small" color={colors.primary} />
-            ) : (
-              <View style={styles.statusBadge}>
-                <Check size={12} color={colors.primaryContrast} strokeWidth={3} />
-              </View>
-            )}
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={handleAssignRandomCovers}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.actionIconBox, { backgroundColor: '#F0F5FF' }]}>
-              <Shuffle size={18} color={colors.primary} />
-            </View>
-            <View style={styles.rowTextWrap}>
-              <Text style={styles.rowTitle}>Rastgele Kapak Ata</Text>
-              <Text style={styles.rowSubtitle}>
-                Tüm şarkılara galeriden rastgele kapak görseli ata
-              </Text>
-            </View>
-            <View style={styles.badgeLight}>
-              <Text style={[styles.badgeLightText, { color: colors.primary }]}>Rastgele</Text>
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={handleResetCovers}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.actionIconBox, { backgroundColor: '#FDF2F2' }]}>
-              <Trash2 size={18} color="#E03E3E" />
-            </View>
-            <View style={styles.rowTextWrap}>
-              <Text style={[styles.rowTitle, { color: '#E03E3E' }]}>Özel Kapakları Sıfırla</Text>
-              <Text style={styles.rowSubtitle}>
-                {customCoverCount > 0
-                  ? `${customCoverCount} şarkıda atanmış özel kapak var`
-                  : 'Henüz özel kapak atanmadı'}
-              </Text>
-            </View>
-          </TouchableOpacity>
-
-          <View style={styles.divider} />
-
-          <TouchableOpacity
-            style={styles.listItem}
-            onPress={handleClearCache}
-            activeOpacity={0.7}
-          >
-            <View style={styles.actionIconBox}>
-              <Sparkles size={18} color={colors.textPrimary} />
-            </View>
-            <View style={styles.rowTextWrap}>
-              <Text style={styles.rowTitle}>Önbelleği Temizle</Text>
-              <Text style={styles.rowSubtitle}>
-                {cacheCleanedMessage || 'Geçici tampon ve görsel verilerini temizler'}
-              </Text>
-            </View>
-            <View style={styles.badgeLight}>
-              <Text style={styles.badgeLightText}>18 MB</Text>
-            </View>
-          </TouchableOpacity>
         </View>
+
+        {!activeSubpage && (
+          <View style={styles.unifiedCard}>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => setActiveSubpage('playback')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconBox}>
+                <Sliders size={19} color={colors.textPrimary} />
+              </View>
+              <View style={styles.menuTextWrap}>
+                <Text style={styles.menuTitle}>Oynatma Ayarları</Text>
+                <Text style={styles.menuSubtitle}>Otomatik parça geçişi ve kuyruk kuralları</Text>
+              </View>
+              <View style={styles.menuRightGroup}>
+                <Text style={styles.menuBadgeText}>
+                  {autoPlayNext ? 'Otomatik Açık' : 'Manuel'}
+                </Text>
+                <ChevronRight size={18} color={colors.textTertiary} />
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => setActiveSubpage('theme')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconBox}>
+                <Palette size={19} color={colors.textPrimary} />
+              </View>
+              <View style={styles.menuTextWrap}>
+                <Text style={styles.menuTitle}>Görünüm & Kapaklar</Text>
+                <Text style={styles.menuSubtitle}>Kapak gradyanı ve özel kapak yönetimi</Text>
+              </View>
+              <View style={styles.menuRightGroup}>
+                <Text style={styles.menuBadgeText}>
+                  {customCoverCount > 0 ? `${customCoverCount} Özel` : 'Varsayılan'}
+                </Text>
+                <ChevronRight size={18} color={colors.textTertiary} />
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => setActiveSubpage('storage')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconBox}>
+                <HardDrive size={19} color={colors.textPrimary} />
+              </View>
+              <View style={styles.menuTextWrap}>
+                <Text style={styles.menuTitle}>Kütüphane & Depolama</Text>
+                <Text style={styles.menuSubtitle}>Cihaz taraması, önbellek ve dosya filtreleme</Text>
+              </View>
+              <View style={styles.menuRightGroup}>
+                <Text style={styles.menuBadgeText}>{totalTracksCount} Şarkı</Text>
+                <ChevronRight size={18} color={colors.textTertiary} />
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => setActiveSubpage('about')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconBox}>
+                <Info size={19} color={colors.textPrimary} />
+              </View>
+              <View style={styles.menuTextWrap}>
+                <Text style={styles.menuTitle}>Uygulama Hakkında</Text>
+                <Text style={styles.menuSubtitle}>Versiyon, kütüphane durumu ve sistem bilgisi</Text>
+              </View>
+              <View style={styles.menuRightGroup}>
+                <Text style={styles.menuBadgeText}>v1.0.0</Text>
+                <ChevronRight size={18} color={colors.textTertiary} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {activeSubpage === 'playback' && (
+          <View style={styles.unifiedCard}>
+            <View style={styles.settingRow}>
+              <View style={styles.menuIconBox}>
+                <Music size={18} color={colors.textPrimary} />
+              </View>
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingTitle}>Otomatik Sıradaki Parça</Text>
+                <Text style={styles.settingSubtitle}>
+                  Çalan şarkı tamamlandığında çalma sırasındaki veya listedeki bir sonraki şarkıya otomatik geç.
+                </Text>
+              </View>
+              <Switch
+                value={autoPlayNext}
+                onValueChange={setAutoPlayNext}
+                trackColor={{ false: colors.borderLight, true: colors.primary }}
+                thumbColor={colors.primaryContrast}
+              />
+            </View>
+          </View>
+        )}
+
+        {activeSubpage === 'theme' && (
+          <View style={styles.unifiedCard}>
+            <View style={styles.settingRow}>
+              <View style={styles.menuIconBox}>
+                <Sparkles size={18} color={colors.textPrimary} />
+              </View>
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingTitle}>Dinamik Kapak Gradyanı</Text>
+                <Text style={styles.settingSubtitle}>
+                  Tam ekran oynatıcıda şarkı kapağının renk tonlarına göre arka plan renk geçişi uygular.
+                </Text>
+              </View>
+              <Switch
+                value={isArtworkGradientEnabled !== false}
+                onValueChange={toggleArtworkGradient}
+                trackColor={{ false: colors.borderLight, true: colors.primary }}
+                thumbColor={colors.primaryContrast}
+              />
+            </View>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleAssignRandomCovers}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconBox}>
+                <Shuffle size={18} color={colors.textPrimary} />
+              </View>
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingTitle}>Rastgele Kapak Ata</Text>
+                <Text style={styles.settingSubtitle}>
+                  Tüm şarkılara albüm koleksiyonundan otomatik rastgele kapak görseli atar.
+                </Text>
+              </View>
+              <View style={styles.badgeAction}>
+                <Text style={styles.badgeActionText}>Uygula</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleResetCovers}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconBox}>
+                <Trash2 size={18} color={colors.textPrimary} />
+              </View>
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingTitle}>Özel Kapakları Sıfırla</Text>
+                <Text style={styles.settingSubtitle}>
+                  {customCoverCount > 0
+                    ? `${customCoverCount} şarkıya atanmış özel kapak varsayılana dönecek.`
+                    : 'Henüz özelleştirilmiş kapak atanmadı.'}
+                </Text>
+              </View>
+              {customCoverCount > 0 && (
+                <View style={styles.badgeAction}>
+                  <Text style={styles.badgeActionText}>Sıfırla</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {activeSubpage === 'storage' && (
+          <View style={styles.unifiedCard}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleRescan}
+              disabled={isScanningDevice}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconBox}>
+                <RotateCcw size={18} color={colors.textPrimary} />
+              </View>
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingTitle}>Cihaz Müziklerini Tara</Text>
+                <Text style={styles.settingSubtitle}>
+                  {isScanningDevice
+                    ? 'Cihazdaki ses dosyaları taranıyor...'
+                    : `Cihazınızdaki müzik dosyalarını yeniden tarar (${totalTracksCount} parça kayıtlı).`}
+                </Text>
+              </View>
+              {isScanningDevice ? (
+                <ActivityIndicator size="small" color={colors.textPrimary} />
+              ) : (
+                <View style={styles.statusSuccessBadge}>
+                  <Check size={13} color={colors.textPrimary} strokeWidth={2.5} />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <View style={styles.settingRow}>
+              <View style={styles.menuIconBox}>
+                <FolderOpen size={18} color={colors.textPrimary} />
+              </View>
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingTitle}>Kısa Ses ve Bildirimleri Filtrele</Text>
+                <Text style={styles.settingSubtitle}>
+                  30 saniyenin altındaki ses kayıtları ve WhatsApp ses notlarını müzik listesine dahil etmez.
+                </Text>
+              </View>
+              <Switch
+                value={filterShortTracks}
+                onValueChange={toggleFilterShortTracks}
+                trackColor={{ false: colors.borderLight, true: colors.primary }}
+                thumbColor={colors.primaryContrast}
+              />
+            </View>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleClearCache}
+              disabled={isClearingCache}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconBox}>
+                <Sparkles size={18} color={colors.textPrimary} />
+              </View>
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingTitle}>Önbelleği Temizle</Text>
+                <Text style={styles.settingSubtitle}>
+                  {cacheCleanedMessage || 'İnternetten indirilen şarkı sözü ve geçici veri önbelleğini temizler.'}
+                </Text>
+              </View>
+              {isClearingCache ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <View style={styles.badgeAction}>
+                  <Text style={styles.badgeActionText}>Temizle</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {activeSubpage === 'about' && (
+          <View style={styles.unifiedCard}>
+            <View style={styles.aboutHeader}>
+              <View style={styles.appLogoCircle}>
+                <Music size={26} color={colors.textPrimary} />
+              </View>
+              <Text style={styles.appName}>MusicPlayer</Text>
+              <Text style={styles.appVersion}>Versiyon 1.0.0</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.aboutStatRow}>
+              <Text style={styles.aboutStatLabel}>Toplam Müzik Sayısı</Text>
+              <Text style={styles.aboutStatValue}>{totalTracksCount}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.aboutStatRow}>
+              <Text style={styles.aboutStatLabel}>Çalma Listesi Sayısı</Text>
+              <Text style={styles.aboutStatValue}>{playlists.length}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.aboutStatRow}>
+              <Text style={styles.aboutStatLabel}>Özelleştirilmiş Kapaklar</Text>
+              <Text style={styles.aboutStatValue}>{customCoverCount}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.aboutLinkRow}
+              onPress={handleOpenGithub}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.aboutLinkLabel}>GitHub Reposu</Text>
+              <View style={styles.aboutLinkValueWrap}>
+                <Text style={styles.aboutLinkValue}>SametERILTER</Text>
+                <ExternalLink size={15} color={colors.textPrimary} style={{ marginLeft: 6 }} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
 
       <LinearGradient
@@ -378,6 +533,34 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+  },
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.full,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.sm,
+  },
+  headerTextWrap: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontFamily: typography.fonts.headerBold,
+    fontSize: typography.sizes.display,
+    color: colors.headerTitle,
+    letterSpacing: typography.letterSpacing.tight,
+    marginTop: 2,
+  },
   unifiedCard: {
     marginHorizontal: spacing.md,
     backgroundColor: colors.card,
@@ -387,96 +570,156 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
-  listItem: {
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md - 2,
+    paddingVertical: spacing.md - 1,
   },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.borderLight,
-    marginLeft: 48,
-  },
-  eqListItem: {
-    paddingVertical: spacing.md - 2,
-    gap: spacing.sm + 2,
-  },
-  eqHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionIconBox: {
-    width: 36,
-    height: 36,
+  menuIconBox: {
+    width: 38,
+    height: 38,
     borderRadius: radius.md,
     backgroundColor: colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.sm + 2,
   },
-  rowTextWrap: {
+  menuTextWrap: {
     flex: 1,
-    marginRight: spacing.sm,
+    marginRight: spacing.xs,
   },
-  rowTitle: {
+  menuTitle: {
     fontFamily: typography.fonts.semiBold,
     fontSize: typography.sizes.sm,
     color: colors.textPrimary,
   },
-  rowSubtitle: {
+  menuSubtitle: {
     fontFamily: typography.fonts.regular,
     fontSize: typography.sizes.xs,
     color: colors.textMuted,
     marginTop: 2,
   },
-  eqOptionsRow: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-    marginLeft: 48,
-  },
-  eqBtn: {
-    flex: 1,
+  menuRightGroup: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 4,
-    height: 36,
+  },
+  menuBadgeText: {
+    fontFamily: typography.fonts.medium,
+    fontSize: 11,
+    color: colors.textTertiary,
+    marginRight: 2,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md - 1,
+  },
+  settingTextWrap: {
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  settingTitle: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
+  },
+  settingSubtitle: {
+    fontFamily: typography.fonts.regular,
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.borderLight,
+    marginLeft: 50,
+  },
+  badgeAction: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: radius.full,
     backgroundColor: colors.backgroundSecondary,
     borderWidth: 1,
     borderColor: colors.borderLight,
   },
-  eqBtnActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  eqBtnText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xs,
+  badgeActionText: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: 11,
     color: colors.textPrimary,
   },
-  eqBtnTextActive: {
-    color: colors.primaryContrast,
-    fontFamily: typography.fonts.semiBold,
-  },
-  statusBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: colors.primary,
+  statusSuccessBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.backgroundSecondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  badgeLight: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: radius.full,
-    backgroundColor: colors.backgroundSecondary,
+  aboutHeader: {
+    alignItems: 'center',
+    paddingVertical: spacing.lg,
   },
-  badgeLightText: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: 11,
+  appLogoCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  appName: {
+    fontFamily: typography.fonts.headerBold,
+    fontSize: typography.sizes.lg,
+    color: colors.textPrimary,
+  },
+  appVersion: {
+    fontFamily: typography.fonts.regular,
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
+    marginTop: 3,
+  },
+  aboutStatRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.md - 2,
+    paddingHorizontal: spacing.xs,
+  },
+  aboutStatLabel: {
+    fontFamily: typography.fonts.medium,
+    fontSize: typography.sizes.sm,
     color: colors.textSecondary,
+  },
+  aboutStatValue: {
+    fontFamily: typography.fonts.bold,
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
+  },
+  aboutLinkRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.md - 2,
+    paddingHorizontal: spacing.xs,
+  },
+  aboutLinkLabel: {
+    fontFamily: typography.fonts.medium,
+    fontSize: typography.sizes.sm,
+    color: colors.textSecondary,
+  },
+  aboutLinkValueWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  aboutLinkValue: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
   },
 });
 

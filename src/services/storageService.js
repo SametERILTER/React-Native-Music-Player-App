@@ -79,6 +79,28 @@ export const safeStorage = {
       }
     } catch (_) {}
   },
+
+  getAllKeys: async () => {
+    try {
+      const storage = getAsyncStorageInstance();
+      if (storage && typeof storage.getAllKeys === 'function') {
+        const keys = await storage.getAllKeys();
+        if (Array.isArray(keys)) return keys;
+      }
+    } catch (_) {}
+    return Object.keys(inMemoryStorage);
+  },
+
+  multiRemove: async (keys) => {
+    if (!Array.isArray(keys)) return;
+    keys.forEach((k) => delete inMemoryStorage[k]);
+    try {
+      const storage = getAsyncStorageInstance();
+      if (storage && typeof storage.multiRemove === 'function') {
+        await storage.multiRemove(keys);
+      }
+    } catch (_) {}
+  },
 };
 
 export default safeStorage;

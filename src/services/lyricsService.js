@@ -2,6 +2,10 @@ import { safeStorage } from './storageService';
 
 const inMemoryLyricsCache = new Map();
 
+export const clearLyricsCache = () => {
+  inMemoryLyricsCache.clear();
+};
+
 export const cleanTrackInfo = (rawTitle = '', rawArtist = '') => {
   let title = (rawTitle || '').trim();
   let artist = (rawArtist || '').trim();
