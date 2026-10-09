@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Platform,
   Animated,
+  Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
@@ -36,12 +37,17 @@ export const SearchScreen = () => {
   const [query, setQuery] = useState('');
 
   const searchInputRef = useRef(null);
+  const topSearchInputRef = useRef(null);
   const flatListRef = useRef(null);
 
   const isFocused = useIsFocused();
   const [animScale] = useState(() => new Animated.Value(0));
   const [animOpacity] = useState(() => new Animated.Value(0));
   const [pressScale] = useState(() => new Animated.Value(1));
+
+  const [topBarAnim] = useState(() => new Animated.Value(0));
+  const isTopBarVisibleRef = useRef(false);
+  const [isTopBarVisible, setIsTopBarVisible] = useState(false);
 
   const targetFabBottom = currentTrack
     ? Math.max(insets.bottom, 16) + 64 + 68
@@ -149,14 +155,90 @@ export const SearchScreen = () => {
     </View>
   ), [currentTrack?.id, isPlaying, favorites, displayedTracks, playTrack, toggleFavorite, handleOpenPlaylist, t]);
 
+  const handleScroll = useCallback(
+    (event) => {
+      onScrollForPlayer?.(event);
+      const scrollY = event?.nativeEvent?.contentOffset?.y ?? 0;
+
+      if (scrollY > 85 && !isTopBarVisibleRef.current) {
+        isTopBarVisibleRef.current = true;
+        setIsTopBarVisible(true);
+        Animated.timing(topBarAnim, {
+          toValue: 1,
+          duration: 200,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start();
+      } else if (scrollY < 55 && isTopBarVisibleRef.current) {
+        isTopBarVisibleRef.current = false;
+        Animated.timing(topBarAnim, {
+          toValue: 0,
+          duration: 220,
+          easing: Easing.in(Easing.cubic),
+          useNativeDriver: true,
+        }).start(() => {
+          setIsTopBarVisible(false);
+        });
+      }
+    },
+    [onScrollForPlayer, topBarAnim]
+  );
+
+  const topBarTranslateY = topBarAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-28, 0],
+  });
+
+  const topBarOpacity = topBarAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
   return (
     <View style={styles.mainWrapper}>
+      <Animated.View
+        style={[
+          styles.stickyHeader,
+          {
+            paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 24 : 16) + 4,
+            opacity: topBarOpacity,
+            transform: [{ translateY: topBarTranslateY }],
+          },
+        ]}
+        pointerEvents={isTopBarVisible ? 'auto' : 'none'}
+      >
+        <LinearGradient
+          colors={[
+            colors.background,
+            colors.background,
+            'rgba(243, 243, 244, 0.95)',
+            'rgba(243, 243, 244, 0.65)',
+            'rgba(243, 243, 244, 0)',
+          ]}
+          locations={[0, 0.42, 0.68, 0.86, 1]}
+          style={StyleSheet.absoluteFillObject}
+          pointerEvents="none"
+        />
+        <View style={styles.stickySearchWrapper}>
+          <SearchBar
+            ref={topSearchInputRef}
+            value={query}
+            onChangeText={setQuery}
+            onClear={handleClear}
+            placeholder={t('search.placeholder')}
+            style={styles.stickySearchBar}
+          />
+        </View>
+      </Animated.View>
+
       <FlatList
         ref={flatListRef}
         data={displayedTracks}
         keyExtractor={(item) => item.id.toString()}
-        onScroll={onScrollForPlayer}
-        scrollEventThrottle={64}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={7}
@@ -299,6 +381,21 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xs,
     color: colors.textMuted,
     textAlign: 'center',
+  },
+  stickyHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 50,
+    paddingBottom: spacing.lg,
+  },
+  stickySearchWrapper: {
+    width: '100%',
+  },
+  stickySearchBar: {
+    marginHorizontal: spacing.lg,
+    marginVertical: 0,
   },
 });
 

@@ -4,12 +4,12 @@ import { Search, X } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
 
-export const SearchBar = React.forwardRef(({ value, onChangeText, onClear, placeholder }, ref) => {
+export const SearchBar = React.forwardRef(({ value, onChangeText, onClear, placeholder, style }, ref) => {
   const { t } = useLanguage();
   const activePlaceholder = placeholder || t('search.placeholder');
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <Search size={18} color={colors.textTertiary} style={styles.searchIcon} />
       <TextInput
         ref={ref}
