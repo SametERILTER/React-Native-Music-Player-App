@@ -24,6 +24,7 @@ import Animated, {
 import { Plus, Check, ListMusic, X } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../theme';
 import { usePlayer } from '../../context/PlayerContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { getPlaylistCoverSource } from '../../constants/playlistCovers';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
@@ -35,6 +36,7 @@ const EASE_IN = Easing.bezier(0.7, 0, 0.84, 0);
 
 export const AddToPlaylistModal = ({ visible, track, onClose }) => {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const { playlists, createPlaylist, toggleTrackInPlaylist } = usePlayer();
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -104,9 +106,9 @@ export const AddToPlaylistModal = ({ visible, track, onClose }) => {
 
             <View style={styles.headerRow}>
               <View style={styles.headerTextWrap}>
-                <Text style={styles.headerSubtitle}>LİSTEYE EKLE</Text>
+                <Text style={styles.headerSubtitle}>{t('addToPlaylist.headerSubtitle')}</Text>
                 <Text style={styles.trackTitle} numberOfLines={1}>
-                  {track?.title || 'Müzik'}
+                  {track?.title || t('addToPlaylist.trackDefault')}
                 </Text>
                 {track?.artist ? (
                   <Text style={styles.trackArtist} numberOfLines={1}>
@@ -129,7 +131,7 @@ export const AddToPlaylistModal = ({ visible, track, onClose }) => {
               <View style={styles.createInputContainer}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Liste adı yazın..."
+                  placeholder={t('addToPlaylist.inputPlaceholder')}
                   placeholderTextColor={colors.textMuted}
                   value={newPlaylistName}
                   onChangeText={setNewPlaylistName}
@@ -147,7 +149,7 @@ export const AddToPlaylistModal = ({ visible, track, onClose }) => {
                     }}
                     activeOpacity={0.7}
                   >
-                    <Text style={styles.cancelBtnText}>Vazgeç</Text>
+                    <Text style={styles.cancelBtnText}>{t('addToPlaylist.cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[
@@ -158,7 +160,7 @@ export const AddToPlaylistModal = ({ visible, track, onClose }) => {
                     disabled={!newPlaylistName.trim()}
                     activeOpacity={0.8}
                   >
-                    <Text style={styles.addBtnText}>Oluştur</Text>
+                    <Text style={styles.addBtnText}>{t('addToPlaylist.create')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -171,7 +173,7 @@ export const AddToPlaylistModal = ({ visible, track, onClose }) => {
                 <View style={styles.newPlaylistIconBox}>
                   <Plus size={18} color={colors.primaryContrast} strokeWidth={2.4} />
                 </View>
-                <Text style={styles.newPlaylistBtnText}>Yeni Çalma Listesi Oluştur</Text>
+                <Text style={styles.newPlaylistBtnText}>{t('addToPlaylist.newPlaylistBtn')}</Text>
               </TouchableOpacity>
             )}
 
@@ -186,9 +188,9 @@ export const AddToPlaylistModal = ({ visible, track, onClose }) => {
                   <View style={styles.emptyIconBox}>
                     <ListMusic size={26} color={colors.textMuted} />
                   </View>
-                  <Text style={styles.emptyTitle}>Henüz çalma listeniz yok</Text>
+                  <Text style={styles.emptyTitle}>{t('addToPlaylist.emptyTitle')}</Text>
                   <Text style={styles.emptyText}>
-                    Yukarıdaki butona dokunarak ilk çalma listenizi oluşturabilirsiniz.
+                    {t('addToPlaylist.emptyDesc')}
                   </Text>
                 </View>
               ) : (
@@ -235,7 +237,7 @@ export const AddToPlaylistModal = ({ visible, track, onClose }) => {
                             {pl.name}
                           </Text>
                           <Text style={styles.playlistCount}>
-                            {pl.trackIds.length} parça
+                            {t('addToPlaylist.songsCount', { count: pl.trackIds.length })}
                           </Text>
                         </View>
                       </View>

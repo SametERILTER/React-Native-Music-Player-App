@@ -31,6 +31,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 import { usePlayer, usePlayerProgress } from '../../context/PlayerContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { formatTime } from '../../services/musicService';
 import { getCoverGradientColors } from '../../constants/playlistCovers';
 import { fetchLyrics } from '../../services/lyricsService';
@@ -52,6 +53,7 @@ const START_TRANSLATE_Y = 180;
 
 export const FullPlayerModal = ({ visible, onClose }) => {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const {
     currentTrack,
     isPlaying,
@@ -220,10 +222,12 @@ export const FullPlayerModal = ({ visible, onClose }) => {
   }, [isEditSongModalVisible, isQueueModalVisible, handleClose]);
 
   const isPlaylistPlayback = playbackContext?.type === 'playlist' && Boolean(playbackContext?.name);
-  const headerSubtitleText = isPlaylistPlayback ? 'ÇALMA LİSTESİ' : 'OYNATILIYOR';
+  const headerSubtitleText = isPlaylistPlayback ? t('player.playlistSubtitle') : t('player.nowPlayingSubtitle');
   const headerTitleText = isPlaylistPlayback
     ? playbackContext.name
-    : (currentTrack?.album && currentTrack.album !== 'Kütüphane' ? currentTrack.album : 'Cihaz Müzikleri');
+    : (currentTrack?.album && currentTrack.album !== 'Kütüphane' && currentTrack.album !== 'Library'
+        ? currentTrack.album
+        : t('player.deviceTracks'));
 
   if (!currentTrack) return null;
 
@@ -350,7 +354,7 @@ export const FullPlayerModal = ({ visible, onClose }) => {
                       showLyrics && styles.lyricsPillTextActive,
                     ]}
                   >
-                    {showLyrics ? 'Albüm Kapağı' : 'Şarkı Sözleri'}
+                    {showLyrics ? t('player.showCover') : t('player.showLyrics')}
                   </Text>
                 </TouchableOpacity>
               </Animated.View>

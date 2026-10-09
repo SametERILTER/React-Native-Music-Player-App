@@ -21,6 +21,7 @@ import Animated, {
 import { Plus, Trash2, X, Pencil, ListMusic } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../theme';
 import { getPlaylistCoverSource } from '../../constants/playlistCovers';
+import { useLanguage } from '../../context/LanguageContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 
@@ -38,6 +39,7 @@ export const PlaylistOptionsModal = ({
   onDelete,
   onToggleGradient,
 }) => {
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(SCREEN_HEIGHT * 0.5);
 
@@ -124,12 +126,12 @@ export const PlaylistOptionsModal = ({
             </View>
 
             <View style={styles.headerTextWrap}>
-              <Text style={styles.headerSubtitle}>ÇALMA LİSTESİ SEÇENEKLERİ</Text>
+              <Text style={styles.headerSubtitle}>{t('playlistOptions.headerSubtitle')}</Text>
               <Text style={styles.playlistTitle} numberOfLines={1}>
-                {playlist?.name || 'Çalma Listesi'}
+                {playlist?.name || t('playlistOptions.defaultTitle')}
               </Text>
               <Text style={styles.playlistCount}>
-                {playlist ? `${playlist.trackIds.length} parça` : ''}
+                {playlist ? t('playlistOptions.songsCount', { count: playlist.trackIds.length }) : ''}
               </Text>
             </View>
 
@@ -153,8 +155,8 @@ export const PlaylistOptionsModal = ({
                 <Pencil size={19} color={colors.textPrimary} strokeWidth={2} />
               </View>
               <View style={styles.optionTextWrap}>
-                <Text style={styles.optionTitle}>Düzenle</Text>
-                <Text style={styles.optionDesc}>Çalma listesi adını ve kapak resmini değiştir</Text>
+                <Text style={styles.optionTitle}>{t('playlistOptions.edit')}</Text>
+                <Text style={styles.optionDesc}>{t('playlistOptions.editDesc')}</Text>
               </View>
             </TouchableOpacity>
 
@@ -164,8 +166,8 @@ export const PlaylistOptionsModal = ({
               onPress={() => onToggleGradient?.(playlist)}
             >
               <View style={styles.optionTextWrap}>
-                <Text style={styles.optionTitle}>Kapak Rengi Gradyanı</Text>
-                <Text style={styles.optionDesc}>Kapağın rengini ekranın üstünden aşağı yayar</Text>
+                <Text style={styles.optionTitle}>{t('playlistOptions.gradient')}</Text>
+                <Text style={styles.optionDesc}>{t('playlistOptions.gradientDesc')}</Text>
               </View>
               <Switch
                 value={Boolean(playlist?.isGradientEnabled)}
@@ -185,8 +187,8 @@ export const PlaylistOptionsModal = ({
                 <Plus size={20} color={colors.textPrimary} strokeWidth={2.2} />
               </View>
               <View style={styles.optionTextWrap}>
-                <Text style={styles.optionTitle}>Şarkı Ekle</Text>
-                <Text style={styles.optionDesc}>Kütüphaneden bu listeye müzik ekle veya çıkar</Text>
+                <Text style={styles.optionTitle}>{t('playlistOptions.addSongs')}</Text>
+                <Text style={styles.optionDesc}>{t('playlistOptions.addSongsDesc')}</Text>
               </View>
             </TouchableOpacity>
 
@@ -199,8 +201,8 @@ export const PlaylistOptionsModal = ({
                 <Trash2 size={19} color={colors.error} strokeWidth={2} />
               </View>
               <View style={styles.optionTextWrap}>
-                <Text style={[styles.optionTitle, { color: colors.error }]}>Çalma Listesini Sil</Text>
-                <Text style={styles.optionDesc}>Bu çalma listesi kalıcı olarak silinir</Text>
+                <Text style={[styles.optionTitle, { color: colors.error }]}>{t('playlistOptions.delete')}</Text>
+                <Text style={styles.optionDesc}>{t('playlistOptions.deleteDesc')}</Text>
               </View>
             </TouchableOpacity>
           </View>

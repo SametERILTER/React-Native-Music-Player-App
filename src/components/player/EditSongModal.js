@@ -24,6 +24,7 @@ import { X, Check, CheckCircle2, ListPlus } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../theme';
 import { ALL_COVERS } from '../../constants/playlistCovers';
 import { usePlayer } from '../../context/PlayerContext';
+import { useLanguage } from '../../context/LanguageContext';
 import AlbumArtwork from '../home/AlbumArtwork';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
@@ -39,6 +40,7 @@ const EditSongContent = ({
   insets,
   translateY,
 }) => {
+  const { t } = useLanguage();
   const {
     updateTrackCover,
     updateTrackInfo,
@@ -61,7 +63,7 @@ const EditSongContent = ({
       if (typeof updateTrackInfo === 'function') {
         updateTrackInfo(track.id, {
           title: editedTitle.trim() || track.title,
-          artist: editedArtist.trim() || 'Bilinmeyen Sanatçı',
+          artist: editedArtist.trim() || t('common.unknownArtist'),
         });
       }
     } catch (err) {
@@ -99,8 +101,8 @@ const EditSongContent = ({
 
       <View style={styles.headerRow}>
         <View style={styles.headerTextWrap}>
-          <Text style={styles.headerSubtitle}>ŞARKI SEÇENEKLERİ</Text>
-          <Text style={styles.headerTitle}>Şarkı Bilgilerini Düzenle</Text>
+          <Text style={styles.headerSubtitle}>{t('editSong.headerSubtitle')}</Text>
+          <Text style={styles.headerTitle}>{t('editSong.headerTitle')}</Text>
         </View>
         <TouchableOpacity
           style={styles.closeBtn}
@@ -128,28 +130,28 @@ const EditSongContent = ({
               borderRadius={radius.lg}
             />
           </View>
-          <Text style={styles.coverPreviewLabel}>Kapak Önizlemesi</Text>
+          <Text style={styles.coverPreviewLabel}>{t('editSong.coverPreview')}</Text>
         </View>
 
         <View style={styles.trackInfoBox}>
           <View style={styles.inputFieldWrap}>
-            <Text style={styles.inputFieldLabel}>ŞARKI ADI</Text>
+            <Text style={styles.inputFieldLabel}>{t('editSong.songTitleLabel')}</Text>
             <TextInput
               style={styles.inputField}
               value={editedTitle}
               onChangeText={setEditedTitle}
-              placeholder="Şarkı adı"
+              placeholder={t('editSong.songTitlePlaceholder')}
               placeholderTextColor={colors.textTertiary}
             />
           </View>
 
           <View style={[styles.inputFieldWrap, { marginTop: spacing.sm }]}>
-            <Text style={styles.inputFieldLabel}>SANATÇI / YAZAR</Text>
+            <Text style={styles.inputFieldLabel}>{t('editSong.artistLabel')}</Text>
             <TextInput
               style={styles.inputField}
               value={editedArtist}
               onChangeText={setEditedArtist}
-              placeholder="Sanatçı veya yazar bilgisi"
+              placeholder={t('editSong.artistPlaceholder')}
               placeholderTextColor={colors.textTertiary}
             />
           </View>
@@ -157,9 +159,9 @@ const EditSongContent = ({
 
         <View style={styles.gradientOptionCard}>
           <View style={styles.gradientOptionTextWrap}>
-            <Text style={styles.gradientOptionTitle}>Kapak Rengi Gradyanı</Text>
+            <Text style={styles.gradientOptionTitle}>{t('editSong.gradientTitle')}</Text>
             <Text style={styles.gradientOptionDesc}>
-              Oynatıcı arka planına kapağın rengini yayar
+              {t('editSong.gradientDesc')}
             </Text>
           </View>
           <Switch
@@ -171,7 +173,7 @@ const EditSongContent = ({
         </View>
 
         <View style={styles.coversSection}>
-          <Text style={styles.sectionLabel}>KAPAK RESMİ SEÇİN</Text>
+          <Text style={styles.sectionLabel}>{t('editSong.selectCover')}</Text>
 
           <ScrollView
             horizontal
@@ -238,7 +240,7 @@ const EditSongContent = ({
           activeOpacity={0.85}
         >
           <CheckCircle2 size={18} color={colors.primaryContrast} />
-          <Text style={styles.saveBtnText}>Değişiklikleri Kaydet</Text>
+          <Text style={styles.saveBtnText}>{t('editSong.saveChanges')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -247,7 +249,7 @@ const EditSongContent = ({
           activeOpacity={0.85}
         >
           <ListPlus size={18} color={colors.textPrimary} />
-          <Text style={styles.secondaryActionBtnText}>Çalma Listesine Ekle</Text>
+          <Text style={styles.secondaryActionBtnText}>{t('editSong.addToPlaylist')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </Animated.View>

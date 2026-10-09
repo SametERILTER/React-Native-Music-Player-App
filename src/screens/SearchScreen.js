@@ -14,12 +14,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Search as SearchIcon } from 'lucide-react-native';
 import { colors, typography, spacing } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
+import { useLanguage } from '../context/LanguageContext';
 import Header from '../components/common/Header';
 import SearchBar from '../components/common/SearchBar';
 import SongItem from '../components/home/SongItem';
 
 export const SearchScreen = () => {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const {
     tracks,
     currentTrack,
@@ -78,7 +80,7 @@ export const SearchScreen = () => {
       ]).start();
     }
     return () => clearTimeout(timeoutId);
-  }, [isFocused]);
+  }, [isFocused, animScale, animOpacity]);
 
   const handleFabPress = () => {
     flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
@@ -107,23 +109,25 @@ export const SearchScreen = () => {
 
   const renderHeader = useCallback(() => (
     <View style={styles.headerContainer}>
-      <Header title="Arama" />
+      <Header title={t('search.title')} />
 
       <SearchBar
         ref={searchInputRef}
         value={query}
         onChangeText={setQuery}
         onClear={handleClear}
-        placeholder="Şarkı, sanatçı veya tür ara..."
+        placeholder={t('search.placeholder')}
       />
 
       <View style={styles.listTitleRow}>
         <Text style={styles.listTitle}>
-          {query.trim() === '' ? `Tüm Şarkılar (${tracks.length})` : `Sonuçlar (${displayedTracks.length})`}
+          {query.trim() === ''
+            ? t('search.allSongs', { count: tracks.length })
+            : t('search.results', { count: displayedTracks.length })}
         </Text>
       </View>
     </View>
-  ), [query, tracks.length, displayedTracks.length, handleClear]);
+  ), [query, tracks.length, displayedTracks.length, handleClear, t]);
 
   const renderItem = useCallback(({ item, index }) => (
     <View style={styles.songItemWrapper}>
@@ -133,17 +137,17 @@ export const SearchScreen = () => {
         isCurrent={currentTrack?.id === item.id}
         isPlaying={isPlaying}
         isFavorite={favorites.includes(item.id)}
-        onPress={(t) =>
-          playTrack(t, displayedTracks, {
+        onPress={(tItem) =>
+          playTrack(tItem, displayedTracks, {
             type: 'search',
-            name: 'Arama Sonuçları',
+            name: t('search.searchResults'),
           })
         }
         onToggleFavorite={toggleFavorite}
         onOpenPlaylistModal={handleOpenPlaylist}
       />
     </View>
-  ), [currentTrack?.id, isPlaying, favorites, displayedTracks, playTrack, toggleFavorite, handleOpenPlaylist]);
+  ), [currentTrack?.id, isPlaying, favorites, displayedTracks, playTrack, toggleFavorite, handleOpenPlaylist, t]);
 
   return (
     <View style={styles.mainWrapper}>
@@ -167,9 +171,9 @@ export const SearchScreen = () => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <SearchIcon size={32} color={colors.textTertiary} />
-            <Text style={styles.emptyTitle}>Sonuç Bulunamadı</Text>
+            <Text style={styles.emptyTitle}>{t('search.emptyTitle')}</Text>
             <Text style={styles.emptyDesc}>
-              {`"${query}" ile eşleşen bir şarkı veya sanatçı bulunamadı.`}
+              {t('search.emptyDesc', { query })}
             </Text>
           </View>
         }

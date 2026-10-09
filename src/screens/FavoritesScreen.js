@@ -11,11 +11,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Heart } from 'lucide-react-native';
 import { colors, spacing } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
+import { useLanguage } from '../context/LanguageContext';
 import Header from '../components/common/Header';
 import SongItem from '../components/home/SongItem';
 
 export const FavoritesScreen = () => {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const {
     tracks,
     currentTrack,
@@ -47,10 +49,10 @@ export const FavoritesScreen = () => {
         removeClippedSubviews={Platform.OS === 'android'}
         ListHeaderComponent={
           <View style={styles.headerContainer}>
-            <Header title="Favoriler" />
+            <Header title={t('favorites.title')} />
             <View style={styles.listTitleRow}>
               <Text style={styles.listTitle}>
-                {favoriteTracks.length} Beğenilen Parça
+                {t('favorites.likedSongsCount', { count: favoriteTracks.length })}
               </Text>
             </View>
           </View>
@@ -63,10 +65,10 @@ export const FavoritesScreen = () => {
               isCurrent={currentTrack?.id === item.id}
               isPlaying={isPlaying}
               isFavorite={true}
-              onPress={(t) =>
-                playTrack(t, favoriteTracks, {
+              onPress={(tItem) =>
+                playTrack(tItem, favoriteTracks, {
                   type: 'favorites',
-                  name: 'Beğenilen Şarkılar',
+                  name: t('favorites.likedSongs'),
                 })
               }
               onToggleFavorite={toggleFavorite}
@@ -82,9 +84,9 @@ export const FavoritesScreen = () => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Heart size={32} color={colors.textTertiary} />
-            <Text style={styles.emptyTitle}>Henüz Favori Eklenmedi</Text>
+            <Text style={styles.emptyTitle}>{t('favorites.emptyTitle')}</Text>
             <Text style={styles.emptyDesc}>
-              Şarkıların yanındaki kalp simgesine dokunarak favorilerine ekleyebilirsin.
+              {t('favorites.emptyDesc')}
             </Text>
           </View>
         }

@@ -2,8 +2,12 @@ import React from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Search, X } from 'lucide-react-native';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
+import { useLanguage } from '../../context/LanguageContext';
 
-export const SearchBar = React.forwardRef(({ value, onChangeText, onClear, placeholder = 'Şarkı, sanatçı veya albüm ara...' }, ref) => {
+export const SearchBar = React.forwardRef(({ value, onChangeText, onClear, placeholder }, ref) => {
+  const { t } = useLanguage();
+  const activePlaceholder = placeholder || t('search.placeholder');
+
   return (
     <View style={styles.container}>
       <Search size={18} color={colors.textTertiary} style={styles.searchIcon} />
@@ -12,7 +16,7 @@ export const SearchBar = React.forwardRef(({ value, onChangeText, onClear, place
         style={styles.input}
         value={value}
         onChangeText={onChangeText}
-        placeholder={placeholder}
+        placeholder={activePlaceholder}
         placeholderTextColor={colors.textTertiary}
         autoCorrect={false}
         clearButtonMode="never"

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { RefreshCw } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../theme';
+import { useLanguage } from '../../context/LanguageContext';
 import { fetchLyrics } from '../../services/lyricsService';
 
 const LyricLineItem = React.memo(({
@@ -114,6 +115,7 @@ export const SyncedLyricsView = ({
   height,
   width,
 }) => {
+  const { t } = useLanguage();
   const [prevTrackId, setPrevTrackId] = useState(currentTrack?.id);
   const [lyrics, setLyrics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -153,11 +155,11 @@ export const SyncedLyricsView = ({
           setError(null);
         } else {
           setLyrics(null);
-          setError('Bu şarkı için henüz şarkı sözü bulunamadı.');
+          setError(t('lyrics.notFound'));
         }
       } catch (_) {
         if (isCancelled) return;
-        setError('Şarkı sözleri yüklenirken bir sorun oluştu.');
+        setError(t('lyrics.error'));
       } finally {
         if (!isCancelled) {
           setLoading(false);
@@ -173,7 +175,7 @@ export const SyncedLyricsView = ({
         clearTimeout(autoScrollTimeoutRef.current);
       }
     };
-  }, [currentTrack, reloadKey]);
+  }, [currentTrack, reloadKey, t]);
 
   const activeIndex = useMemo(() => {
     if (!lyrics?.isSynced || !lyrics?.lines || lyrics.lines.length === 0) return -1;
@@ -252,30 +254,30 @@ export const SyncedLyricsView = ({
       <View style={styles.lyricsFooter}>
         <View style={styles.lyricsSourceBadge}>
           <Text style={styles.lyricsSourceText}>
-            Kaynak: {lyrics.source || 'LRCLIB'}
+            {t('lyrics.source', { source: lyrics.source || 'LRCLIB' })}
           </Text>
         </View>
       </View>
     );
-  }, [lyrics]);
+  }, [lyrics, t]);
 
   return (
     <View style={[styles.container, { width, height, borderRadius: radius.xl }]} collapsable={false}>
       {loading ? (
         <View style={[styles.centerContainer, { height }]}>
           <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={styles.loadingText}>Şarkı sözleri aranıyor...</Text>
+          <Text style={styles.loadingText}>{t('lyrics.searching')}</Text>
         </View>
       ) : error || !lyrics ? (
         <View style={[styles.centerContainer, { height }]}>
-          <Text style={styles.errorText}>{error || 'Şarkı sözü bulunamadı'}</Text>
+          <Text style={styles.errorText}>{error || t('lyrics.notFoundGeneric')}</Text>
           <TouchableOpacity
             style={styles.retryBtn}
             onPress={handleRetry}
             activeOpacity={0.7}
           >
             <RefreshCw size={13} color={colors.primary} style={{ marginRight: 6 }} />
-            <Text style={styles.retryText}>Tekrar Dene</Text>
+            <Text style={styles.retryText}>{t('lyrics.retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : (

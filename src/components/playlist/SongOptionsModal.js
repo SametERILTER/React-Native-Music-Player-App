@@ -38,6 +38,7 @@ import {
 } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../theme';
 import { usePlayer } from '../../context/PlayerContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { formatTime } from '../../services/musicService';
 import AlbumArtwork from '../home/AlbumArtwork';
 
@@ -49,6 +50,7 @@ const EASE_OUT = Easing.bezier(0.16, 1, 0.3, 1);
 const EASE_IN = Easing.bezier(0.7, 0, 0.84, 0);
 
 export const SongOptionsModal = ({ visible, track, onClose }) => {
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   const {
     playlists,
@@ -101,12 +103,12 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
   const handleDeleteSong = () => {
     if (!track) return;
     Alert.alert(
-      'Şarkıyı Sil',
-      `"${track.title}" parçasını kütüphaneden silmek istediğinize emin misiniz?`,
+      t('songOptions.deleteAlertTitle'),
+      t('songOptions.deleteAlertMsg', { title: track.title }),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('songOptions.cancel'), style: 'cancel' },
         {
-          text: 'Sil',
+          text: t('songOptions.delete'),
           style: 'destructive',
           onPress: () => {
             if (deleteTrack) {
@@ -123,7 +125,7 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
 
   const rawUri = track.uri || '';
   const decodedUri = decodeURIComponent(rawUri);
-  let fileExt = 'Bilinmiyor';
+  let fileExt = t('common.unknown');
   if (decodedUri.includes('.')) {
     const ext = decodedUri.split('.').pop().split('?')[0].toUpperCase();
     if (ext.length <= 5) {
@@ -164,7 +166,7 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <ChevronLeft size={20} color={colors.textPrimary} />
-                  <Text style={styles.backText}>Seçenekler</Text>
+                  <Text style={styles.backText}>{t('songOptions.options')}</Text>
                 </TouchableOpacity>
               ) : (
                 <View style={styles.trackInfoRow}>
@@ -174,7 +176,7 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                       {track.title}
                     </Text>
                     <Text style={styles.trackArtist} numberOfLines={1}>
-                      {track.artist || 'Bilinmeyen Sanatçı'} • {formatTime(track.duration || 0)}
+                      {track.artist || t('songOptions.unknownArtist')} • {formatTime(track.duration || 0)}
                     </Text>
                   </View>
                 </View>
@@ -201,9 +203,9 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                     <ListPlus size={20} color={colors.textPrimary} />
                   </View>
                   <View style={styles.optionContent}>
-                    <Text style={styles.optionTitle}>Çalma Listesine Ekle</Text>
+                    <Text style={styles.optionTitle}>{t('songOptions.addToPlaylist')}</Text>
                     <Text style={styles.optionDesc}>
-                      Bir veya birden fazla çalma listesine dahil et
+                      {t('songOptions.addToPlaylistDesc')}
                     </Text>
                   </View>
                   <ChevronRight size={18} color={colors.textTertiary} />
@@ -218,9 +220,9 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                     <Folder size={20} color={colors.textPrimary} />
                   </View>
                   <View style={styles.optionContent}>
-                    <Text style={styles.optionTitle}>Şarkı Yolunu Gör</Text>
+                    <Text style={styles.optionTitle}>{t('songOptions.viewPath')}</Text>
                     <Text style={styles.optionDesc}>
-                      Dosya konumu, format ve teknik detaylar
+                      {t('songOptions.viewPathDesc')}
                     </Text>
                   </View>
                   <ChevronRight size={18} color={colors.textTertiary} />
@@ -236,10 +238,10 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                   </View>
                   <View style={styles.optionContent}>
                     <Text style={[styles.optionTitle, styles.deleteOptionTitle]}>
-                      Şarkıyı Sil
+                      {t('songOptions.deleteSong')}
                     </Text>
                     <Text style={styles.optionDesc}>
-                      Kütüphaneden ve tüm listelerden kaldır
+                      {t('songOptions.deleteSongDesc')}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -249,9 +251,9 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
             {viewMode === 'playlists' && (
               <View style={styles.subViewContainer}>
                 <View style={styles.subViewHeader}>
-                  <Text style={styles.subViewTitle}>Çalma Listeleri</Text>
+                  <Text style={styles.subViewTitle}>{t('songOptions.playlistsTitle')}</Text>
                   <Text style={styles.subViewSubtitle}>
-                    Parçayı eklemek veya çıkarmak için listeye dokunun
+                    {t('songOptions.playlistsSubtitle')}
                   </Text>
                 </View>
 
@@ -262,13 +264,13 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                     activeOpacity={0.7}
                   >
                     <Plus size={16} color={colors.textPrimary} />
-                    <Text style={styles.createBtnText}>Yeni Çalma Listesi Oluştur</Text>
+                    <Text style={styles.createBtnText}>{t('songOptions.newPlaylistBtn')}</Text>
                   </TouchableOpacity>
                 ) : (
                   <View style={styles.createInputContainer}>
                     <TextInput
                       style={styles.createInput}
-                      placeholder="Liste Adı..."
+                      placeholder={t('songOptions.newPlaylistPlaceholder')}
                       placeholderTextColor={colors.textTertiary}
                       value={newPlaylistName}
                       onChangeText={setNewPlaylistName}
@@ -284,7 +286,7 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                       onPress={handleCreatePlaylist}
                       disabled={!newPlaylistName.trim()}
                     >
-                      <Text style={styles.createConfirmText}>Ekle</Text>
+                      <Text style={styles.createConfirmText}>{t('songOptions.add')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={styles.createCancelBtn}
@@ -306,9 +308,9 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                   {playlists.length === 0 ? (
                     <View style={styles.emptyWrap}>
                       <ListMusic size={32} color={colors.textTertiary} />
-                      <Text style={styles.emptyText}>Henüz bir çalma listesi bulunmuyor.</Text>
+                      <Text style={styles.emptyText}>{t('songOptions.emptyPlaylists')}</Text>
                       <Text style={styles.emptySubtext}>
-                        Yukarıdaki butona dokunarak ilk listenizi oluşturabilirsiniz.
+                        {t('songOptions.emptyPlaylistsSub')}
                       </Text>
                     </View>
                   ) : (
@@ -341,7 +343,7 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                                 {pl.name}
                               </Text>
                               <Text style={styles.playlistCount}>
-                                {pl.trackIds.length} parça
+                                {t('songOptions.songsCount', { count: pl.trackIds.length })}
                               </Text>
                             </View>
                           </View>
@@ -374,19 +376,19 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                 showsVerticalScrollIndicator={false}
               >
                 <View style={styles.subViewHeader}>
-                  <Text style={styles.subViewTitle}>Dosya Bilgisi & Konumu</Text>
+                  <Text style={styles.subViewTitle}>{t('songOptions.filePathTitle')}</Text>
                   <Text style={styles.subViewSubtitle}>
-                    Aşağıdaki yolu kopyalamak için metne basılı tutabilirsiniz.
+                    {t('songOptions.filePathSubtitle')}
                   </Text>
                 </View>
 
                 <View style={styles.pathCard}>
                   <View style={styles.pathCardHeader}>
                     <HardDrive size={15} color={colors.textSecondary} />
-                    <Text style={styles.pathCardLabel}>DOSYA YOLU (URI)</Text>
+                    <Text style={styles.pathCardLabel}>{t('songOptions.filePathLabel')}</Text>
                   </View>
                   <Text style={styles.pathValue} selectable={true}>
-                    {decodedUri || 'Dosya yolu bilgisi mevcut değil.'}
+                    {decodedUri || t('songOptions.noFilePath')}
                   </Text>
                 </View>
 
@@ -394,9 +396,9 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                   <View style={styles.detailRow}>
                     <View style={styles.detailLabelWrap}>
                       <FileText size={15} color={colors.textSecondary} />
-                      <Text style={styles.detailLabel}>Format</Text>
+                      <Text style={styles.detailLabel}>{t('songOptions.formatLabel')}</Text>
                     </View>
-                    <Text style={styles.detailValue}>{fileExt} Dosyası</Text>
+                    <Text style={styles.detailValue}>{fileExt} {t('songOptions.fileSuffix')}</Text>
                   </View>
 
                   <View style={styles.detailDivider} />
@@ -404,10 +406,10 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                   <View style={styles.detailRow}>
                     <View style={styles.detailLabelWrap}>
                       <Clock size={15} color={colors.textSecondary} />
-                      <Text style={styles.detailLabel}>Süre</Text>
+                      <Text style={styles.detailLabel}>{t('songOptions.durationLabel')}</Text>
                     </View>
                     <Text style={styles.detailValue}>
-                      {formatTime(track.duration || 0)} ({track.duration || 0} sn)
+                      {formatTime(track.duration || 0)} ({track.duration || 0} {t('songOptions.secSuffix')})
                     </Text>
                   </View>
 
@@ -416,10 +418,10 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                   <View style={styles.detailRow}>
                     <View style={styles.detailLabelWrap}>
                       <Info size={15} color={colors.textSecondary} />
-                      <Text style={styles.detailLabel}>Depolama</Text>
+                      <Text style={styles.detailLabel}>{t('songOptions.storageLabel')}</Text>
                     </View>
                     <Text style={styles.detailValue}>
-                      {track.isLocal ? 'Yerel Cihaz Dosyası' : 'Çevrimiçi / Demo'}
+                      {track.isLocal ? t('songOptions.localFile') : t('songOptions.onlineDemo')}
                     </Text>
                   </View>
 
@@ -429,7 +431,7 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                       <View style={styles.detailRow}>
                         <View style={styles.detailLabelWrap}>
                           <ListMusic size={15} color={colors.textSecondary} />
-                          <Text style={styles.detailLabel}>Albüm</Text>
+                          <Text style={styles.detailLabel}>{t('songOptions.albumLabel')}</Text>
                         </View>
                         <Text style={styles.detailValue} numberOfLines={1}>
                           {track.album}

@@ -32,6 +32,7 @@ import {
 } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../theme';
 import { PLAYLIST_COVERS, getPlaylistCoverSource } from '../../constants/playlistCovers';
+import { useLanguage } from '../../context/LanguageContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 
@@ -47,6 +48,7 @@ const EditPlaylistContent = ({
   insets,
   translateY,
 }) => {
+  const { t } = useLanguage();
   const [name, setName] = useState(playlist?.name || '');
   const [selectedCoverId, setSelectedCoverId] = useState(playlist?.coverId || null);
   const [coverPosition, setCoverPosition] = useState(playlist?.coverPosition || 'left');
@@ -97,8 +99,8 @@ const EditPlaylistContent = ({
 
         <View style={styles.headerRow}>
           <View style={styles.headerTextWrap}>
-            <Text style={styles.headerSubtitle}>DÜZENLE</Text>
-            <Text style={styles.headerTitle}>Çalma Listesini Düzenle</Text>
+            <Text style={styles.headerSubtitle}>{t('editPlaylist.headerSubtitle')}</Text>
+            <Text style={styles.headerTitle}>{t('editPlaylist.headerTitle')}</Text>
           </View>
           <TouchableOpacity
             style={styles.closeBtn}
@@ -139,21 +141,21 @@ const EditPlaylistContent = ({
               ) : (
                 <View style={styles.emptyCoverBox}>
                   <ListMusic size={40} color={colors.textMuted} strokeWidth={1.5} />
-                  <Text style={styles.emptyCoverText}>Kapak Seçilmedi</Text>
+                  <Text style={styles.emptyCoverText}>{t('editPlaylist.noCover')}</Text>
                 </View>
               )}
             </View>
-            <Text style={styles.coverPreviewLabel}>Kapak Önizlemesi</Text>
+            <Text style={styles.coverPreviewLabel}>{t('editPlaylist.coverPreview')}</Text>
           </View>
 
           <View style={styles.inputSection}>
-            <Text style={styles.sectionLabel}>ÇALMA LİSTESİ ADI</Text>
+            <Text style={styles.sectionLabel}>{t('editPlaylist.nameLabel')}</Text>
             <View style={styles.inputWrap}>
               <TextInput
                 style={styles.textInput}
                 value={name}
                 onChangeText={setName}
-                placeholder="Çalma listesi adı..."
+                placeholder={t('editPlaylist.namePlaceholder')}
                 placeholderTextColor={colors.textTertiary}
                 maxLength={40}
                 autoCorrect={false}
@@ -172,12 +174,12 @@ const EditPlaylistContent = ({
           </View>
 
           <View style={styles.positionSection}>
-            <Text style={styles.sectionLabel}>RESİM KONUMU</Text>
+            <Text style={styles.sectionLabel}>{t('editPlaylist.positionLabel')}</Text>
             <View style={styles.positionRow}>
               {[
-                { id: 'left', label: 'Sol', Icon: AlignLeft },
-                { id: 'center', label: 'Orta', Icon: AlignCenter },
-                { id: 'right', label: 'Sağ', Icon: AlignRight },
+                { id: 'left', label: t('editPlaylist.posLeft'), Icon: AlignLeft },
+                { id: 'center', label: t('editPlaylist.posCenter'), Icon: AlignCenter },
+                { id: 'right', label: t('editPlaylist.posRight'), Icon: AlignRight },
               ].map(({ id, label, Icon }) => {
                 const isSelected = coverPosition === id;
                 return (
@@ -210,7 +212,7 @@ const EditPlaylistContent = ({
           </View>
 
           <View style={styles.coversSection}>
-            <Text style={styles.sectionLabel}>KAPAK RESMİ SEÇİN</Text>
+            <Text style={styles.sectionLabel}>{t('editPlaylist.selectCover')}</Text>
 
             <ScrollView
               horizontal
@@ -275,7 +277,7 @@ const EditPlaylistContent = ({
             activeOpacity={0.85}
           >
             <CheckCircle2 size={18} color={colors.primaryContrast} />
-            <Text style={styles.saveBtnText}>Değişiklikleri Kaydet</Text>
+            <Text style={styles.saveBtnText}>{t('editPlaylist.saveChanges')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </Animated.View>

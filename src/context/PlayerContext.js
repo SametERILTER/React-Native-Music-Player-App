@@ -6,6 +6,7 @@ import { DEMO_TRACKS, fetchDeviceAudioTracks, extractTrackMetadata } from '../se
 import { setupTrackPlayer, getTrackPlayer } from '../services/trackPlayerService';
 import { ALL_COVERS } from '../constants/playlistCovers';
 import { colors } from '../theme';
+import { useLanguage } from './LanguageContext';
 
 const PlayerContext = createContext(null);
 const PlayerProgressContext = createContext({
@@ -98,6 +99,7 @@ export const PlayerProgressProvider = ({ isPlaying, currentTrack, onTrackEnded, 
 };
 
 export const PlayerProvider = ({ children }) => {
+  const { t } = useLanguage();
   const [tracks, setTracks] = useState([]);
   const [currentTrack, setCurrentTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -493,7 +495,10 @@ export const PlayerProvider = ({ children }) => {
         }
         return {
           type: 'library',
-          name: track.album && track.album !== 'Kütüphane' ? track.album : 'Cihaz Müzikleri',
+          name:
+            track.album && track.album !== 'Kütüphane' && track.album !== 'Library'
+              ? track.album
+              : t('playerContext.deviceTracks'),
         };
       });
     }
@@ -506,8 +511,8 @@ export const PlayerProvider = ({ children }) => {
           id: String(track.id),
           url: track.uri,
           title: track.title,
-          artist: track.artist || 'Bilinmeyen Sanatçı',
-          album: track.album || 'Kütüphane',
+          artist: track.artist || t('common.unknownArtist'),
+          album: track.album || t('playerContext.library'),
           duration: track.duration,
           artwork: track.coverArt,
         });
@@ -516,7 +521,7 @@ export const PlayerProvider = ({ children }) => {
         console.warn('TrackPlayer parça çalma uyarısı:', err?.message || err);
       }
     }
-  }, [tracks]);
+  }, [tracks, t]);
 
   const togglePlayPause = useCallback(async () => {
     setIsPlaying((prev) => {
@@ -813,9 +818,15 @@ export const PlayerProvider = ({ children }) => {
           if (isUserTriggered) {
             const { Alert } = require('react-native');
             if (hasChanges) {
-              Alert.alert('Tarama Tamamlandı', `${res.tracks.length} adet müzik kütüphanenize yüklendi.`);
+              Alert.alert(
+                t('playerContext.scanCompleteTitle'),
+                t('playerContext.scanCompleteMsg', { count: res.tracks.length })
+              );
             } else {
-              Alert.alert('Kütüphane Güncel', `Tüm müzikleriniz (${res.tracks.length} parça) zaten güncel.`);
+              Alert.alert(
+                t('playerContext.libraryUpdatedTitle'),
+                t('playerContext.libraryUpdatedMsg', { count: res.tracks.length })
+              );
             }
           }
         } else {
@@ -823,7 +834,10 @@ export const PlayerProvider = ({ children }) => {
           setTracks((prev) => (prev.length === 0 ? DEMO_TRACKS : prev));
           if (isUserTriggered) {
             const { Alert } = require('react-native');
-            Alert.alert('Bilgi', 'Cihazınızda oynatılabilir ses dosyası bulunamadı.');
+            Alert.alert(
+              t('playerContext.noAudioTitle'),
+              t('playerContext.noAudioMsg')
+            );
           }
         }
       } else if (res.reason === 'native_module_unavailable') {
@@ -832,15 +846,18 @@ export const PlayerProvider = ({ children }) => {
         if (isUserTriggered) {
           const { Alert } = require('react-native');
           Alert.alert(
-            'Expo Go Kısıtlaması',
-            'Expo SDK 57 ile birlikte yerel medya erişimi için (npx expo run:android) ile Development Build oluşturulması gerekmektedir.'
+            t('playerContext.expoGoTitle'),
+            t('playerContext.expoGoMsg')
           );
         }
       } else if (res.reason === 'permission_denied') {
         setHasDevicePermission(false);
         if (isUserTriggered) {
           const { Alert } = require('react-native');
-          Alert.alert('İzin Reddedildi', 'Cihaz müziklerine erişebilmek için medya izni vermelisiniz.');
+          Alert.alert(
+            t('playerContext.permissionTitle'),
+            t('playerContext.permissionMsg')
+          );
         }
       }
     } catch (err) {
@@ -850,7 +867,7 @@ export const PlayerProvider = ({ children }) => {
         setIsScanningDevice(false);
       }
     }
-  }, [setDeviceTrackCount]);
+  }, [setDeviceTrackCount, t]);
 
 
 

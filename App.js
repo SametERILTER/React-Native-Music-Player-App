@@ -11,6 +11,7 @@ import {
 } from '@expo-google-fonts/geist';
 import { Doto_900Black } from '@expo-google-fonts/doto';
 
+import { LanguageProvider } from './src/context/LanguageContext';
 import { PlayerProvider } from './src/context/PlayerContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import { colors } from './src/theme';
@@ -47,10 +48,12 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <PlayerProvider>
-        <StatusBar style="dark" backgroundColor={colors.background} />
-        <AppNavigator />
-      </PlayerProvider>
+      <LanguageProvider>
+        <PlayerProvider>
+          <StatusBar style="dark" backgroundColor={colors.background} />
+          <AppNavigator />
+        </PlayerProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

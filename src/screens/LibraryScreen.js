@@ -33,6 +33,7 @@ import {
 } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
+import { useLanguage } from '../context/LanguageContext';
 import SongItem from '../components/home/SongItem';
 import AlbumArtwork from '../components/home/AlbumArtwork';
 import PlaylistOptionsModal from '../components/playlist/PlaylistOptionsModal';
@@ -42,6 +43,7 @@ import { getPlaylistCoverSource, getPlaylistScreenGradientColors } from '../cons
 
 export const LibraryScreen = ({ route }) => {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const {
     tracks,
     playlists,
@@ -234,12 +236,12 @@ export const LibraryScreen = ({ route }) => {
 
   const confirmDeletePlaylist = (playlistId, playlistName) => {
     Alert.alert(
-      'Çalma Listesini Sil',
-      `"${playlistName || 'Bu çalma listesi'}" kalıcı olarak silinecek. Emin misiniz?`,
+      t('library.deleteAlertTitle'),
+      t('library.deleteAlertMessage', { name: playlistName || t('playlistOptions.defaultTitle') }),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('library.cancel'), style: 'cancel' },
         {
-          text: 'Sil',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             setIsPlaylistOptionsModalVisible(false);
@@ -402,7 +404,7 @@ export const LibraryScreen = ({ route }) => {
                   activeOpacity={0.7}
                 >
                 <ChevronLeft size={20} color={colors.textPrimary} />
-                <Text style={styles.backBtnText}>Çalma Listeleri</Text>
+                <Text style={styles.backBtnText}>{t('library.playlistsBack')}</Text>
               </TouchableOpacity>
 
               <View
@@ -437,8 +439,8 @@ export const LibraryScreen = ({ route }) => {
                 <Text style={styles.detailTitle}>{activePlaylist.name}</Text>
                 <Text style={styles.detailSubtitle}>
                   {activePlaylistTracks.length !== activePlaylist.trackIds.length
-                    ? `${activePlaylistTracks.length} / ${activePlaylist.trackIds.length} Parça`
-                    : `${activePlaylist.trackIds.length} Parça`}
+                    ? `${activePlaylistTracks.length} / ${activePlaylist.trackIds.length} ${t('common.tracks')}`
+                    : `${activePlaylist.trackIds.length} ${t('common.tracks')}`}
                 </Text>
               </View>
 
@@ -448,7 +450,7 @@ export const LibraryScreen = ({ route }) => {
                   style={styles.playlistSearchInput}
                   value={playlistSearchQuery}
                   onChangeText={setPlaylistSearchQuery}
-                  placeholder="Bu listede ara..."
+                  placeholder={t('library.searchInListPlaceholder')}
                   placeholderTextColor={colors.textTertiary}
                   autoCorrect={false}
                   clearButtonMode="never"
@@ -476,7 +478,7 @@ export const LibraryScreen = ({ route }) => {
                   activeOpacity={0.8}
                 >
                   <Play size={15} color={colors.primaryContrast} fill={colors.primaryContrast} />
-                  <Text style={styles.primaryActionBtnText}>Tümünü Çal</Text>
+                  <Text style={styles.primaryActionBtnText}>{t('library.playAll')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -489,7 +491,7 @@ export const LibraryScreen = ({ route }) => {
                   activeOpacity={0.8}
                 >
                   <Shuffle size={15} color={colors.textPrimary} />
-                  <Text style={styles.secondaryActionBtnText}>Karıştır</Text>
+                  <Text style={styles.secondaryActionBtnText}>{t('library.shuffle')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -516,12 +518,12 @@ export const LibraryScreen = ({ route }) => {
             <View style={styles.emptyContainer}>
               <Music2 size={32} color={colors.textTertiary} />
               <Text style={styles.emptyTitle}>
-                {playlistSearchQuery ? 'Sonuç Bulunamadı' : 'Bu Liste Henüz Boş'}
+                {playlistSearchQuery ? t('library.searchNoResultTitle') : t('library.emptyListTitle')}
               </Text>
               <Text style={styles.emptyDesc}>
                 {playlistSearchQuery
-                  ? `"${playlistSearchQuery}" aramasına uygun şarkı bulunamadı.`
-                  : 'Ana sayfadaki şarkıların yanındaki (⋮) simgesine dokunarak bu listeye müzik ekleyebilirsin.'}
+                  ? t('library.searchNoResultDesc', { query: playlistSearchQuery })
+                  : t('library.emptyListDesc')}
               </Text>
             </View>
           }
@@ -602,12 +604,12 @@ export const LibraryScreen = ({ route }) => {
           <View style={styles.addSongsModalRoot}>
             <View style={[styles.addSongsHeader, { paddingTop: Math.max(insets.top, 24) + 4 }]}>
               <View style={styles.addSongsHeaderLeft}>
-                <Text style={styles.addSongsHeaderSubtitle}>ŞARKI EKLE</Text>
+                <Text style={styles.addSongsHeaderSubtitle}>{t('library.addSongsSubtitle')}</Text>
                 <Text style={styles.addSongsHeaderTitle} numberOfLines={1}>
                   {activePlaylist?.name || ''}
                 </Text>
                 <Text style={styles.addSongsHeaderCount}>
-                  {activePlaylist ? `${activePlaylist.trackIds.length} parça eklendi` : ''}
+                  {activePlaylist ? t('library.addSongsCount', { count: activePlaylist.trackIds.length }) : ''}
                 </Text>
               </View>
 
@@ -616,7 +618,7 @@ export const LibraryScreen = ({ route }) => {
                 onPress={() => setIsAddSongsModalVisible(false)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.addSongsDoneBtnText}>Bitti</Text>
+                <Text style={styles.addSongsDoneBtnText}>{t('library.done')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -627,7 +629,7 @@ export const LibraryScreen = ({ route }) => {
                   style={styles.playlistSearchInput}
                   value={addSongsSearchQuery}
                   onChangeText={setAddSongsSearchQuery}
-                  placeholder="Tüm şarkılarda ara..."
+                  placeholder={t('library.searchAllPlaceholder')}
                   placeholderTextColor={colors.textTertiary}
                   autoCorrect={false}
                   clearButtonMode="never"
@@ -662,12 +664,12 @@ export const LibraryScreen = ({ route }) => {
                 <View style={styles.emptyContainer}>
                   <Music2 size={32} color={colors.textTertiary} />
                   <Text style={styles.emptyTitle}>
-                    {addSongsSearchQuery ? 'Şarkı Bulunamadı' : 'Kütüphane Boş'}
+                    {addSongsSearchQuery ? t('library.emptySearchSongsTitle') : t('library.emptyLibraryTitle')}
                   </Text>
                   <Text style={styles.emptyDesc}>
                     {addSongsSearchQuery
-                      ? `"${addSongsSearchQuery}" aramasına uygun müzik bulunamadı.`
-                      : 'Cihazınızda oynatılabilir şarkı bulunamadı.'}
+                      ? t('library.emptySearchSongsDesc', { query: addSongsSearchQuery })
+                      : t('library.emptyLibraryDesc')}
                   </Text>
                 </View>
               }
@@ -693,7 +695,7 @@ export const LibraryScreen = ({ route }) => {
         ListHeaderComponent={
           <View style={styles.headerContainer}>
             <View style={styles.customHeader}>
-              <Text style={styles.screenTitle}>Kitaplık</Text>
+              <Text style={styles.screenTitle}>{t('library.title')}</Text>
 
               <TouchableOpacity
                 style={styles.scanDeviceHeaderBtn}
@@ -706,7 +708,9 @@ export const LibraryScreen = ({ route }) => {
                 ) : (
                   <>
                     <RefreshCw size={14} color={colors.textPrimary} />
-                    <Text style={styles.scanDeviceBtnText}>Cihazı Tara</Text>
+                    <Text style={styles.scanDeviceBtnText}>
+                      {isScanningDevice ? t('library.scanning') : t('library.scanDevice')}
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -742,7 +746,7 @@ export const LibraryScreen = ({ route }) => {
                       {item.name}
                     </Text>
                     <Text style={styles.playlistCardCount}>
-                      {item.trackIds.length} Parça
+                      {t('library.tracksCount', { count: item.trackIds.length })}
                     </Text>
                   </View>
                 </View>
@@ -784,9 +788,9 @@ export const LibraryScreen = ({ route }) => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <ListMusic size={36} color={colors.textTertiary} />
-            <Text style={styles.emptyTitle}>Çalma Listesi Yok</Text>
+            <Text style={styles.emptyTitle}>{t('library.emptyPlaylistsTitle')}</Text>
             <Text style={styles.emptyDesc}>
-              Sağ alttaki (+) butonuna dokunarak yeni çalma listesi oluşturabilirsin.
+              {t('library.emptyPlaylistsDesc')}
             </Text>
           </View>
         }
@@ -904,7 +908,7 @@ export const LibraryScreen = ({ route }) => {
         >
           <TouchableOpacity activeOpacity={1} style={styles.modalCard} onPress={() => { }}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Yeni Çalma Listesi</Text>
+              <Text style={styles.modalTitle}>{t('library.newPlaylistTitle')}</Text>
               <TouchableOpacity
                 onPress={() => setIsCreateModalVisible(false)}
                 activeOpacity={0.7}
@@ -915,7 +919,7 @@ export const LibraryScreen = ({ route }) => {
 
             <TextInput
               style={styles.modalInput}
-              placeholder="Liste adını girin..."
+              placeholder={t('library.newPlaylistPlaceholder')}
               placeholderTextColor={colors.textMuted}
               value={newPlaylistName}
               onChangeText={setNewPlaylistName}
@@ -931,7 +935,7 @@ export const LibraryScreen = ({ route }) => {
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.modalCancelBtnText}>İptal</Text>
+                <Text style={styles.modalCancelBtnText}>{t('library.cancel')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -939,7 +943,7 @@ export const LibraryScreen = ({ route }) => {
                 onPress={handleCreatePlaylist}
                 activeOpacity={0.8}
               >
-                <Text style={styles.modalSaveBtnText}>Oluştur</Text>
+                <Text style={styles.modalSaveBtnText}>{t('library.create')}</Text>
               </TouchableOpacity>
             </View>
           </TouchableOpacity>

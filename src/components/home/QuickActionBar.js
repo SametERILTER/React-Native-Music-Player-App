@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Shuffle, Play, RefreshCw } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../theme';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const QuickActionBar = ({
   trackCount = 0,
@@ -11,11 +12,13 @@ export const QuickActionBar = ({
   onScanDevice,
   isScanningDevice,
 }) => {
+  const { t } = useLanguage();
+
   return (
     <View style={styles.container}>
       <View style={styles.countWrapper}>
         <Text style={styles.countNumber}>{trackCount}</Text>
-        <Text style={styles.countLabel}>PARÇA</Text>
+        <Text style={styles.countLabel}>{t('common.tracksUpper')}</Text>
       </View>
 
       <View style={styles.actionsWrapper}>
@@ -52,7 +55,7 @@ export const QuickActionBar = ({
               isShuffleActive ? styles.shuffleTextActive : styles.shuffleTextInactive,
             ]}
           >
-            Karıştır
+            {t('home.shuffle')}
           </Text>
         </TouchableOpacity>
 
@@ -62,7 +65,7 @@ export const QuickActionBar = ({
           activeOpacity={0.8}
         >
           <Play size={13} color={colors.primaryContrast} fill={colors.primaryContrast} />
-          <Text style={styles.playAllText}>Tümünü Çal</Text>
+          <Text style={styles.playAllText}>{t('home.playAll')}</Text>
         </TouchableOpacity>
       </View>
     </View>

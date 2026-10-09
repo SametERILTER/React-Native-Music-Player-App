@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Clock, ListMusic, Plus, ChevronRight } from 'lucide-react-native';
 import { colors, spacing, radius } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
+import { useLanguage } from '../context/LanguageContext';
 import Header from '../components/common/Header';
 import SongItem from '../components/home/SongItem';
 import QuickActionBar from '../components/home/QuickActionBar';
@@ -22,6 +23,7 @@ import { getPlaylistCoverSource } from '../constants/playlistCovers';
 export const HomeScreen = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
+  const { t } = useLanguage();
   const {
     tracks,
     playlists,
@@ -42,15 +44,15 @@ export const HomeScreen = () => {
   const recentTracks = useMemo(() => tracks.slice(0, 5), [tracks]);
 
   const handleSongPress = useCallback((track) => {
-    playTrack(track, tracks, { type: 'library', name: 'Cihaz Müzikleri' });
+    playTrack(track, tracks, { type: 'library', name: t('home.deviceTracks') });
     openFullPlayer();
-  }, [tracks, playTrack, openFullPlayer]);
+  }, [tracks, playTrack, openFullPlayer, t]);
 
   const handlePlayAll = useCallback(() => {
     if (recentTracks.length > 0) {
-      playTrack(recentTracks[0], recentTracks, { type: 'library', name: 'Son Çalınanlar' });
+      playTrack(recentTracks[0], recentTracks, { type: 'library', name: t('home.recentlyPlayed') });
     }
-  }, [recentTracks, playTrack]);
+  }, [recentTracks, playTrack, t]);
 
   const handleShuffleAll = useCallback(() => {
     if (tracks.length > 0) {
@@ -58,9 +60,9 @@ export const HomeScreen = () => {
         toggleShuffle();
       }
       const randomIndex = Math.floor(Math.random() * tracks.length);
-      playTrack(tracks[randomIndex], tracks, { type: 'library', name: 'Cihaz Müzikleri' });
+      playTrack(tracks[randomIndex], tracks, { type: 'library', name: t('home.deviceTracks') });
     }
-  }, [tracks, isShuffle, toggleShuffle, playTrack]);
+  }, [tracks, isShuffle, toggleShuffle, playTrack, t]);
 
   const handlePlaylistPress = useCallback((playlist) => {
     navigation.navigate('Library', {
@@ -87,7 +89,7 @@ export const HomeScreen = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Header title="Music Player" />
+        <Header title={t('home.title')} />
 
         <QuickActionBar
           trackCount={tracks.length}
@@ -102,7 +104,7 @@ export const HomeScreen = () => {
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionTitleLeft}>
               <Clock size={16} color={colors.textPrimary} strokeWidth={2} />
-              <Text style={styles.sectionTitle}>Son Çalınanlar</Text>
+              <Text style={styles.sectionTitle}>{t('home.recentTracks')}</Text>
             </View>
           </View>
 
@@ -127,7 +129,7 @@ export const HomeScreen = () => {
           <View style={styles.sectionHeaderRow}>
             <View style={styles.sectionTitleLeft}>
               <ListMusic size={16} color={colors.textPrimary} strokeWidth={2} />
-              <Text style={styles.sectionTitle}>Çalma Listelerin</Text>
+              <Text style={styles.sectionTitle}>{t('home.yourPlaylists')}</Text>
             </View>
             <TouchableOpacity
               onPress={handleGoToLibrary}
@@ -135,7 +137,7 @@ export const HomeScreen = () => {
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               style={styles.seeAllBtn}
             >
-              <Text style={styles.seeAllText}>Tümünü Gör</Text>
+              <Text style={styles.seeAllText}>{t('home.seeAll')}</Text>
               <ChevronRight size={14} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
@@ -151,8 +153,8 @@ export const HomeScreen = () => {
                   <Plus size={22} color={colors.primaryContrast} strokeWidth={2.4} />
                 </View>
                 <View style={styles.createPlaylistTextWrap}>
-                  <Text style={styles.createPlaylistTitle}>Yeni Çalma Listesi Oluştur</Text>
-                  <Text style={styles.createPlaylistSubtitle}>Kitaplığa giderek çalma listesi oluşturabilirsin</Text>
+                  <Text style={styles.createPlaylistTitle}>{t('home.newPlaylistTitle')}</Text>
+                  <Text style={styles.createPlaylistSubtitle}>{t('home.newPlaylistSub')}</Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -188,7 +190,7 @@ export const HomeScreen = () => {
                       {playlist.name}
                     </Text>
                     <Text style={styles.playlistTrackCount}>
-                      {playlist.trackIds.length} Parça
+                      {t('home.tracksCount', { count: playlist.trackIds.length })}
                     </Text>
                   </TouchableOpacity>
                 );

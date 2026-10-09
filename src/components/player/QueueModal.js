@@ -29,6 +29,7 @@ import {
 } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../theme';
 import { usePlayer } from '../../context/PlayerContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { formatTime } from '../../services/musicService';
 import AlbumArtwork from '../home/AlbumArtwork';
 
@@ -40,6 +41,7 @@ const EASE_OUT = Easing.bezier(0.16, 1, 0.3, 1);
 const EASE_IN = Easing.bezier(0.7, 0, 0.84, 0);
 
 const QueueContent = ({ onClose, insets, translateY }) => {
+  const { t } = useLanguage();
   const {
     currentTrack,
     isPlaying,
@@ -59,12 +61,12 @@ const QueueContent = ({ onClose, insets, translateY }) => {
 
   const currentIndex = useMemo(() => {
     if (!currentTrack || activeQueue.length === 0) return -1;
-    return activeQueue.findIndex((t) => t.id === currentTrack.id);
+    return activeQueue.findIndex((tItem) => tItem.id === currentTrack.id);
   }, [currentTrack, activeQueue]);
 
   const upcomingTracks = useMemo(() => {
     if (currentIndex === -1) {
-      return activeQueue.filter((t) => t.id !== currentTrack?.id);
+      return activeQueue.filter((tItem) => tItem.id !== currentTrack?.id);
     }
     return activeQueue.slice(currentIndex + 1);
   }, [currentIndex, activeQueue, currentTrack]);
@@ -76,16 +78,16 @@ const QueueContent = ({ onClose, insets, translateY }) => {
 
   const contextTitle = useMemo(() => {
     if (playbackContext?.type === 'playlist' && playbackContext?.name) {
-      return `"${playbackContext.name}" listesinden`;
+      return t('queue.fromPlaylist', { name: playbackContext.name });
     }
     if (playbackContext?.type === 'favorites') {
-      return '"Beğenilen Şarkılar" listesinden';
+      return t('queue.fromFavorites');
     }
     if (playbackContext?.type === 'search') {
-      return 'Arama sonuçlarından';
+      return t('queue.fromSearch');
     }
-    return 'Cihaz Müziklerinden';
-  }, [playbackContext]);
+    return t('queue.fromDevice');
+  }, [playbackContext, t]);
 
   const handlePlayFromQueue = useCallback(
     (track) => {
@@ -122,7 +124,7 @@ const QueueContent = ({ onClose, insets, translateY }) => {
               {item.title}
             </Text>
             <Text style={styles.trackArtist} numberOfLines={1}>
-              {item.artist || 'Bilinmeyen Sanatçı'}
+              {item.artist || t('common.unknownArtist')}
             </Text>
           </View>
 
@@ -139,7 +141,7 @@ const QueueContent = ({ onClose, insets, translateY }) => {
         </TouchableOpacity>
       </View>
     ),
-    [handlePlayFromQueue, removeFromQueue]
+    [handlePlayFromQueue, removeFromQueue, t]
   );
 
   return (
@@ -158,9 +160,9 @@ const QueueContent = ({ onClose, insets, translateY }) => {
             {contextTitle.toUpperCase()}
           </Text>
           <View style={styles.titleWithBadge}>
-            <Text style={styles.headerTitle}>Çalma Sırası</Text>
+            <Text style={styles.headerTitle}>{t('queue.title')}</Text>
             <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>{activeQueue.length} Şarkı</Text>
+              <Text style={styles.countBadgeText}>{t('queue.songsCount', { count: activeQueue.length })}</Text>
             </View>
           </View>
         </View>
@@ -189,7 +191,7 @@ const QueueContent = ({ onClose, insets, translateY }) => {
           <Text
             style={[styles.quickChipText, isShuffle && styles.quickChipTextActive]}
           >
-            {isShuffle ? 'Karışık: Açık' : 'Karışık: Kapalı'}
+            {isShuffle ? t('queue.shuffleOn') : t('queue.shuffleOff')}
           </Text>
         </TouchableOpacity>
 
@@ -210,10 +212,10 @@ const QueueContent = ({ onClose, insets, translateY }) => {
             ]}
           >
             {repeatMode === 'one'
-              ? 'Tekrar: Tek Parça'
+              ? t('queue.repeatOne')
               : repeatMode === 'all'
-              ? 'Tekrar: Tümü'
-              : 'Tekrar: Kapalı'}
+              ? t('queue.repeatAll')
+              : t('queue.repeatOff')}
           </Text>
         </TouchableOpacity>
 
@@ -224,7 +226,7 @@ const QueueContent = ({ onClose, insets, translateY }) => {
             activeOpacity={0.75}
           >
             <Trash2 size={12} color={colors.textTertiary} style={{ marginRight: 4 }} />
-            <Text style={styles.clearChipText}>Temizle</Text>
+            <Text style={styles.clearChipText}>{t('queue.clear')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -240,11 +242,11 @@ const QueueContent = ({ onClose, insets, translateY }) => {
             {currentTrack && (
               <View style={styles.nowPlayingSection}>
                 <View style={styles.sectionTitleRow}>
-                  <Text style={styles.sectionTitle}>ŞU AN ÇALINIYOR</Text>
+                  <Text style={styles.sectionTitle}>{t('queue.nowPlaying')}</Text>
                   <View style={styles.liveIndicator}>
                     <Volume2 size={13} color={colors.primary} style={{ marginRight: 4 }} />
                     <Text style={styles.liveIndicatorText}>
-                      {isPlaying ? 'Çalıyor' : 'Duraklatıldı'}
+                      {isPlaying ? t('queue.playing') : t('queue.paused')}
                     </Text>
                   </View>
                 </View>
@@ -269,7 +271,7 @@ const QueueContent = ({ onClose, insets, translateY }) => {
                       {currentTrack.title}
                     </Text>
                     <Text style={styles.nowPlayingArtist} numberOfLines={1}>
-                      {currentTrack.artist || 'Bilinmeyen Sanatçı'}
+                      {currentTrack.artist || t('common.unknownArtist')}
                     </Text>
                   </View>
 
@@ -293,7 +295,7 @@ const QueueContent = ({ onClose, insets, translateY }) => {
 
             <View style={styles.sectionTitleRow}>
               <Text style={styles.sectionTitle}>
-                SIRADAKİ ŞARKILAR ({upcomingTracks.length})
+                {t('queue.upcomingSongs', { count: upcomingTracks.length })}
               </Text>
             </View>
           </View>
@@ -303,9 +305,9 @@ const QueueContent = ({ onClose, insets, translateY }) => {
             <View style={styles.emptyIconWrap}>
               <ListMusic size={26} color={colors.textTertiary} strokeWidth={1.8} />
             </View>
-            <Text style={styles.emptyTitle}>Sırada Başka Şarkı Yok</Text>
+            <Text style={styles.emptyTitle}>{t('queue.emptyTitle')}</Text>
             <Text style={styles.emptySubtitle}>
-              Listenin sonuna geldiniz. Karışık veya tekrar çalma modunu açarak çalmaya devam edebilirsiniz.
+              {t('queue.emptyDesc')}
             </Text>
           </View>
         }
@@ -314,7 +316,7 @@ const QueueContent = ({ onClose, insets, translateY }) => {
             <View style={styles.previousSection}>
               <View style={styles.sectionTitleRow}>
                 <Text style={styles.sectionTitle}>
-                  ÖNCEKİ PARÇALAR ({previousTracks.length})
+                  {t('queue.previousSongs', { count: previousTracks.length })}
                 </Text>
               </View>
               {previousTracks.map((item, idx) => (
@@ -342,7 +344,7 @@ const QueueContent = ({ onClose, insets, translateY }) => {
                         {item.title}
                       </Text>
                       <Text style={styles.trackArtist} numberOfLines={1}>
-                        {item.artist || 'Bilinmeyen Sanatçı'}
+                        {item.artist || t('common.unknownArtist')}
                       </Text>
                     </View>
 

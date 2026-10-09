@@ -28,14 +28,17 @@ import {
   Music,
   FolderOpen,
   ExternalLink,
+  Globe,
 } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
+import { useLanguage } from '../context/LanguageContext';
 import { safeStorage } from '../services/storageService';
 import { clearLyricsCache } from '../services/lyricsService';
 
 export const SettingsScreen = () => {
   const insets = useSafeAreaInsets();
+  const { t, language, setLanguage } = useLanguage();
   const {
     onScrollForPlayer,
     scanDeviceTracks,
@@ -77,46 +80,46 @@ export const SettingsScreen = () => {
       try {
         await scanDeviceTracks(true);
       } catch (_err) {
-        Alert.alert('Tarama Hatası', 'Müzikler taranırken bir sorun oluştu.');
+        Alert.alert(t('settings.scanErrorTitle'), t('settings.scanErrorMsg'));
       }
     }
-  }, [scanDeviceTracks]);
+  }, [scanDeviceTracks, t]);
 
   const handleAssignRandomCovers = useCallback(() => {
     if (typeof assignRandomCoversToAll === 'function') {
       const count = assignRandomCoversToAll();
       Alert.alert(
-        'Rastgele Kapaklar Atandı',
-        `${count} şarkının tamamına galeriden rastgele kapak görseli başarıyla atandı.`
+        t('settings.randomAssignedTitle'),
+        t('settings.randomAssignedMsg', { count })
       );
     }
-  }, [assignRandomCoversToAll]);
+  }, [assignRandomCoversToAll, t]);
 
   const handleResetCovers = useCallback(() => {
     const customCount = Object.keys(trackCovers || {}).length;
     if (customCount === 0) {
-      Alert.alert('Bilgi', 'Özelleştirilmiş şarkı kapağı bulunmuyor.');
+      Alert.alert(t('settings.infoTitle'), t('settings.noCustomCoversMsg'));
       return;
     }
 
     Alert.alert(
-      'Kapakları Sıfırla',
-      `Değiştirdiğiniz ${customCount} adet şarkı kapağı varsayılan haline dönecek. Emin misiniz?`,
+      t('settings.resetConfirmTitle'),
+      t('settings.resetConfirmMsg', { count: customCount }),
       [
-        { text: 'Vazgeç', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Sıfırla',
+          text: t('common.reset'),
           style: 'destructive',
           onPress: () => {
             if (typeof resetAllCovers === 'function') {
               resetAllCovers();
             }
-            Alert.alert('Başarılı', 'Tüm şarkı kapakları varsayılana sıfırlandı.');
+            Alert.alert(t('settings.resetSuccessTitle'), t('settings.resetSuccessMsg'));
           },
         },
       ]
     );
-  }, [trackCovers, resetAllCovers]);
+  }, [trackCovers, resetAllCovers, t]);
 
   const handleClearCache = useCallback(async () => {
     setIsClearingCache(true);
@@ -127,16 +130,16 @@ export const SettingsScreen = () => {
       if (lyricsKeys.length > 0) {
         await safeStorage.multiRemove(lyricsKeys);
       }
-      setCacheCleanedMessage('Önbellek başarıyla temizlendi');
+      setCacheCleanedMessage(t('settings.cacheCleaned'));
     } catch (_err) {
-      setCacheCleanedMessage('Önbellek temizlendi');
+      setCacheCleanedMessage(t('settings.cacheCleaned'));
     } finally {
       setIsClearingCache(false);
       setTimeout(() => {
         setCacheCleanedMessage(null);
       }, 3500);
     }
-  }, []);
+  }, [t]);
 
   const customCoverCount = useMemo(
     () => Object.keys(trackCovers || {}).length,
@@ -155,24 +158,26 @@ export const SettingsScreen = () => {
         await Linking.openURL(url);
       }
     } catch {
-      Alert.alert('Hata', 'GitHub bağlantısı açılamadı.');
+      Alert.alert(t('settings.errorTitle'), t('settings.githubErrorMsg'));
     }
-  }, []);
+  }, [t]);
 
   const pageHeader = useMemo(() => {
     switch (activeSubpage) {
+      case 'language':
+        return { title: t('settings.languageSelect') };
       case 'playback':
-        return { title: 'Oynatma' };
+        return { title: t('settings.playback') };
       case 'theme':
-        return { title: 'Görünüm' };
+        return { title: t('settings.appearance') };
       case 'storage':
-        return { title: 'Kütüphane & Hafıza' };
+        return { title: t('settings.storage') };
       case 'about':
-        return { title: 'Uygulama Hakkında' };
+        return { title: t('settings.about') };
       default:
-        return { title: 'Ayarlar' };
+        return { title: t('settings.title') };
     }
-  }, [activeSubpage]);
+  }, [activeSubpage, t]);
 
   return (
     <View style={styles.mainWrapper}>
@@ -207,6 +212,28 @@ export const SettingsScreen = () => {
           <View style={styles.unifiedCard}>
             <TouchableOpacity
               style={styles.menuItem}
+              onPress={() => setActiveSubpage('language')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconBox}>
+                <Globe size={19} color={colors.textPrimary} />
+              </View>
+              <View style={styles.menuTextWrap}>
+                <Text style={styles.menuTitle}>{t('settings.languageTitle')}</Text>
+                <Text style={styles.menuSubtitle}>{t('settings.languageDesc')}</Text>
+              </View>
+              <View style={styles.menuRightGroup}>
+                <Text style={styles.menuBadgeText}>
+                  {language === 'tr' ? 'Türkçe' : 'English'}
+                </Text>
+                <ChevronRight size={18} color={colors.textTertiary} />
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.menuItem}
               onPress={() => setActiveSubpage('playback')}
               activeOpacity={0.7}
             >
@@ -214,12 +241,12 @@ export const SettingsScreen = () => {
                 <Sliders size={19} color={colors.textPrimary} />
               </View>
               <View style={styles.menuTextWrap}>
-                <Text style={styles.menuTitle}>Oynatma Ayarları</Text>
-                <Text style={styles.menuSubtitle}>Otomatik parça geçişi ve kuyruk kuralları</Text>
+                <Text style={styles.menuTitle}>{t('settings.playbackTitle')}</Text>
+                <Text style={styles.menuSubtitle}>{t('settings.playbackDesc')}</Text>
               </View>
               <View style={styles.menuRightGroup}>
                 <Text style={styles.menuBadgeText}>
-                  {autoPlayNext ? 'Otomatik Açık' : 'Manuel'}
+                  {autoPlayNext ? t('settings.autoOn') : t('settings.manual')}
                 </Text>
                 <ChevronRight size={18} color={colors.textTertiary} />
               </View>
@@ -236,12 +263,12 @@ export const SettingsScreen = () => {
                 <Palette size={19} color={colors.textPrimary} />
               </View>
               <View style={styles.menuTextWrap}>
-                <Text style={styles.menuTitle}>Görünüm & Kapaklar</Text>
-                <Text style={styles.menuSubtitle}>Kapak gradyanı ve özel kapak yönetimi</Text>
+                <Text style={styles.menuTitle}>{t('settings.appearanceTitle')}</Text>
+                <Text style={styles.menuSubtitle}>{t('settings.appearanceDesc')}</Text>
               </View>
               <View style={styles.menuRightGroup}>
                 <Text style={styles.menuBadgeText}>
-                  {customCoverCount > 0 ? `${customCoverCount} Özel` : 'Varsayılan'}
+                  {customCoverCount > 0 ? t('settings.customCount', { count: customCoverCount }) : t('settings.defaultCover')}
                 </Text>
                 <ChevronRight size={18} color={colors.textTertiary} />
               </View>
@@ -258,11 +285,11 @@ export const SettingsScreen = () => {
                 <HardDrive size={19} color={colors.textPrimary} />
               </View>
               <View style={styles.menuTextWrap}>
-                <Text style={styles.menuTitle}>Kütüphane & Depolama</Text>
-                <Text style={styles.menuSubtitle}>Cihaz taraması, önbellek ve dosya filtreleme</Text>
+                <Text style={styles.menuTitle}>{t('settings.storageTitle')}</Text>
+                <Text style={styles.menuSubtitle}>{t('settings.storageDesc')}</Text>
               </View>
               <View style={styles.menuRightGroup}>
-                <Text style={styles.menuBadgeText}>{totalTracksCount} Şarkı</Text>
+                <Text style={styles.menuBadgeText}>{totalTracksCount} {t('common.songs')}</Text>
                 <ChevronRight size={18} color={colors.textTertiary} />
               </View>
             </TouchableOpacity>
@@ -278,13 +305,57 @@ export const SettingsScreen = () => {
                 <Info size={19} color={colors.textPrimary} />
               </View>
               <View style={styles.menuTextWrap}>
-                <Text style={styles.menuTitle}>Uygulama Hakkında</Text>
-                <Text style={styles.menuSubtitle}>Versiyon, kütüphane durumu ve sistem bilgisi</Text>
+                <Text style={styles.menuTitle}>{t('settings.aboutTitle')}</Text>
+                <Text style={styles.menuSubtitle}>{t('settings.aboutDesc')}</Text>
               </View>
               <View style={styles.menuRightGroup}>
                 <Text style={styles.menuBadgeText}>v1.0.0</Text>
                 <ChevronRight size={18} color={colors.textTertiary} />
               </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {activeSubpage === 'language' && (
+          <View style={styles.unifiedCard}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => setLanguage('tr')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconBox}>
+                <Text style={styles.flagText}>🇹🇷</Text>
+              </View>
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingTitle}>{t('settings.turkish')}</Text>
+                <Text style={styles.settingSubtitle}>{t('settings.turkishDesc')}</Text>
+              </View>
+              {language === 'tr' ? (
+                <View style={styles.statusSuccessBadge}>
+                  <Check size={14} color={colors.textPrimary} strokeWidth={2.6} />
+                </View>
+              ) : null}
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => setLanguage('en')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconBox}>
+                <Text style={styles.flagText}>🇬🇧</Text>
+              </View>
+              <View style={styles.settingTextWrap}>
+                <Text style={styles.settingTitle}>{t('settings.english')}</Text>
+                <Text style={styles.settingSubtitle}>{t('settings.englishDesc')}</Text>
+              </View>
+              {language === 'en' ? (
+                <View style={styles.statusSuccessBadge}>
+                  <Check size={14} color={colors.textPrimary} strokeWidth={2.6} />
+                </View>
+              ) : null}
             </TouchableOpacity>
           </View>
         )}
@@ -296,9 +367,9 @@ export const SettingsScreen = () => {
                 <Music size={18} color={colors.textPrimary} />
               </View>
               <View style={styles.settingTextWrap}>
-                <Text style={styles.settingTitle}>Otomatik Sıradaki Parça</Text>
+                <Text style={styles.settingTitle}>{t('settings.autoPlayNext')}</Text>
                 <Text style={styles.settingSubtitle}>
-                  Çalan şarkı tamamlandığında çalma sırasındaki veya listedeki bir sonraki şarkıya otomatik geç.
+                  {t('settings.autoPlayNextDesc')}
                 </Text>
               </View>
               <Switch
@@ -318,9 +389,9 @@ export const SettingsScreen = () => {
                 <Sparkles size={18} color={colors.textPrimary} />
               </View>
               <View style={styles.settingTextWrap}>
-                <Text style={styles.settingTitle}>Dinamik Kapak Gradyanı</Text>
+                <Text style={styles.settingTitle}>{t('settings.dynamicGradient')}</Text>
                 <Text style={styles.settingSubtitle}>
-                  Tam ekran oynatıcıda şarkı kapağının renk tonlarına göre arka plan renk geçişi uygular.
+                  {t('settings.dynamicGradientDesc')}
                 </Text>
               </View>
               <Switch
@@ -342,13 +413,13 @@ export const SettingsScreen = () => {
                 <Shuffle size={18} color={colors.textPrimary} />
               </View>
               <View style={styles.settingTextWrap}>
-                <Text style={styles.settingTitle}>Rastgele Kapak Ata</Text>
+                <Text style={styles.settingTitle}>{t('settings.randomCovers')}</Text>
                 <Text style={styles.settingSubtitle}>
-                  Tüm şarkılara albüm koleksiyonundan otomatik rastgele kapak görseli atar.
+                  {t('settings.randomCoversDesc')}
                 </Text>
               </View>
               <View style={styles.badgeAction}>
-                <Text style={styles.badgeActionText}>Uygula</Text>
+                <Text style={styles.badgeActionText}>{t('settings.apply')}</Text>
               </View>
             </TouchableOpacity>
 
@@ -363,16 +434,16 @@ export const SettingsScreen = () => {
                 <Trash2 size={18} color={colors.textPrimary} />
               </View>
               <View style={styles.settingTextWrap}>
-                <Text style={styles.settingTitle}>Özel Kapakları Sıfırla</Text>
+                <Text style={styles.settingTitle}>{t('settings.resetCovers')}</Text>
                 <Text style={styles.settingSubtitle}>
                   {customCoverCount > 0
-                    ? `${customCoverCount} şarkıya atanmış özel kapak varsayılana dönecek.`
-                    : 'Henüz özelleştirilmiş kapak atanmadı.'}
+                    ? t('settings.resetCoversDesc', { count: customCoverCount })
+                    : t('settings.noCustomCovers')}
                 </Text>
               </View>
               {customCoverCount > 0 && (
                 <View style={styles.badgeAction}>
-                  <Text style={styles.badgeActionText}>Sıfırla</Text>
+                  <Text style={styles.badgeActionText}>{t('settings.reset')}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -391,11 +462,11 @@ export const SettingsScreen = () => {
                 <RotateCcw size={18} color={colors.textPrimary} />
               </View>
               <View style={styles.settingTextWrap}>
-                <Text style={styles.settingTitle}>Cihaz Müziklerini Tara</Text>
+                <Text style={styles.settingTitle}>{t('settings.scanDeviceTracks')}</Text>
                 <Text style={styles.settingSubtitle}>
                   {isScanningDevice
-                    ? 'Cihazdaki ses dosyaları taranıyor...'
-                    : `Cihazınızdaki müzik dosyalarını yeniden tarar (${totalTracksCount} parça kayıtlı).`}
+                    ? t('settings.scanningDesc')
+                    : t('settings.rescanDesc', { count: totalTracksCount })}
                 </Text>
               </View>
               {isScanningDevice ? (
@@ -414,9 +485,9 @@ export const SettingsScreen = () => {
                 <FolderOpen size={18} color={colors.textPrimary} />
               </View>
               <View style={styles.settingTextWrap}>
-                <Text style={styles.settingTitle}>Kısa Ses ve Bildirimleri Filtrele</Text>
+                <Text style={styles.settingTitle}>{t('settings.filterShortTracks')}</Text>
                 <Text style={styles.settingSubtitle}>
-                  30 saniyenin altındaki ses kayıtları ve WhatsApp ses notlarını müzik listesine dahil etmez.
+                  {t('settings.filterShortTracksDesc')}
                 </Text>
               </View>
               <Switch
@@ -439,16 +510,16 @@ export const SettingsScreen = () => {
                 <Sparkles size={18} color={colors.textPrimary} />
               </View>
               <View style={styles.settingTextWrap}>
-                <Text style={styles.settingTitle}>Önbelleği Temizle</Text>
+                <Text style={styles.settingTitle}>{t('settings.clearCache')}</Text>
                 <Text style={styles.settingSubtitle}>
-                  {cacheCleanedMessage || 'İnternetten indirilen şarkı sözü ve geçici veri önbelleğini temizler.'}
+                  {cacheCleanedMessage || t('settings.clearCacheDesc')}
                 </Text>
               </View>
               {isClearingCache ? (
                 <ActivityIndicator size="small" color={colors.primary} />
               ) : (
                 <View style={styles.badgeAction}>
-                  <Text style={styles.badgeActionText}>Temizle</Text>
+                  <Text style={styles.badgeActionText}>{t('settings.clear')}</Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -462,27 +533,27 @@ export const SettingsScreen = () => {
                 <Music size={26} color={colors.textPrimary} />
               </View>
               <Text style={styles.appName}>MusicPlayer</Text>
-              <Text style={styles.appVersion}>Versiyon 1.0.0</Text>
+              <Text style={styles.appVersion}>{t('settings.version')}</Text>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.aboutStatRow}>
-              <Text style={styles.aboutStatLabel}>Toplam Müzik Sayısı</Text>
+              <Text style={styles.aboutStatLabel}>{t('settings.totalTracks')}</Text>
               <Text style={styles.aboutStatValue}>{totalTracksCount}</Text>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.aboutStatRow}>
-              <Text style={styles.aboutStatLabel}>Çalma Listesi Sayısı</Text>
+              <Text style={styles.aboutStatLabel}>{t('settings.totalPlaylists')}</Text>
               <Text style={styles.aboutStatValue}>{playlists.length}</Text>
             </View>
 
             <View style={styles.divider} />
 
             <View style={styles.aboutStatRow}>
-              <Text style={styles.aboutStatLabel}>Özelleştirilmiş Kapaklar</Text>
+              <Text style={styles.aboutStatLabel}>{t('settings.customCoversCount')}</Text>
               <Text style={styles.aboutStatValue}>{customCoverCount}</Text>
             </View>
 
@@ -493,7 +564,7 @@ export const SettingsScreen = () => {
               onPress={handleOpenGithub}
               activeOpacity={0.7}
             >
-              <Text style={styles.aboutLinkLabel}>GitHub Reposu</Text>
+              <Text style={styles.aboutLinkLabel}>{t('settings.githubRepo')}</Text>
               <View style={styles.aboutLinkValueWrap}>
                 <Text style={styles.aboutLinkValue}>SametERILTER</Text>
                 <ExternalLink size={15} color={colors.textPrimary} style={{ marginLeft: 6 }} />
@@ -630,6 +701,9 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
     lineHeight: 16,
+  },
+  flagText: {
+    fontSize: 18,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
