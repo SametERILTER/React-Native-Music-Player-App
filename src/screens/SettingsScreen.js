@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,12 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  Animated,
+  Easing,
+  BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useIsFocused } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ChevronRight,
@@ -38,6 +42,7 @@ import { clearLyricsCache } from '../services/lyricsService';
 
 export const SettingsScreen = () => {
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
   const { t, language, setLanguage } = useLanguage();
   const {
     onScrollForPlayer,
@@ -59,6 +64,97 @@ export const SettingsScreen = () => {
   const bottomPadding = 220;
 
   const [activeSubpage, setActiveSubpage] = useState(null);
+  const scrollViewRef = useRef(null);
+  const isExitingRef = useRef(false);
+
+  const [subpageOpacity] = useState(() => new Animated.Value(0));
+  const [subpageTranslateY] = useState(() => new Animated.Value(12));
+  const [mainMenuOpacity] = useState(() => new Animated.Value(1));
+  const [mainMenuTranslateY] = useState(() => new Animated.Value(0));
+
+  const handleOpenSubpage = useCallback((subpageKey) => {
+    if (isExitingRef.current) return;
+    scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    setActiveSubpage(subpageKey);
+  }, []);
+
+  const handleBackToMain = useCallback(() => {
+    if (isExitingRef.current) return;
+    isExitingRef.current = true;
+
+    Animated.parallel([
+      Animated.timing(subpageOpacity, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(subpageTranslateY, {
+        toValue: 10,
+        duration: 180,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setActiveSubpage(null);
+      isExitingRef.current = false;
+      subpageTranslateY.setValue(0);
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+
+      mainMenuOpacity.setValue(0);
+      mainMenuTranslateY.setValue(10);
+      Animated.parallel([
+        Animated.timing(mainMenuOpacity, {
+          toValue: 1,
+          duration: 200,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(mainMenuTranslateY, {
+          toValue: 0,
+          duration: 200,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  }, [subpageOpacity, subpageTranslateY, mainMenuOpacity, mainMenuTranslateY]);
+
+  useEffect(() => {
+    if (activeSubpage) {
+      subpageOpacity.setValue(0);
+      subpageTranslateY.setValue(12);
+      const frame = requestAnimationFrame(() => {
+        Animated.parallel([
+          Animated.timing(subpageOpacity, {
+            toValue: 1,
+            duration: 240,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(subpageTranslateY, {
+            toValue: 0,
+            duration: 240,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]).start();
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [activeSubpage, subpageOpacity, subpageTranslateY]);
+
+  useEffect(() => {
+    if (!isFocused || !activeSubpage) return;
+
+    const onBackPress = () => {
+      handleBackToMain();
+      return true;
+    };
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => subscription.remove();
+  }, [isFocused, activeSubpage, handleBackToMain]);
 
   const [filterShortTracks, setFilterShortTracks] = useState(true);
   const [cacheCleanedMessage, setCacheCleanedMessage] = useState(null);
@@ -182,6 +278,7 @@ export const SettingsScreen = () => {
   return (
     <View style={styles.mainWrapper}>
       <ScrollView
+        ref={scrollViewRef}
         style={styles.scrollArea}
         contentContainerStyle={[
           styles.scrollContent,
@@ -195,7 +292,7 @@ export const SettingsScreen = () => {
           {activeSubpage ? (
             <TouchableOpacity
               style={styles.backBtn}
-              onPress={() => setActiveSubpage(null)}
+              onPress={handleBackToMain}
               activeOpacity={0.7}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             >
@@ -209,112 +306,127 @@ export const SettingsScreen = () => {
         </View>
 
         {!activeSubpage && (
-          <View style={styles.unifiedCard}>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => setActiveSubpage('language')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuIconBox}>
-                <Globe size={19} color={colors.textPrimary} />
-              </View>
-              <View style={styles.menuTextWrap}>
-                <Text style={styles.menuTitle}>{t('settings.languageTitle')}</Text>
-                <Text style={styles.menuSubtitle}>{t('settings.languageDesc')}</Text>
-              </View>
-              <View style={styles.menuRightGroup}>
-                <Text style={styles.menuBadgeText}>
-                  {language === 'tr' ? 'Türkçe' : 'English'}
-                </Text>
-                <ChevronRight size={18} color={colors.textTertiary} />
-              </View>
-            </TouchableOpacity>
+          <Animated.View
+            style={{
+              opacity: mainMenuOpacity,
+              transform: [{ translateY: mainMenuTranslateY }],
+            }}
+          >
+            <View style={styles.unifiedCard}>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleOpenSubpage('language')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuIconBox}>
+                  <Globe size={19} color={colors.textPrimary} />
+                </View>
+                <View style={styles.menuTextWrap}>
+                  <Text style={styles.menuTitle}>{t('settings.languageTitle')}</Text>
+                  <Text style={styles.menuSubtitle}>{t('settings.languageDesc')}</Text>
+                </View>
+                <View style={styles.menuRightGroup}>
+                  <Text style={styles.menuBadgeText}>
+                    {language === 'tr' ? 'Türkçe' : 'English'}
+                  </Text>
+                  <ChevronRight size={18} color={colors.textTertiary} />
+                </View>
+              </TouchableOpacity>
 
-            <View style={styles.divider} />
+              <View style={styles.divider} />
 
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => setActiveSubpage('playback')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuIconBox}>
-                <Sliders size={19} color={colors.textPrimary} />
-              </View>
-              <View style={styles.menuTextWrap}>
-                <Text style={styles.menuTitle}>{t('settings.playbackTitle')}</Text>
-                <Text style={styles.menuSubtitle}>{t('settings.playbackDesc')}</Text>
-              </View>
-              <View style={styles.menuRightGroup}>
-                <Text style={styles.menuBadgeText}>
-                  {autoPlayNext ? t('settings.autoOn') : t('settings.manual')}
-                </Text>
-                <ChevronRight size={18} color={colors.textTertiary} />
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleOpenSubpage('playback')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuIconBox}>
+                  <Sliders size={19} color={colors.textPrimary} />
+                </View>
+                <View style={styles.menuTextWrap}>
+                  <Text style={styles.menuTitle}>{t('settings.playbackTitle')}</Text>
+                  <Text style={styles.menuSubtitle}>{t('settings.playbackDesc')}</Text>
+                </View>
+                <View style={styles.menuRightGroup}>
+                  <Text style={styles.menuBadgeText}>
+                    {autoPlayNext ? t('settings.autoOn') : t('settings.manual')}
+                  </Text>
+                  <ChevronRight size={18} color={colors.textTertiary} />
+                </View>
+              </TouchableOpacity>
 
-            <View style={styles.divider} />
+              <View style={styles.divider} />
 
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => setActiveSubpage('theme')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuIconBox}>
-                <Palette size={19} color={colors.textPrimary} />
-              </View>
-              <View style={styles.menuTextWrap}>
-                <Text style={styles.menuTitle}>{t('settings.appearanceTitle')}</Text>
-                <Text style={styles.menuSubtitle}>{t('settings.appearanceDesc')}</Text>
-              </View>
-              <View style={styles.menuRightGroup}>
-                <Text style={styles.menuBadgeText}>
-                  {customCoverCount > 0 ? t('settings.customCount', { count: customCoverCount }) : t('settings.defaultCover')}
-                </Text>
-                <ChevronRight size={18} color={colors.textTertiary} />
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleOpenSubpage('theme')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuIconBox}>
+                  <Palette size={19} color={colors.textPrimary} />
+                </View>
+                <View style={styles.menuTextWrap}>
+                  <Text style={styles.menuTitle}>{t('settings.appearanceTitle')}</Text>
+                  <Text style={styles.menuSubtitle}>{t('settings.appearanceDesc')}</Text>
+                </View>
+                <View style={styles.menuRightGroup}>
+                  <Text style={styles.menuBadgeText}>
+                    {customCoverCount > 0 ? t('settings.customCount', { count: customCoverCount }) : t('settings.defaultCover')}
+                  </Text>
+                  <ChevronRight size={18} color={colors.textTertiary} />
+                </View>
+              </TouchableOpacity>
 
-            <View style={styles.divider} />
+              <View style={styles.divider} />
 
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => setActiveSubpage('storage')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuIconBox}>
-                <HardDrive size={19} color={colors.textPrimary} />
-              </View>
-              <View style={styles.menuTextWrap}>
-                <Text style={styles.menuTitle}>{t('settings.storageTitle')}</Text>
-                <Text style={styles.menuSubtitle}>{t('settings.storageDesc')}</Text>
-              </View>
-              <View style={styles.menuRightGroup}>
-                <Text style={styles.menuBadgeText}>{totalTracksCount} {t('common.songs')}</Text>
-                <ChevronRight size={18} color={colors.textTertiary} />
-              </View>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleOpenSubpage('storage')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuIconBox}>
+                  <HardDrive size={19} color={colors.textPrimary} />
+                </View>
+                <View style={styles.menuTextWrap}>
+                  <Text style={styles.menuTitle}>{t('settings.storageTitle')}</Text>
+                  <Text style={styles.menuSubtitle}>{t('settings.storageDesc')}</Text>
+                </View>
+                <View style={styles.menuRightGroup}>
+                  <Text style={styles.menuBadgeText}>{totalTracksCount} {t('common.songs')}</Text>
+                  <ChevronRight size={18} color={colors.textTertiary} />
+                </View>
+              </TouchableOpacity>
 
-            <View style={styles.divider} />
+              <View style={styles.divider} />
 
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => setActiveSubpage('about')}
-              activeOpacity={0.7}
-            >
-              <View style={styles.menuIconBox}>
-                <Info size={19} color={colors.textPrimary} />
-              </View>
-              <View style={styles.menuTextWrap}>
-                <Text style={styles.menuTitle}>{t('settings.aboutTitle')}</Text>
-                <Text style={styles.menuSubtitle}>{t('settings.aboutDesc')}</Text>
-              </View>
-              <View style={styles.menuRightGroup}>
-                <Text style={styles.menuBadgeText}>v1.0.0</Text>
-                <ChevronRight size={18} color={colors.textTertiary} />
-              </View>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => handleOpenSubpage('about')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuIconBox}>
+                  <Info size={19} color={colors.textPrimary} />
+                </View>
+                <View style={styles.menuTextWrap}>
+                  <Text style={styles.menuTitle}>{t('settings.aboutTitle')}</Text>
+                  <Text style={styles.menuSubtitle}>{t('settings.aboutDesc')}</Text>
+                </View>
+                <View style={styles.menuRightGroup}>
+                  <Text style={styles.menuBadgeText}>v1.0.0</Text>
+                  <ChevronRight size={18} color={colors.textTertiary} />
+                </View>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
         )}
+
+        {activeSubpage && (
+          <Animated.View
+            style={{
+              opacity: subpageOpacity,
+              transform: [{ translateY: subpageTranslateY }],
+            }}
+          >
 
         {activeSubpage === 'language' && (
           <View style={styles.unifiedCard}>
@@ -571,6 +683,8 @@ export const SettingsScreen = () => {
               </View>
             </TouchableOpacity>
           </View>
+        )}
+          </Animated.View>
         )}
       </ScrollView>
 
