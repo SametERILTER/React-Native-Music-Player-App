@@ -26,40 +26,40 @@ const LyricLineItem = React.memo(({
   const targetIdx = isStarted ? activeIndex : 0;
   const distance = isSynced ? Math.abs(index - targetIdx) : 0;
 
-  let targetOpacity = 0.75;
+  let targetOpacity = 0.85;
   let targetScale = 1;
 
   if (isSynced) {
     if (isActive) {
       targetOpacity = 1;
-      targetScale = 1.02;
+      targetScale = 1.025;
     } else if (!isStarted) {
       if (index === 0) {
         targetOpacity = 0.85;
-        targetScale = 1.01;
+        targetScale = 1.005;
       } else if (index === 1) {
         targetOpacity = 0.50;
-        targetScale = 1.0;
+        targetScale = 0.99;
       } else if (index === 2) {
         targetOpacity = 0.26;
         targetScale = 0.98;
       } else {
         targetOpacity = 0.10;
-        targetScale = 0.96;
+        targetScale = 0.97;
       }
     } else {
       if (distance === 1) {
         targetOpacity = 0.44;
-        targetScale = 1.0;
+        targetScale = 0.995;
       } else if (distance === 2) {
         targetOpacity = 0.20;
-        targetScale = 0.98;
+        targetScale = 0.985;
       } else if (distance === 3) {
         targetOpacity = 0.08;
-        targetScale = 0.96;
+        targetScale = 0.975;
       } else {
         targetOpacity = 0.03;
-        targetScale = 0.94;
+        targetScale = 0.97;
       }
     }
   }
@@ -315,20 +315,20 @@ const styles = StyleSheet.create({
   listContent: {
     paddingTop: 16,
     paddingBottom: 72,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
   lineWrapper: {
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    minHeight: 38,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    minHeight: 44,
     justifyContent: 'center',
     overflow: 'visible',
   },
   lyricText: {
     fontFamily: typography.fonts.bold,
-    letterSpacing: -0.2,
-    fontSize: 18,
-    lineHeight: 26,
+    letterSpacing: -0.3,
+    fontSize: 20.5,
+    lineHeight: 29,
     color: colors.textPrimary,
   },
   activeLyricText: {

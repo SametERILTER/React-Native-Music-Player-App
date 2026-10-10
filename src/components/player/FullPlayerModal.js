@@ -43,7 +43,7 @@ import QueueModal from './QueueModal';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const ARTWORK_WIDTH = SCREEN_WIDTH - 56;
 const ARTWORK_HEIGHT = Math.min(Math.round(ARTWORK_WIDTH * 0.94), 310);
-const LYRICS_WIDTH = SCREEN_WIDTH - 28;
+const LYRICS_WIDTH = SCREEN_WIDTH - 16;
 
 const OPEN_DURATION = 360;
 const CLOSE_DURATION = 240;
