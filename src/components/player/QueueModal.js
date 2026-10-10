@@ -114,7 +114,9 @@ const QueueContent = ({ onClose, insets, translateY }) => {
               width={42}
               height={42}
               index={item.trackNumber || index + 1}
+              track={item}
               coverId={item.coverId}
+              artwork={item.coverArt || item.artwork}
               borderRadius={radius.sm}
             />
           </View>
@@ -261,7 +263,9 @@ const QueueContent = ({ onClose, insets, translateY }) => {
                       width={48}
                       height={48}
                       index={currentTrack.trackNumber || 1}
+                      track={currentTrack}
                       coverId={currentTrack.coverId}
+                      artwork={currentTrack.coverArt || currentTrack.artwork}
                       borderRadius={radius.sm}
                     />
                   </View>
@@ -331,7 +335,9 @@ const QueueContent = ({ onClose, insets, translateY }) => {
                         width={42}
                         height={42}
                         index={item.trackNumber || idx + 1}
+                        track={item}
                         coverId={item.coverId}
+                        artwork={item.coverArt || item.artwork}
                         borderRadius={radius.sm}
                       />
                     </View>

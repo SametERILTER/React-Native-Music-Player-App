@@ -109,19 +109,26 @@ export const HomeScreen = () => {
           </View>
 
           <View style={styles.songListWrap}>
-            {recentTracks.map((item, index) => (
-              <SongItem
-                key={item.id}
-                track={item}
-                index={index}
-                isCurrent={currentTrack?.id === item.id}
-                isPlaying={isPlaying}
-                isFavorite={favorites.includes(item.id)}
-                onPress={handleSongPress}
-                onToggleFavorite={toggleFavorite}
-                onOpenPlaylistModal={openAddToPlaylist}
-              />
-            ))}
+            {recentTracks.length > 0 ? (
+              recentTracks.map((item, index) => (
+                <SongItem
+                  key={item.id}
+                  track={item}
+                  index={index}
+                  isCurrent={currentTrack?.id === item.id}
+                  isPlaying={isPlaying}
+                  isFavorite={favorites.includes(item.id)}
+                  onPress={handleSongPress}
+                  onToggleFavorite={toggleFavorite}
+                  onOpenPlaylistModal={openAddToPlaylist}
+                />
+              ))
+            ) : (
+              <View style={styles.emptyRecentWrap}>
+                <Text style={styles.emptyRecentTitle}>{t('home.emptySongsTitle')}</Text>
+                <Text style={styles.emptyRecentSubtitle}>{t('home.emptySongsDesc')}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -344,6 +351,29 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textMuted,
     marginTop: 2,
+  },
+  emptyRecentWrap: {
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    marginTop: spacing.xs,
+  },
+  emptyRecentTitle: {
+    fontFamily: 'Geist_700Bold',
+    fontSize: 13,
+    color: colors.textPrimary,
+  },
+  emptyRecentSubtitle: {
+    fontFamily: 'Geist_500Medium',
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center',
+    marginTop: 4,
   },
 });
 

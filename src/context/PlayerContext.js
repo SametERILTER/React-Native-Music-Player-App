@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { safeStorage } from '../services/storageService';
-import { DEMO_TRACKS, fetchDeviceAudioTracks, extractTrackMetadata } from '../services/musicService';
+import { fetchDeviceAudioTracks, extractTrackMetadata, checkMediaPermissions, requestMediaPermissions } from '../services/musicService';
 import { setupTrackPlayer, getTrackPlayer } from '../services/trackPlayerService';
 import { ALL_COVERS } from '../constants/playlistCovers';
 import { colors } from '../theme';
@@ -21,7 +21,7 @@ const DEFAULT_PLAYLISTS = [
     name: 'Gece Dinletisi',
     coverId: 'ceramic_flow',
     coverPosition: 'left',
-    trackIds: ['demo-1', 'demo-2', 'demo-5', 'demo-8'],
+    trackIds: [],
     createdAt: 1710000000000,
   },
   {
@@ -29,7 +29,7 @@ const DEFAULT_PLAYLISTS = [
     name: 'Derin Odaklanma',
     coverId: 'warm_geometry',
     coverPosition: 'left',
-    trackIds: ['demo-3', 'demo-4', 'demo-6', 'demo-9', 'demo-12'],
+    trackIds: [],
     createdAt: 1710000050000,
   },
 ];
@@ -123,6 +123,7 @@ export const PlayerProvider = ({ children }) => {
   const [hasDevicePermission, setHasDevicePermission] = useState(null);
   const [deviceTrackCount, setDeviceTrackCount] = useState(0);
   const [isLibraryLoaded, setIsLibraryLoaded] = useState(false);
+  const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
 
   const [trackCovers, setTrackCovers] = useState({});
   const trackCoversRef = useRef({});
@@ -172,14 +173,25 @@ export const PlayerProvider = ({ children }) => {
         if (storedPlaylists) {
           try {
             const parsedPl = JSON.parse(storedPlaylists);
-            if (Array.isArray(parsedPl)) setPlaylists(parsedPl);
+            if (Array.isArray(parsedPl)) {
+              const cleanedPl = parsedPl.map((pl) => ({
+                ...pl,
+                trackIds: Array.isArray(pl.trackIds)
+                  ? pl.trackIds.filter((id) => !id.startsWith('demo-'))
+                  : [],
+              }));
+              setPlaylists(cleanedPl);
+            }
           } catch (_) {}
         }
 
         if (storedFavorites) {
           try {
             const parsedFavs = JSON.parse(storedFavorites);
-            if (Array.isArray(parsedFavs)) setFavorites(parsedFavs);
+            if (Array.isArray(parsedFavs)) {
+              const cleanedFavs = parsedFavs.filter((id) => !id.startsWith('demo-'));
+              setFavorites(cleanedFavs);
+            }
           } catch (_) {}
         }
 
@@ -210,37 +222,68 @@ export const PlayerProvider = ({ children }) => {
           try {
             const parsed = JSON.parse(storedTracks);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              deviceTracks = parsed.map((t) => {
+              deviceTracks = parsed
+                .filter((t) => t.id && !t.id.startsWith('demo-'))
+                .map((t) => {
+                let coverArt = t.coverArt;
+                const rawId = t.mediaId || (t.id && t.id.startsWith('local-') ? t.id.replace('local-', '') : null);
+                if (!coverArt && rawId) {
+                  coverArt = t.albumId
+                    ? `content://media/external/audio/albumart/${t.albumId}`
+                    : `content://media/external/audio/media/${rawId}/albumart`;
+                }
+
+                const withCover = {
+                  ...t,
+                  mediaId: t.mediaId || rawId,
+                  coverArt: coverArt || null,
+                };
+
                 if (!t.artist || t.artist === 'Yerel' || t.artist === 'Bilinmeyen Sanatçı' || t.title?.includes(' - ')) {
                   const meta = extractTrackMetadata(t.title, t.artist === 'Yerel' ? null : t.artist, t.author);
                   return {
-                    ...t,
+                    ...withCover,
                     title: meta.title,
                     artist: meta.artist,
                   };
                 }
-                return t;
+                return withCover;
               });
               safeStorage.setItem(CACHED_TRACKS_KEY, JSON.stringify(deviceTracks)).catch(() => {});
             }
           } catch (_) {}
         }
 
-        // Açılışta cihaz şarkılarını bekleterek tara (böylece ekran açıldığında sayı zaten 31 olur)
+        // Açılışta: Eğer izin daha önceden verilmişse cihaz şarkılarını bekleterek tara
+        let isPermGranted = false;
         try {
-          const scanRes = await fetchDeviceAudioTracks();
-          if (scanRes && scanRes.success && Array.isArray(scanRes.tracks)) {
+          const permCheck = await checkMediaPermissions();
+          if (permCheck.granted) {
+            isPermGranted = true;
             setHasDevicePermission(true);
-            if (scanRes.tracks.length > 0) {
-              deviceTracks = scanRes.tracks;
-              safeStorage
-                .setItem(CACHED_TRACKS_KEY, JSON.stringify(scanRes.tracks))
-                .catch(() => {});
+            const scanRes = await fetchDeviceAudioTracks(false);
+            if (scanRes && scanRes.success && Array.isArray(scanRes.tracks)) {
+              if (scanRes.tracks.length > 0) {
+                deviceTracks = scanRes.tracks;
+                safeStorage
+                  .setItem(CACHED_TRACKS_KEY, JSON.stringify(scanRes.tracks))
+                  .catch(() => {});
+              }
             }
+          } else {
+            setHasDevicePermission(false);
           }
         } catch (scanErr) {
-          console.warn('Açılış cihaz tarama uyarısı:', scanErr);
+          console.warn('Açılış cihaz izin/tarama uyarısı:', scanErr);
         }
+
+        // İlk açılışta veya izin henüz verilmemişse izin bilgilendirme modalini göster
+        try {
+          const hasRequested = await safeStorage.getItem('@musicplayer_has_requested_permissions');
+          if (!isPermGranted && hasRequested !== 'true') {
+            setIsPermissionModalOpen(true);
+          }
+        } catch (_) {}
 
         if (!isMounted) return;
 
@@ -252,34 +295,29 @@ export const PlayerProvider = ({ children }) => {
 
         setDeviceTrackCount(deviceTracks.length);
 
-        const demoTracksWithCovers = DEMO_TRACKS.map((t) => ({
-          ...t,
-          coverId: covers[t.id] || t.coverId || null,
-        }));
-
-        const allTracks = [...tracksWithCovers, ...demoTracksWithCovers].map((t) => {
+        const allTracks = tracksWithCovers.map((t) => {
           if (parsedCustomMeta[t.id]) {
             return { ...t, ...parsedCustomMeta[t.id] };
           }
           return t;
         });
         setTracks(allTracks);
-        setQueue((currQ) => (currQ && currQ.length > 0 ? currQ : allTracks));
+        setQueue((currQ) => (currQ && currQ.length > 0 ? currQ.filter((t) => !t.id.startsWith('demo-')) : allTracks));
         setPlaybackContext((currCtx) => currCtx || { type: 'library', name: 'Cihaz Müzikleri' });
 
         setCurrentTrack((curr) => {
-          if (!curr) {
-            return allTracks[0];
+          if (!curr || (curr.id && curr.id.startsWith('demo-'))) {
+            return allTracks[0] || null;
           }
           return curr;
         });
       } catch (err) {
         console.warn('Kütüphane başlatılırken hata:', err);
         if (isMounted) {
-          setTracks(DEMO_TRACKS);
-          setQueue(DEMO_TRACKS);
+          setTracks([]);
+          setQueue([]);
           setPlaybackContext({ type: 'library', name: 'Cihaz Müzikleri' });
-          setCurrentTrack(DEMO_TRACKS[0]);
+          setCurrentTrack(null);
         }
       } finally {
         if (isMounted) {
@@ -778,11 +816,6 @@ export const PlayerProvider = ({ children }) => {
             coverId: covers[t.id] || t.coverId || null,
           }));
 
-          const demoTracksWithCovers = DEMO_TRACKS.map((t) => ({
-            ...t,
-            coverId: covers[t.id] || t.coverId || null,
-          }));
-
           setDeviceTrackCount(res.tracks.length);
 
           let hasChanges = false;
@@ -794,13 +827,12 @@ export const PlayerProvider = ({ children }) => {
 
             if (isSameList) {
               hasChanges = false;
-              return prev;
+              return tracksWithCovers;
             }
 
             hasChanges = true;
-            const updatedAll = [...tracksWithCovers, ...demoTracksWithCovers];
-            setQueue((prevQ) => (prevQ && prevQ.length > 0 ? prevQ : updatedAll));
-            return updatedAll;
+            setQueue((prevQ) => (prevQ && prevQ.length > 0 ? prevQ.filter((t) => !t.id.startsWith('demo-')) : tracksWithCovers));
+            return tracksWithCovers;
           });
 
           // Önbelleğe kaydet
@@ -809,8 +841,8 @@ export const PlayerProvider = ({ children }) => {
             .catch((err) => console.warn('Önbellek kayıt hatası:', err));
 
           setCurrentTrack((prev) => {
-            if (!prev) {
-              return tracksWithCovers[0];
+            if (!prev || (prev.id && prev.id.startsWith('demo-'))) {
+              return tracksWithCovers[0] || null;
             }
             return prev;
           });
@@ -831,7 +863,7 @@ export const PlayerProvider = ({ children }) => {
           }
         } else {
           setDeviceTrackCount(0);
-          setTracks((prev) => (prev.length === 0 ? DEMO_TRACKS : prev));
+          setTracks((prev) => prev.filter((t) => !t.id.startsWith('demo-')));
           if (isUserTriggered) {
             const { Alert } = require('react-native');
             Alert.alert(
@@ -842,7 +874,7 @@ export const PlayerProvider = ({ children }) => {
         }
       } else if (res.reason === 'native_module_unavailable') {
         setHasDevicePermission(false);
-        setTracks((prev) => (prev.length === 0 ? DEMO_TRACKS : prev));
+        setTracks((prev) => prev.filter((t) => !t.id.startsWith('demo-')));
         if (isUserTriggered) {
           const { Alert } = require('react-native');
           Alert.alert(
@@ -869,7 +901,38 @@ export const PlayerProvider = ({ children }) => {
     }
   }, [setDeviceTrackCount, t]);
 
+  const openPermissionModal = useCallback(() => {
+    setIsPermissionModalOpen(true);
+  }, []);
 
+  const closePermissionModal = useCallback(() => {
+    setIsPermissionModalOpen(false);
+    safeStorage.setItem('@musicplayer_has_requested_permissions', 'true').catch(() => {});
+  }, []);
+
+  const requestPermissionsAndScan = useCallback(async () => {
+    setIsScanningDevice(true);
+    try {
+      const res = await requestMediaPermissions();
+      await safeStorage.setItem('@musicplayer_has_requested_permissions', 'true');
+      if (res.granted) {
+        setHasDevicePermission(true);
+        setIsPermissionModalOpen(false);
+        await scanDeviceTracks(true);
+        return true;
+      } else {
+        setHasDevicePermission(false);
+        setIsPermissionModalOpen(false);
+        return false;
+      }
+    } catch (err) {
+      console.warn('İzin isteme ve tarama hatası:', err);
+      setIsPermissionModalOpen(false);
+      return false;
+    } finally {
+      setIsScanningDevice(false);
+    }
+  }, [scanDeviceTracks]);
 
   const playerValue = useMemo(() => ({
     tracks,
@@ -923,6 +986,10 @@ export const PlayerProvider = ({ children }) => {
     closeSongOptions,
     openAddToPlaylist,
     closeAddToPlaylist,
+    isPermissionModalOpen,
+    openPermissionModal,
+    closePermissionModal,
+    requestPermissionsAndScan,
   }), [
     tracks,
     currentTrack,
@@ -972,6 +1039,10 @@ export const PlayerProvider = ({ children }) => {
     closeSongOptions,
     openAddToPlaylist,
     closeAddToPlaylist,
+    isPermissionModalOpen,
+    openPermissionModal,
+    closePermissionModal,
+    requestPermissionsAndScan,
   ]);
 
   if (!isLibraryLoaded) {

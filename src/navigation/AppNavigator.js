@@ -12,6 +12,7 @@ import FloatingTabBar from '../components/navigation/FloatingTabBar';
 import MiniPlayer from '../components/player/MiniPlayer';
 import FullPlayerModal from '../components/player/FullPlayerModal';
 import SongOptionsModal from '../components/playlist/SongOptionsModal';
+import PermissionModal from '../components/common/PermissionModal';
 import { usePlayer } from '../context/PlayerContext';
 import { colors } from '../theme';
 
@@ -24,6 +25,10 @@ export const AppNavigator = () => {
     closeFullPlayer,
     songOptionsTrack,
     closeSongOptions,
+    isPermissionModalOpen,
+    closePermissionModal,
+    requestPermissionsAndScan,
+    isScanningDevice,
   } = usePlayer();
 
   return (
@@ -67,6 +72,13 @@ export const AppNavigator = () => {
           visible={!!songOptionsTrack}
           track={songOptionsTrack}
           onClose={closeSongOptions}
+        />
+
+        <PermissionModal
+          visible={isPermissionModalOpen}
+          onGrant={requestPermissionsAndScan}
+          onClose={closePermissionModal}
+          isScanning={isScanningDevice}
         />
       </View>
     </NavigationContainer>

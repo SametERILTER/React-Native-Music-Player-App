@@ -125,8 +125,10 @@ const EditSongContent = ({
             <AlbumArtwork
               width={140}
               height={140}
+              track={track}
               index={track?.trackNumber || 1}
               coverId={selectedCoverId}
+              artwork={selectedCoverId ? null : (track?.coverArt || track?.artwork)}
               borderRadius={radius.lg}
             />
           </View>
@@ -192,8 +194,10 @@ const EditSongContent = ({
                 <AlbumArtwork
                   width={66}
                   height={66}
+                  track={track}
                   index={track?.trackNumber || 1}
                   coverId={null}
+                  artwork={track?.coverArt || track?.artwork}
                   borderRadius={radius.md}
                 />
                 {selectedCoverId === null && (

@@ -308,7 +308,9 @@ export const FullPlayerModal = ({ visible, onClose }) => {
                     width={ARTWORK_WIDTH}
                     height={ARTWORK_HEIGHT}
                     index={currentTrack.trackNumber || 1}
+                    track={currentTrack}
                     coverId={currentTrack.coverId}
+                    artwork={currentTrack.coverArt || currentTrack.artwork}
                     borderRadius={radius.xl}
                   />
                 </TouchableOpacity>

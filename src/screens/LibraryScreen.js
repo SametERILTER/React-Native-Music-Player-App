@@ -52,6 +52,8 @@ export const LibraryScreen = ({ route }) => {
     favorites,
     isScanningDevice,
     scanDeviceTracks,
+    hasDevicePermission,
+    openPermissionModal,
     playTrack,
     toggleFavorite,
     createPlaylist,
@@ -284,7 +286,13 @@ export const LibraryScreen = ({ route }) => {
           activeOpacity={0.65}
         >
           <View style={styles.addSongArtworkWrap}>
-            <AlbumArtwork size={42} index={index + 1} coverId={item.coverId} />
+            <AlbumArtwork
+              size={42}
+              index={index + 1}
+              track={item}
+              coverId={item.coverId}
+              artwork={item.coverArt || item.artwork}
+            />
           </View>
 
           <View style={styles.addSongInfo}>
@@ -699,7 +707,13 @@ export const LibraryScreen = ({ route }) => {
 
               <TouchableOpacity
                 style={styles.scanDeviceHeaderBtn}
-                onPress={() => scanDeviceTracks(true)}
+                onPress={() => {
+                  if (hasDevicePermission === false && typeof openPermissionModal === 'function') {
+                    openPermissionModal();
+                  } else {
+                    scanDeviceTracks(true);
+                  }
+                }}
                 disabled={isScanningDevice}
                 activeOpacity={0.7}
               >

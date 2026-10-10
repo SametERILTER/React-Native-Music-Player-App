@@ -30,7 +30,9 @@ export const SongItem = React.memo(({
             size={52}
             borderRadius={radius.md + 2}
             index={index + 1}
+            track={track}
             coverId={track?.coverId}
+            artwork={track?.coverArt || track?.artwork}
           />
           {isCurrent && isPlaying && (
             <View style={styles.playingOverlay}>

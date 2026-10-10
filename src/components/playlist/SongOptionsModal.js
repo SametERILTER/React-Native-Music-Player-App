@@ -170,7 +170,13 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                 </TouchableOpacity>
               ) : (
                 <View style={styles.trackInfoRow}>
-                  <AlbumArtwork size={42} index={track.trackNumber || 1} coverId={track?.coverId} />
+                  <AlbumArtwork
+                    size={42}
+                    index={track.trackNumber || 1}
+                    track={track}
+                    coverId={track?.coverId}
+                    artwork={track?.coverArt || track?.artwork}
+                  />
                   <View style={styles.trackTexts}>
                     <Text style={styles.trackTitle} numberOfLines={1}>
                       {track.title}

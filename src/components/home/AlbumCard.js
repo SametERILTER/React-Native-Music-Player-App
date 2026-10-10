@@ -12,7 +12,13 @@ export const AlbumCard = ({ track, isCurrent, isPlaying, onPlay }) => {
       onPress={() => onPlay(track)}
     >
       <View style={styles.artworkWrapper}>
-        <AlbumArtwork size={130} index={track.trackNumber || 1} />
+        <AlbumArtwork
+          size={130}
+          index={track.trackNumber || 1}
+          track={track}
+          coverId={track?.coverId}
+          artwork={track?.coverArt || track?.artwork}
+        />
         <TouchableOpacity
           style={styles.floatingPlayBtn}
           onPress={() => onPlay(track)}

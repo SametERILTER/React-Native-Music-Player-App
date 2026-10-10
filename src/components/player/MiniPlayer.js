@@ -5,10 +5,12 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { Play, Pause, SkipForward, Heart } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../../theme';
 import { usePlayer } from '../../context/PlayerContext';
+import { useLanguage } from '../../context/LanguageContext';
 import AlbumArtwork from '../home/AlbumArtwork';
 
 export const MiniPlayer = ({ onOpenFullPlayer }) => {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const {
     currentTrack,
     isPlaying,
@@ -70,8 +72,8 @@ export const MiniPlayer = ({ onOpenFullPlayer }) => {
   const isFav = favorites.includes(currentTrack.id);
   const bottomOffset = Math.max(insets.bottom, 16) + 64;
 
-  const trackTitle = currentTrack.title || 'Midnight Resonance';
-  const trackArtist = currentTrack.artist || 'Mono Studio';
+  const trackTitle = currentTrack.title || t('common.tracks');
+  const trackArtist = currentTrack.artist || t('common.unknownArtist');
 
   return (
     <View style={[styles.outerContainer, { bottom: bottomOffset }]} pointerEvents="box-none">
@@ -83,7 +85,13 @@ export const MiniPlayer = ({ onOpenFullPlayer }) => {
           <View style={styles.contentRow}>
             <View style={styles.leftInfo}>
               <Animated.View style={artworkAnimatedStyle}>
-                <AlbumArtwork size={40} index={currentTrack.trackNumber || 1} coverId={currentTrack.coverId} />
+                <AlbumArtwork
+                  size={40}
+                  index={currentTrack.trackNumber || 1}
+                  track={currentTrack}
+                  coverId={currentTrack.coverId}
+                  artwork={currentTrack.coverArt || currentTrack.artwork}
+                />
               </Animated.View>
 
               <Animated.View style={[styles.textWrapper, titleWrapperAnimatedStyle]}>

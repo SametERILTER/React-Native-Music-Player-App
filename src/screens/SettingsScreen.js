@@ -33,6 +33,7 @@ import {
   FolderOpen,
   ExternalLink,
   Globe,
+  ShieldCheck,
 } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
@@ -58,6 +59,8 @@ export const SettingsScreen = () => {
     setAutoPlayNext,
     isArtworkGradientEnabled,
     toggleArtworkGradient,
+    hasDevicePermission,
+    openPermissionModal,
   } = usePlayer();
 
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 16) + spacing.xs;
@@ -172,6 +175,10 @@ export const SettingsScreen = () => {
   }, []);
 
   const handleRescan = useCallback(async () => {
+    if (hasDevicePermission === false && typeof openPermissionModal === 'function') {
+      openPermissionModal();
+      return;
+    }
     if (typeof scanDeviceTracks === 'function') {
       try {
         await scanDeviceTracks(true);
@@ -179,7 +186,7 @@ export const SettingsScreen = () => {
         Alert.alert(t('settings.scanErrorTitle'), t('settings.scanErrorMsg'));
       }
     }
-  }, [scanDeviceTracks, t]);
+  }, [hasDevicePermission, openPermissionModal, scanDeviceTracks, t]);
 
   const handleAssignRandomCovers = useCallback(() => {
     if (typeof assignRandomCoversToAll === 'function') {
@@ -564,6 +571,29 @@ export const SettingsScreen = () => {
 
         {activeSubpage === 'storage' && (
           <View style={styles.unifiedCard}>
+            {hasDevicePermission === false && (
+              <>
+                <TouchableOpacity
+                  style={styles.settingRow}
+                  onPress={openPermissionModal}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.menuIconBox}>
+                    <ShieldCheck size={18} color={colors.textPrimary} />
+                  </View>
+                  <View style={styles.settingTextWrap}>
+                    <Text style={styles.settingTitle}>{t('permission.modalTitle')}</Text>
+                    <Text style={styles.settingSubtitle}>{t('permission.modalSubtitle')}</Text>
+                  </View>
+                  <View style={styles.badgeAction}>
+                    <Text style={styles.badgeActionText}>{t('permission.grantButton')}</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <View style={styles.divider} />
+              </>
+            )}
+
             <TouchableOpacity
               style={styles.settingRow}
               onPress={handleRescan}

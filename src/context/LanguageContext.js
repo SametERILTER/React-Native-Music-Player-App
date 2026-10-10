@@ -6,10 +6,10 @@ const LANGUAGE_STORAGE_KEY = '@app_language';
 
 const LanguageContext = createContext(null);
 
-export const getTranslation = (keyPath, lang = 'tr', params = {}) => {
+export const getTranslation = (keyPath, lang = 'en', params = {}) => {
   if (!keyPath || typeof keyPath !== 'string') return '';
-  const activeDict = translations[lang] || translations.tr;
-  const fallbackDict = translations.tr;
+  const activeDict = translations[lang] || translations.en;
+  const fallbackDict = translations.en;
 
   const keys = keyPath.split('.');
   let result = keys.reduce((acc, k) => (acc && acc[k] !== undefined ? acc[k] : null), activeDict);
@@ -35,7 +35,7 @@ export const getTranslation = (keyPath, lang = 'tr', params = {}) => {
 };
 
 export const LanguageProvider = ({ children }) => {
-  const [language, setLanguageState] = useState('tr');
+  const [language, setLanguageState] = useState('en');
   const [isLanguageLoaded, setIsLanguageLoaded] = useState(false);
 
   useEffect(() => {
