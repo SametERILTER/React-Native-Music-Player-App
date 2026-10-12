@@ -33,8 +33,8 @@ import { colors, typography, spacing, radius, shadows } from '../../theme';
 import { usePlayer, usePlayerProgress } from '../../context/PlayerContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatTime } from '../../services/musicService';
-import { getCoverGradientColors } from '../../constants/playlistCovers';
 import { fetchLyrics } from '../../services/lyricsService';
+import { useTrackColors } from '../../hooks/useTrackColors';
 import AlbumArtwork from '../home/AlbumArtwork';
 import EditSongModal from './EditSongModal';
 import SyncedLyricsView from './SyncedLyricsView';
@@ -68,6 +68,7 @@ export const FullPlayerModal = ({ visible, onClose }) => {
     playbackContext,
   } = usePlayer();
   const { position, duration, seekTo } = usePlayerProgress();
+  const trackColors = useTrackColors(currentTrack, '#F3F3F4');
 
   const [isEditSongModalVisible, setIsEditSongModalVisible] = useState(false);
   const [isQueueModalVisible, setIsQueueModalVisible] = useState(false);
@@ -120,7 +121,6 @@ export const FullPlayerModal = ({ visible, onClose }) => {
   useEffect(() => {
     let timeoutId = null;
     if (visible && hasLyrics) {
-      // Modal ilk açılırken buton hemen çıkmaz, modal açıldıktan sonra kapak hafifçe yukarı kayıp buton belirir
       timeoutId = setTimeout(() => {
         lyricsButtonEntrance.value = withTiming(1, {
           duration: 380,
@@ -234,11 +234,12 @@ export const FullPlayerModal = ({ visible, onClose }) => {
   const isFav = favorites.includes(currentTrack.id);
   const currentPosition = isSeeking ? seekingValue : position;
   const showGradient = isArtworkGradientEnabled !== false;
-  const gradientColors = getCoverGradientColors(
-    currentTrack.coverId,
-    currentTrack.title || currentTrack.id || currentTrack.trackNumber || 1,
-    '#F3F3F4'
-  );
+  const gradientColors = trackColors?.gradientColors;
+  console.log('[FullPlayerModal] gradient rendered:', {
+    showGradient,
+    track: currentTrack?.title,
+    gradientColors,
+  });
 
   return (
     <Modal
@@ -254,10 +255,16 @@ export const FullPlayerModal = ({ visible, onClose }) => {
       />
 
       <Animated.View style={[styles.sheet, sheetStyle]}>
-        {showGradient && (
+        {showGradient && gradientColors && (
           <LinearGradient
             colors={gradientColors}
-            locations={[0, 0.38, 0.72, 1.0]}
+            locations={
+              gradientColors.length === 5
+                ? [0, 0.28, 0.56, 0.82, 1.0]
+                : [0, 0.45, 0.80, 1.0]
+            }
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1.0 }}
             style={styles.gradientBackground}
             pointerEvents="none"
           />

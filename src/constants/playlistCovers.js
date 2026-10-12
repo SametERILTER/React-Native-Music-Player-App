@@ -124,12 +124,40 @@ export const COVER_COLORS = {
   liquid_chrome: '#3C454B',
 };
 
+export const COVER_SECONDARY_COLORS = {
+  cyber_waves: '#053E37',
+  amber_spectrum: '#7D2E05',
+  electric_pulse: '#083642',
+  violet_aurora: '#3A0654',
+  solaris_amber: '#6E2D05',
+  ocean_resonance: '#012932',
+  crimson_nebula: '#4E0312',
+  quantum_prism: '#332947',
+  neon_flow: '#3C044C',
+  amber_geometry: '#6A230B',
+  liquid_prism: '#222C4D',
+  cosmic_aura: '#160B36',
+  emerald_flow: '#062F24',
+  midnight_echo: '#0D141D',
+  ceramic_flow: '#4E4439',
+  warm_geometry: '#613F24',
+  liquid_chrome: '#1E2327',
+};
+
 export const FALLBACK_COVER_COLORS = [
   '#0A7567',
   '#C05915',
   '#6B1196',
   '#024D5C',
   '#8B0A25',
+];
+
+export const FALLBACK_COVER_SECONDARY_COLORS = [
+  '#053E37',
+  '#6E2D05',
+  '#3A0654',
+  '#012932',
+  '#4E0312',
 ];
 
 export const hexToRgba = (hex, alpha = 1) => {
@@ -146,6 +174,18 @@ export const hexToRgba = (hex, alpha = 1) => {
   const g = parseInt(clean.substring(2, 4), 16) || 0;
   const b = parseInt(clean.substring(4, 6), 16) || 0;
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+export const createTwoToneGradientColors = (primaryHex, secondaryHex, bg = '#F3F3F4') => {
+  const c1 = primaryHex || '#30343C';
+  const c2 = secondaryHex || c1;
+  return [
+    hexToRgba(c1, 0.90),
+    hexToRgba(c1, 0.70),
+    hexToRgba(c2, 0.46),
+    hexToRgba(c2, 0.20),
+    bg,
+  ];
 };
 
 export const getCoverDominantColor = (coverId, trackOrIndex = 0) => {
@@ -165,14 +205,27 @@ export const getCoverDominantColor = (coverId, trackOrIndex = 0) => {
   return fallbackList[Math.abs(num) % fallbackList.length];
 };
 
+export const getCoverSecondaryColor = (coverId, trackOrIndex = 0) => {
+  if (coverId && COVER_SECONDARY_COLORS[coverId]) {
+    return COVER_SECONDARY_COLORS[coverId];
+  }
+  if (typeof trackOrIndex === 'string') {
+    let hash = 0;
+    for (let i = 0; i < trackOrIndex.length; i++) {
+      hash = trackOrIndex.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const idx = Math.abs(hash) % FALLBACK_COVER_SECONDARY_COLORS.length;
+    return FALLBACK_COVER_SECONDARY_COLORS[idx];
+  }
+  const fallbackList = FALLBACK_COVER_SECONDARY_COLORS;
+  const num = typeof trackOrIndex === 'number' ? trackOrIndex : 0;
+  return fallbackList[Math.abs(num) % fallbackList.length];
+};
+
 export const getCoverGradientColors = (coverId, trackOrIndex = 0, bg = '#F3F3F4') => {
   const baseColor = getCoverDominantColor(coverId, trackOrIndex);
-  return [
-    hexToRgba(baseColor, 0.85),
-    hexToRgba(baseColor, 0.45),
-    hexToRgba(baseColor, 0.16),
-    bg,
-  ];
+  const secondaryColor = getCoverSecondaryColor(coverId, trackOrIndex);
+  return createTwoToneGradientColors(baseColor, secondaryColor, bg);
 };
 
 export const getPlaylistScreenGradientColors = (coverId, nameOrId = 1) => {
