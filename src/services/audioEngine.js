@@ -47,7 +47,7 @@ class AudioEngine {
             didJustFinish: duration > 0 && currentTime >= duration - 0.5,
           });
         }
-      } catch (e) {
+      } catch (_) {
       }
     }, 500);
   }
@@ -94,7 +94,7 @@ class AudioEngine {
         if (typeof this.player.remove === 'function') {
           this.player.remove();
         }
-      } catch (e) {
+      } catch (_) {
       }
       this.player = null;
     }

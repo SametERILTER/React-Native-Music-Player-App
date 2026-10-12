@@ -9,7 +9,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Heart } from 'lucide-react-native';
-import { colors, spacing } from '../theme';
+import { colors, typography, spacing } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
 import { useLanguage } from '../context/LanguageContext';
 import Header from '../components/common/Header';
@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   listTitle: {
-    fontFamily: 'Geist_700Bold',
+    fontFamily: typography.fonts.bold,
     fontSize: 14,
     color: colors.textSecondary,
     letterSpacing: -0.2,
