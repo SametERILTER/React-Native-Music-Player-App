@@ -119,14 +119,11 @@ export const getSynchronousTrackColors = (track, bg = '#F3F3F4') => {
 
 const tryExtractColorsFromUri = async (uri, cacheKey) => {
   try {
-    console.log('[ColorService] Attempting Palette extraction on:', uri);
     const result = await getColors(uri, {
       fallback: SENTINEL_HEX,
       cache: true,
       key: cacheKey,
     });
-
-    console.log('[ColorService] Raw palette result:', result);
 
     let primary = null;
     let secondary = null;
@@ -181,8 +178,7 @@ const tryExtractColorsFromUri = async (uri, cacheKey) => {
       return { primary, secondary: secondary || primary };
     }
     return null;
-  } catch (err) {
-    console.log('[ColorService] Extraction failed on URI:', uri, err?.message || err);
+  } catch (_) {
     return null;
   }
 };
@@ -191,14 +187,12 @@ export const resolveTrackColors = async (track, bg = '#F3F3F4') => {
   if (!track) return getFallbackTrackColors(null, bg);
 
   const uris = getCandidateImageUris(track);
-  console.log('[ColorService] Candidate URIs for', track.title, uris);
 
   const cacheKey = getCacheKey(track, uris[0] || null);
 
   if (memoryCache.has(cacheKey)) {
     const cached = memoryCache.get(cacheKey);
     if (cached?.primary !== '#6B1196') {
-      console.log('[ColorService] Returning from RAM cache for:', track.title);
       return cached;
     }
     memoryCache.delete(cacheKey);
@@ -215,7 +209,6 @@ export const resolveTrackColors = async (track, bg = '#F3F3F4') => {
         parsed.primary !== '#6B1196' &&
         parsed.primary !== '#3A0654'
       ) {
-        console.log('[ColorService] Returning from AsyncStorage for:', track.title);
         memoryCache.set(cacheKey, parsed);
         return parsed;
       }
@@ -237,22 +230,12 @@ export const resolveTrackColors = async (track, bg = '#F3F3F4') => {
         isExtracted: true,
       };
 
-      console.log(
-        '[ColorService] SUCCESS extracting from image for:',
-        track.title,
-        '-> Primary:',
-        finalColors.primary,
-        'Secondary:',
-        finalColors.secondary
-      );
-
       memoryCache.set(cacheKey, finalColors);
       safeStorage.setItem(storageKey, JSON.stringify(finalColors)).catch(() => {});
       return finalColors;
     }
   }
 
-  console.log('[ColorService] All URIs failed or no cover, using neutral fallback for:', track.title);
   const fallback = getFallbackTrackColors(track, bg);
   memoryCache.set(cacheKey, fallback);
   return fallback;

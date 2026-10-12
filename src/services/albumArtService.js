@@ -1,3 +1,16 @@
+const fetchWithTimeout = async (url, options = {}, timeoutMs = 5000) => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+};
+
 export const fetchOnlineAlbumArt = async (track) => {
   if (!track || (!track.title && !track.artist)) {
     return { success: false, reason: 'no_metadata' };
@@ -35,7 +48,7 @@ export const fetchOnlineAlbumArt = async (track) => {
   for (const q of queries) {
     try {
       const url = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=5`;
-      const res = await fetch(url);
+      const res = await fetchWithTimeout(url, {}, 5000);
       if (res.ok) {
         const data = await res.json();
         if (data && data.results && data.results.length > 0) {
@@ -58,7 +71,7 @@ export const fetchOnlineAlbumArt = async (track) => {
   for (const q of queries) {
     try {
       const url = `https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=3`;
-      const res = await fetch(url);
+      const res = await fetchWithTimeout(url, {}, 5000);
       if (res.ok) {
         const data = await res.json();
         if (data && data.data && data.data.length > 0) {
@@ -82,6 +95,78 @@ export const fetchOnlineAlbumArt = async (track) => {
   }
 
   return { success: false, reason: 'not_found' };
+};
+
+export const downloadAllOnlineCovers = async ({
+  tracks,
+  onProgress,
+  onBatchFound,
+  isCancelled,
+  concurrency = 2,
+}) => {
+  if (!tracks || tracks.length === 0) {
+    return { completed: true, foundCount: 0, totalCount: 0, notFoundCount: 0, updates: {} };
+  }
+
+  const total = tracks.length;
+  let processed = 0;
+  let foundCount = 0;
+  let notFoundCount = 0;
+  const collectedUpdates = {};
+
+  for (let i = 0; i < total; i += concurrency) {
+    if (isCancelled && isCancelled()) {
+      break;
+    }
+
+    const chunk = tracks.slice(i, i + concurrency);
+    const chunkBatchUpdates = {};
+
+    await Promise.all(
+      chunk.map(async (track) => {
+        if (isCancelled && isCancelled()) return;
+        try {
+          const result = await fetchOnlineAlbumArt(track);
+          if (result && result.success && result.artworkUrl) {
+            chunkBatchUpdates[track.id] = result.artworkUrl;
+            collectedUpdates[track.id] = result.artworkUrl;
+            foundCount++;
+          } else {
+            notFoundCount++;
+          }
+        } catch (_) {
+          notFoundCount++;
+        } finally {
+          processed++;
+          if (onProgress) {
+            onProgress({
+              current: Math.min(processed, total),
+              total,
+              found: foundCount,
+              notFound: notFoundCount,
+              currentTitle: track.title || '',
+            });
+          }
+        }
+      })
+    );
+
+    if (Object.keys(chunkBatchUpdates).length > 0 && onBatchFound) {
+      onBatchFound(chunkBatchUpdates);
+    }
+
+    if (i + concurrency < total && !(isCancelled && isCancelled())) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  }
+
+  return {
+    completed: !(isCancelled && isCancelled()),
+    foundCount,
+    notFoundCount,
+    totalCount: total,
+    updates: collectedUpdates,
+  };
 };
 
 export default fetchOnlineAlbumArt;

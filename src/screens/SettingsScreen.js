@@ -34,6 +34,7 @@ import {
   ExternalLink,
   Globe,
   ShieldCheck,
+  ImageDown,
 } from 'lucide-react-native';
 import { colors, typography, spacing, radius } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
@@ -61,6 +62,10 @@ export const SettingsScreen = () => {
     toggleArtworkGradient,
     hasDevicePermission,
     openPermissionModal,
+    isDownloadingCovers,
+    downloadCoversProgress,
+    startDownloadAllCovers,
+    cancelDownloadCovers,
   } = usePlayer();
 
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 16) + spacing.xs;
@@ -187,6 +192,71 @@ export const SettingsScreen = () => {
       }
     }
   }, [hasDevicePermission, openPermissionModal, scanDeviceTracks, t]);
+
+  const handleDownloadOnlineCovers = useCallback(() => {
+    if (!tracks || tracks.length === 0) {
+      Alert.alert(t('settings.infoTitle'), t('settings.noTracksToDownload'));
+      return;
+    }
+
+    if (isDownloadingCovers) {
+      Alert.alert(t('settings.infoTitle'), t('settings.downloadAlreadyInProgress'));
+      return;
+    }
+
+    const missingCount = tracks.filter((t) => !t.coverId && !t.coverArt && !t.artwork).length;
+    const totalCount = tracks.length;
+
+    const startDownload = async (mode) => {
+      const res = await startDownloadAllCovers(mode);
+      if (res && res.success) {
+        if (res.foundCount > 0) {
+          Alert.alert(
+            t('settings.downloadCoversCompleteTitle'),
+            t('settings.downloadCoversCompleteMsg', {
+              found: res.foundCount,
+              notFound: res.notFoundCount || 0,
+            })
+          );
+        } else {
+          Alert.alert(
+            t('settings.downloadCoversCompleteTitle'),
+            t('settings.downloadCoversNoneMsg')
+          );
+        }
+      }
+    };
+
+    if (missingCount > 0 && missingCount < totalCount) {
+      Alert.alert(
+        t('settings.downloadCoversTitle'),
+        t('settings.downloadCoversPromptMsg', { total: totalCount, missing: missingCount }),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('settings.downloadMissingOnly', { count: missingCount }),
+            onPress: () => startDownload('missing'),
+          },
+          {
+            text: t('settings.downloadAllSongs', { count: totalCount }),
+            onPress: () => startDownload('all'),
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        t('settings.downloadCoversTitle'),
+        t('settings.downloadCoversConfirmMsg', { count: totalCount }),
+        [
+          { text: t('common.cancel'), style: 'cancel' },
+          {
+            text: t('settings.startDownload'),
+            onPress: () => startDownload('all'),
+          },
+        ]
+      );
+    }
+  }, [tracks, isDownloadingCovers, startDownloadAllCovers, t]);
 
   const handleAssignRandomCovers = useCallback(() => {
     if (typeof assignRandomCoversToAll === 'function') {
@@ -378,7 +448,15 @@ export const SettingsScreen = () => {
                 </View>
                 <View style={styles.menuRightGroup}>
                   <Text style={styles.menuBadgeText}>
-                    {customCoverCount > 0 ? t('settings.customCount', { count: customCoverCount }) : t('settings.defaultCover')}
+                    {isDownloadingCovers
+                      ? `${Math.round(
+                          ((downloadCoversProgress?.current || 0) /
+                            (downloadCoversProgress?.total || 1)) *
+                            100
+                        )}%`
+                      : customCoverCount > 0
+                      ? t('settings.customCount', { count: customCoverCount })
+                      : t('settings.defaultCover')}
                   </Text>
                   <ChevronRight size={18} color={colors.textTertiary} />
                 </View>
@@ -520,6 +598,84 @@ export const SettingsScreen = () => {
                 thumbColor={colors.primaryContrast}
               />
             </View>
+
+            <View style={styles.divider} />
+
+            {isDownloadingCovers ? (
+              <View style={styles.settingRowDownloading}>
+                <View style={styles.settingRow}>
+                  <View style={styles.menuIconBox}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                  <View style={styles.settingTextWrap}>
+                    <Text style={styles.settingTitle}>{t('settings.downloadingCovers')}</Text>
+                    <Text style={styles.settingSubtitle}>
+                      {t('settings.downloadCoversProgress', {
+                        current: downloadCoversProgress?.current || 0,
+                        total: downloadCoversProgress?.total || 0,
+                        found: downloadCoversProgress?.found || 0,
+                      })}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.badgeActionStop}
+                    onPress={cancelDownloadCovers}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.badgeActionStopText}>{t('settings.stop')}</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressBarBg}>
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        {
+                          width: `${
+                            downloadCoversProgress?.total
+                              ? Math.min(
+                                  100,
+                                  Math.round(
+                                    ((downloadCoversProgress.current || 0) /
+                                      downloadCoversProgress.total) *
+                                      100
+                                  )
+                                )
+                              : 0
+                          }%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                  {downloadCoversProgress?.currentTitle ? (
+                    <Text style={styles.progressCurrentSong} numberOfLines={1}>
+                      {t('settings.searchingTrack', {
+                        title: downloadCoversProgress.currentTitle,
+                      })}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.settingRow}
+                onPress={handleDownloadOnlineCovers}
+                activeOpacity={0.7}
+              >
+                <View style={styles.menuIconBox}>
+                  <ImageDown size={18} color={colors.textPrimary} />
+                </View>
+                <View style={styles.settingTextWrap}>
+                  <Text style={styles.settingTitle}>{t('settings.downloadAllCovers')}</Text>
+                  <Text style={styles.settingSubtitle}>
+                    {t('settings.downloadAllCoversDesc')}
+                  </Text>
+                </View>
+                <View style={styles.badgeAction}>
+                  <Text style={styles.badgeActionText}>{t('settings.download')}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.divider} />
 
@@ -938,6 +1094,44 @@ const styles = StyleSheet.create({
     fontFamily: typography.fonts.semiBold,
     fontSize: typography.sizes.sm,
     color: colors.textPrimary,
+  },
+  settingRowDownloading: {
+    paddingVertical: spacing.xs,
+  },
+  badgeActionStop: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.full,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  badgeActionStopText: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: 11,
+    color: '#DC2626',
+  },
+  progressContainer: {
+    paddingLeft: 50,
+    paddingRight: spacing.xs,
+    paddingBottom: spacing.sm,
+  },
+  progressBarBg: {
+    height: 4,
+    backgroundColor: colors.borderLight,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: colors.primary,
+    borderRadius: 2,
+  },
+  progressCurrentSong: {
+    fontFamily: typography.fonts.regular,
+    fontSize: 11,
+    color: colors.textTertiary,
+    marginTop: 4,
   },
 });
 

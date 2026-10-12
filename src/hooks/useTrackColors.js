@@ -30,12 +30,9 @@ export const useTrackColors = (track, defaultBg = '#F3F3F4') => {
 
   const activeColors = useMemo(() => {
     if (extractedData && extractedData.key === trackKey && extractedData.colors) {
-      console.log('[useTrackColors] Using EXTRACTED colors for:', track?.title, extractedData.colors.primary);
       return extractedData.colors;
     }
-    const sync = getSynchronousTrackColors(track, defaultBg);
-    console.log('[useTrackColors] Using SYNC/FALLBACK colors for:', track?.title, sync.primary);
-    return sync;
+    return getSynchronousTrackColors(track, defaultBg);
   }, [extractedData, trackKey, track, defaultBg]);
 
   return activeColors;

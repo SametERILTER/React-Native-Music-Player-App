@@ -5,6 +5,7 @@ import { safeStorage } from '../services/storageService';
 import { fetchDeviceAudioTracks, extractTrackMetadata, checkMediaPermissions, requestMediaPermissions } from '../services/musicService';
 import { setupTrackPlayer, getTrackPlayer } from '../services/trackPlayerService';
 import { ALL_COVERS } from '../constants/playlistCovers';
+import { downloadAllOnlineCovers } from '../services/albumArtService';
 import { colors } from '../theme';
 import { useLanguage } from './LanguageContext';
 
@@ -129,6 +130,11 @@ export const PlayerProvider = ({ children }) => {
   const trackCoversRef = useRef({});
   const [customTrackMeta, setCustomTrackMeta] = useState({});
   const customTrackMetaRef = useRef({});
+
+  const [isDownloadingCovers, setIsDownloadingCovers] = useState(false);
+  const [downloadCoversProgress, setDownloadCoversProgress] = useState(null);
+  const isDownloadingCoversRef = useRef(false);
+  const cancelDownloadCoversRef = useRef(false);
 
   const [isArtworkGradientEnabled, setIsArtworkGradientEnabledState] = useState(true);
 
@@ -448,6 +454,85 @@ export const PlayerProvider = ({ children }) => {
       return curr;
     });
   }, []);
+
+  const batchUpdateTrackCovers = useCallback((updatesMap) => {
+    if (!updatesMap || Object.keys(updatesMap).length === 0) return;
+    setTrackCovers((prev) => {
+      const next = { ...prev, ...updatesMap };
+      trackCoversRef.current = next;
+      safeStorage.setItem('@musicplayer_track_covers', JSON.stringify(next)).catch((e) =>
+        console.warn('Toplu kapak kaydedilirken hata:', e)
+      );
+      return next;
+    });
+
+    setTracks((prev) =>
+      prev.map((t) => (updatesMap[t.id] ? { ...t, coverId: updatesMap[t.id] } : t))
+    );
+
+    setQueue((prev) =>
+      prev.map((t) => (updatesMap[t.id] ? { ...t, coverId: updatesMap[t.id] } : t))
+    );
+
+    setCurrentTrack((curr) => {
+      if (curr && updatesMap[curr.id]) {
+        return { ...curr, coverId: updatesMap[curr.id] };
+      }
+      return curr;
+    });
+  }, []);
+
+  const cancelDownloadCovers = useCallback(() => {
+    cancelDownloadCoversRef.current = true;
+  }, []);
+
+  const startDownloadAllCovers = useCallback(
+    async (mode = 'all') => {
+      if (isDownloadingCoversRef.current) return { success: false, reason: 'already_running' };
+      if (!tracks || tracks.length === 0) return { success: false, reason: 'no_tracks' };
+
+      const targetTracks =
+        mode === 'missing'
+          ? tracks.filter((t) => !t.coverId && !t.coverArt && !t.artwork)
+          : [...tracks];
+
+      if (targetTracks.length === 0) {
+        return { success: false, reason: 'no_tracks' };
+      }
+
+      isDownloadingCoversRef.current = true;
+      cancelDownloadCoversRef.current = false;
+      setIsDownloadingCovers(true);
+      setDownloadCoversProgress({
+        current: 0,
+        total: targetTracks.length,
+        found: 0,
+        notFound: 0,
+        currentTitle: targetTracks[0]?.title || '',
+      });
+
+      try {
+        const result = await downloadAllOnlineCovers({
+          tracks: targetTracks,
+          onProgress: (prog) => {
+            setDownloadCoversProgress(prog);
+          },
+          onBatchFound: (updates) => {
+            batchUpdateTrackCovers(updates);
+          },
+          isCancelled: () => cancelDownloadCoversRef.current,
+        });
+
+        return { success: true, ...result };
+      } catch (err) {
+        return { success: false, error: err?.message || err };
+      } finally {
+        isDownloadingCoversRef.current = false;
+        setIsDownloadingCovers(false);
+      }
+    },
+    [tracks, batchUpdateTrackCovers]
+  );
 
   const [isFullPlayerOpen, setIsFullPlayerOpen] = useState(false);
   const [songOptionsTrack, setSongOptionsTrack] = useState(null);
@@ -973,6 +1058,11 @@ export const PlayerProvider = ({ children }) => {
     updateTrackInfo,
     assignRandomCoversToAll,
     resetAllCovers,
+    isDownloadingCovers,
+    downloadCoversProgress,
+    startDownloadAllCovers,
+    cancelDownloadCovers,
+    batchUpdateTrackCovers,
     autoPlayNext,
     setAutoPlayNext,
     isArtworkGradientEnabled,
@@ -1007,6 +1097,11 @@ export const PlayerProvider = ({ children }) => {
     updateTrackInfo,
     assignRandomCoversToAll,
     resetAllCovers,
+    isDownloadingCovers,
+    downloadCoversProgress,
+    startDownloadAllCovers,
+    cancelDownloadCovers,
+    batchUpdateTrackCovers,
     autoPlayNext,
     setAutoPlayNext,
     isArtworkGradientEnabled,
