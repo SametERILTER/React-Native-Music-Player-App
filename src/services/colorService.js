@@ -83,15 +83,22 @@ const getCacheKey = (track, imageUri) => {
   return `track_${track.id || track.title || 'unknown'}`;
 };
 
+export const STATIC_LIGHT_GRAY_GRADIENT = [
+  'rgba(195, 197, 202, 0.40)',
+  'rgba(215, 217, 222, 0.22)',
+  'rgba(235, 236, 239, 0.10)',
+  '#F3F3F4',
+  '#F3F3F4',
+];
+
 export const getFallbackTrackColors = (track, bg = '#F3F3F4') => {
   const primary = DEFAULT_NEUTRAL_HEX;
   const secondary = DEFAULT_NEUTRAL_SECONDARY_HEX;
-  const gradient = createTwoToneGradientColors(primary, secondary, bg);
 
   return {
     primary,
     secondary,
-    gradientColors: gradient,
+    gradientColors: STATIC_LIGHT_GRAY_GRADIENT,
     isExtracted: false,
   };
 };
@@ -197,7 +204,7 @@ export const resolveTrackColors = async (track, bg = '#F3F3F4') => {
     memoryCache.delete(cacheKey);
   }
 
-  const storageKey = `@track_palette_v7_${cacheKey}`;
+  const storageKey = `@track_palette_v9_${cacheKey}`;
   try {
     const stored = await safeStorage.getItem(storageKey);
     if (stored) {

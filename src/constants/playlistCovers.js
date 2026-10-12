@@ -180,10 +180,10 @@ export const createTwoToneGradientColors = (primaryHex, secondaryHex, bg = '#F3F
   const c1 = primaryHex || '#30343C';
   const c2 = secondaryHex || c1;
   return [
-    hexToRgba(c1, 0.90),
-    hexToRgba(c1, 0.70),
-    hexToRgba(c2, 0.46),
-    hexToRgba(c2, 0.20),
+    hexToRgba(c1, 0.96),
+    hexToRgba(c1, 0.88),
+    hexToRgba(c2, 0.60),
+    hexToRgba(c2, 0.28),
     bg,
   ];
 };

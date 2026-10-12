@@ -6,6 +6,7 @@ import {
   Modal,
   TouchableOpacity,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,14 +28,18 @@ import {
   MoreVertical,
   Music,
   ListMusic,
+  ImageDown,
 } from 'lucide-react-native';
+import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, radius, shadows } from '../../theme';
 import { usePlayer, usePlayerProgress } from '../../context/PlayerContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatTime } from '../../services/musicService';
 import { fetchLyrics } from '../../services/lyricsService';
+import { fetchOnlineAlbumArt } from '../../services/albumArtService';
 import { useTrackColors } from '../../hooks/useTrackColors';
+import { STATIC_LIGHT_GRAY_GRADIENT } from '../../services/colorService';
 import AlbumArtwork from '../home/AlbumArtwork';
 import EditSongModal from './EditSongModal';
 import SyncedLyricsView from './SyncedLyricsView';
@@ -66,6 +71,7 @@ export const FullPlayerModal = ({ visible, onClose }) => {
     toggleShuffle,
     isArtworkGradientEnabled,
     playbackContext,
+    updateTrackCover,
   } = usePlayer();
   const { position, duration, seekTo } = usePlayerProgress();
   const trackColors = useTrackColors(currentTrack, '#F3F3F4');
@@ -75,6 +81,21 @@ export const FullPlayerModal = ({ visible, onClose }) => {
   const [showLyrics, setShowLyrics] = useState(false);
   const [hasLyrics, setHasLyrics] = useState(false);
   const [prevTrackId, setPrevTrackId] = useState(currentTrack?.id);
+  const [isFetchingCover, setIsFetchingCover] = useState(false);
+
+  const handleFetchOnlineCover = useCallback(async () => {
+    if (!currentTrack || isFetchingCover) return;
+    setIsFetchingCover(true);
+    try {
+      const result = await fetchOnlineAlbumArt(currentTrack);
+      if (result.success && result.artworkUrl) {
+        updateTrackCover(currentTrack.id, result.artworkUrl);
+      }
+    } catch (_) {
+    } finally {
+      setIsFetchingCover(false);
+    }
+  }, [currentTrack, isFetchingCover, updateTrackCover]);
 
   if (currentTrack?.id !== prevTrackId) {
     setPrevTrackId(currentTrack?.id);
@@ -234,12 +255,10 @@ export const FullPlayerModal = ({ visible, onClose }) => {
   const isFav = favorites.includes(currentTrack.id);
   const currentPosition = isSeeking ? seekingValue : position;
   const showGradient = isArtworkGradientEnabled !== false;
-  const gradientColors = trackColors?.gradientColors;
-  console.log('[FullPlayerModal] gradient rendered:', {
-    showGradient,
-    track: currentTrack?.title,
-    gradientColors,
-  });
+  const isExtracted = trackColors?.isExtracted === true;
+  const gradientColors = isExtracted
+    ? trackColors?.gradientColors
+    : STATIC_LIGHT_GRAY_GRADIENT;
 
   return (
     <Modal
@@ -249,6 +268,7 @@ export const FullPlayerModal = ({ visible, onClose }) => {
       statusBarTranslucent
       onRequestClose={handleBackRequest}
     >
+      <StatusBar style="dark" />
       <Animated.View
         style={[StyleSheet.absoluteFillObject, styles.overlay, overlayStyle]}
         pointerEvents="none"
@@ -260,8 +280,8 @@ export const FullPlayerModal = ({ visible, onClose }) => {
             colors={gradientColors}
             locations={
               gradientColors.length === 5
-                ? [0, 0.28, 0.56, 0.82, 1.0]
-                : [0, 0.45, 0.80, 1.0]
+                ? [0, 0.48, 0.72, 0.90, 1.0]
+                : [0, 0.58, 0.85, 1.0]
             }
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1.0 }}
@@ -380,18 +400,34 @@ export const FullPlayerModal = ({ visible, onClose }) => {
                   </Text>
                 </View>
 
-                <TouchableOpacity
-                  style={styles.heartBtn}
-                  onPress={() => toggleFavorite(currentTrack.id)}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Heart
-                    size={22}
-                    color={isFav ? colors.textPrimary : colors.textTertiary}
-                    fill={isFav ? colors.textPrimary : 'transparent'}
-                  />
-                </TouchableOpacity>
+                <View style={styles.metaActionsCol}>
+                  <TouchableOpacity
+                    style={styles.fetchCoverBtn}
+                    onPress={handleFetchOnlineCover}
+                    disabled={isFetchingCover}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  >
+                    {isFetchingCover ? (
+                      <ActivityIndicator size="small" color={colors.textPrimary} />
+                    ) : (
+                      <ImageDown size={18} color={colors.textPrimary} strokeWidth={1.8} />
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.heartBtn}
+                    onPress={() => toggleFavorite(currentTrack.id)}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  >
+                    <Heart
+                      size={20}
+                      color={isFav ? colors.textPrimary : colors.textTertiary}
+                      fill={isFav ? colors.textPrimary : 'transparent'}
+                    />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
 
@@ -666,13 +702,27 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 2,
   },
-  heartBtn: {
-    width: 42,
-    height: 42,
+  metaActionsCol: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  fetchCoverBtn: {
+    width: 38,
+    height: 38,
     borderRadius: radius.full,
-    backgroundColor: colors.card,
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heartBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.05)',
     justifyContent: 'center',
     alignItems: 'center',
   },

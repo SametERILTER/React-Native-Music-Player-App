@@ -10,7 +10,7 @@
     "backgroundColor": "#F9F9F9",
     "androidNavigationBar": {
       "barStyle": "dark-content",
-      "backgroundColor": "#f3f3f3"
+      "backgroundColor": "#F3F3F4"
     },
     "ios": {
       "supportsTablet": true
