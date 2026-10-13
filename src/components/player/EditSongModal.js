@@ -104,6 +104,7 @@ const EditSongContent = ({
           <Text style={styles.headerSubtitle}>{t('editSong.headerSubtitle')}</Text>
           <Text style={styles.headerTitle}>{t('editSong.headerTitle')}</Text>
         </View>
+
         <TouchableOpacity
           style={styles.closeBtn}
           onPress={onClose}
@@ -120,6 +121,14 @@ const EditSongContent = ({
         bounces={false}
         contentContainerStyle={styles.scrollContent}
       >
+        <TouchableOpacity
+          style={styles.addToPlaylistBtn}
+          onPress={handleOpenAddToPlaylist}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <ListPlus size={18} color={colors.textPrimary} />
+        </TouchableOpacity>
         <View style={styles.coverPreviewContainer}>
           <View style={styles.coverImageFrame}>
             <AlbumArtwork
@@ -245,15 +254,6 @@ const EditSongContent = ({
         >
           <CheckCircle2 size={18} color={colors.primaryContrast} />
           <Text style={styles.saveBtnText}>{t('editSong.saveChanges')}</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.secondaryActionBtn}
-          onPress={handleOpenAddToPlaylist}
-          activeOpacity={0.85}
-        >
-          <ListPlus size={18} color={colors.textPrimary} />
-          <Text style={styles.secondaryActionBtnText}>{t('editSong.addToPlaylist')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </Animated.View>
@@ -396,6 +396,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 2,
+  },
+  addToPlaylistBtn: {
+    position: 'absolute',
+    top: spacing.xs,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: radius.full,
+    backgroundColor: colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
   scrollArea: {
     flex: 1,
@@ -554,29 +566,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     marginTop: spacing.sm,
+    marginBottom: spacing.md,
   },
   saveBtnText: {
     fontFamily: typography.fonts.semiBold,
     fontSize: typography.sizes.sm,
     color: colors.primaryContrast,
-  },
-  secondaryActionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.backgroundSecondary,
-    height: 48,
-    borderRadius: radius.full,
-    gap: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  secondaryActionBtnText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
   },
 });
 
