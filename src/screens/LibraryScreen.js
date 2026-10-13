@@ -221,10 +221,10 @@ export const LibraryScreen = ({ route }) => {
       const pl = targetPlaylist || activePlaylist;
       const playlistContext = pl
         ? {
-            type: 'playlist',
-            id: pl.id,
-            name: pl.name,
-          }
+          type: 'playlist',
+          id: pl.id,
+          name: pl.name,
+        }
         : null;
 
       if (shouldShuffle) {
@@ -411,111 +411,111 @@ export const LibraryScreen = ({ route }) => {
                   onPress={handleBackToPlaylists}
                   activeOpacity={0.7}
                 >
-                <ChevronLeft size={20} color={colors.textPrimary} />
-                <Text style={styles.backBtnText}>{t('library.playlistsBack')}</Text>
-              </TouchableOpacity>
+                  <ChevronLeft size={20} color={colors.textPrimary} />
+                  <Text style={styles.backBtnText}>{t('library.playlistsBack')}</Text>
+                </TouchableOpacity>
 
-              <View
-                style={[
-                  styles.detailCoverSection,
-                  {
-                    alignItems:
-                      activePlaylist.coverPosition === 'center'
-                        ? 'center'
-                        : activePlaylist.coverPosition === 'right'
-                        ? 'flex-end'
-                        : 'flex-start',
-                  },
-                ]}
-              >
-                <View style={styles.detailCoverCard}>
-                  {activeCoverSource ? (
-                    <Image
-                      source={activeCoverSource}
-                      style={styles.detailCoverImage}
-                      resizeMode="cover"
-                    />
-                  ) : (
-                    <View style={styles.detailCoverFallback}>
-                      <ListMusic size={46} color={colors.textTertiary} strokeWidth={1.5} />
-                    </View>
-                  )}
+                <View
+                  style={[
+                    styles.detailCoverSection,
+                    {
+                      alignItems:
+                        activePlaylist.coverPosition === 'center'
+                          ? 'center'
+                          : activePlaylist.coverPosition === 'right'
+                            ? 'flex-end'
+                            : 'flex-start',
+                    },
+                  ]}
+                >
+                  <View style={styles.detailCoverCard}>
+                    {activeCoverSource ? (
+                      <Image
+                        source={activeCoverSource}
+                        style={styles.detailCoverImage}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={styles.detailCoverFallback}>
+                        <ListMusic size={46} color={colors.textTertiary} strokeWidth={1.5} />
+                      </View>
+                    )}
+                  </View>
+                </View>
+
+                <View style={styles.detailTitleWrap}>
+                  <Text style={styles.detailTitle}>{activePlaylist.name}</Text>
+                  <Text style={styles.detailSubtitle}>
+                    {activePlaylistTracks.length !== activePlaylist.trackIds.length
+                      ? `${activePlaylistTracks.length} / ${activePlaylist.trackIds.length} ${t('common.tracks')}`
+                      : `${activePlaylist.trackIds.length} ${t('common.tracks')}`}
+                  </Text>
+                </View>
+
+                <View style={styles.playlistSearchBar}>
+                  <Search size={17} color={colors.textTertiary} style={styles.playlistSearchIcon} />
+                  <TextInput
+                    style={styles.playlistSearchInput}
+                    value={playlistSearchQuery}
+                    onChangeText={setPlaylistSearchQuery}
+                    placeholder={t('library.searchInListPlaceholder')}
+                    placeholderTextColor={colors.textTertiary}
+                    autoCorrect={false}
+                    clearButtonMode="never"
+                  />
+                  {playlistSearchQuery ? (
+                    <TouchableOpacity
+                      onPress={() => setPlaylistSearchQuery('')}
+                      style={styles.playlistSearchClearBtn}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <X size={15} color={colors.textSecondary} />
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+
+                <View style={styles.detailActionsRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.primaryActionBtn,
+                      activePlaylistTracks.length === 0 && styles.disabledBtn,
+                    ]}
+                    onPress={() => handlePlayPlaylist(activePlaylistTracks, false)}
+                    disabled={activePlaylistTracks.length === 0}
+                    activeOpacity={0.8}
+                  >
+                    <Play size={15} color={colors.primaryContrast} fill={colors.primaryContrast} />
+                    <Text style={styles.primaryActionBtnText}>{t('library.playAll')}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.secondaryActionBtn,
+                      activePlaylistTracks.length === 0 && styles.disabledBtn,
+                    ]}
+                    onPress={() => handlePlayPlaylist(activePlaylistTracks, true)}
+                    disabled={activePlaylistTracks.length === 0}
+                    activeOpacity={0.8}
+                  >
+                    <Shuffle size={15} color={colors.textPrimary} />
+                    <Text style={styles.secondaryActionBtnText}>{t('library.shuffle')}</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.optionsActionBtn}
+                    onPress={() => {
+                      setOptionsTargetPlaylist(activePlaylist);
+                      setIsPlaylistOptionsModalVisible(true);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <MoreVertical size={18} color={colors.textPrimary} />
+                  </TouchableOpacity>
                 </View>
               </View>
-
-              <View style={styles.detailTitleWrap}>
-                <Text style={styles.detailTitle}>{activePlaylist.name}</Text>
-                <Text style={styles.detailSubtitle}>
-                  {activePlaylistTracks.length !== activePlaylist.trackIds.length
-                    ? `${activePlaylistTracks.length} / ${activePlaylist.trackIds.length} ${t('common.tracks')}`
-                    : `${activePlaylist.trackIds.length} ${t('common.tracks')}`}
-                </Text>
-              </View>
-
-              <View style={styles.playlistSearchBar}>
-                <Search size={17} color={colors.textTertiary} style={styles.playlistSearchIcon} />
-                <TextInput
-                  style={styles.playlistSearchInput}
-                  value={playlistSearchQuery}
-                  onChangeText={setPlaylistSearchQuery}
-                  placeholder={t('library.searchInListPlaceholder')}
-                  placeholderTextColor={colors.textTertiary}
-                  autoCorrect={false}
-                  clearButtonMode="never"
-                />
-                {playlistSearchQuery ? (
-                  <TouchableOpacity
-                    onPress={() => setPlaylistSearchQuery('')}
-                    style={styles.playlistSearchClearBtn}
-                    activeOpacity={0.7}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <X size={15} color={colors.textSecondary} />
-                  </TouchableOpacity>
-                ) : null}
-              </View>
-
-              <View style={styles.detailActionsRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.primaryActionBtn,
-                    activePlaylistTracks.length === 0 && styles.disabledBtn,
-                  ]}
-                  onPress={() => handlePlayPlaylist(activePlaylistTracks, false)}
-                  disabled={activePlaylistTracks.length === 0}
-                  activeOpacity={0.8}
-                >
-                  <Play size={15} color={colors.primaryContrast} fill={colors.primaryContrast} />
-                  <Text style={styles.primaryActionBtnText}>{t('library.playAll')}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.secondaryActionBtn,
-                    activePlaylistTracks.length === 0 && styles.disabledBtn,
-                  ]}
-                  onPress={() => handlePlayPlaylist(activePlaylistTracks, true)}
-                  disabled={activePlaylistTracks.length === 0}
-                  activeOpacity={0.8}
-                >
-                  <Shuffle size={15} color={colors.textPrimary} />
-                  <Text style={styles.secondaryActionBtnText}>{t('library.shuffle')}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.optionsActionBtn}
-                  onPress={() => {
-                    setOptionsTargetPlaylist(activePlaylist);
-                    setIsPlaylistOptionsModalVisible(true);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <MoreVertical size={18} color={colors.textPrimary} />
-                </TouchableOpacity>
-              </View>
             </View>
-          </View>
-        }
+          }
           renderItem={renderDetailItem}
           contentContainerStyle={[
             styles.listContent,
@@ -751,7 +751,7 @@ export const LibraryScreen = ({ route }) => {
                         resizeMode="cover"
                       />
                     ) : (
-                      <ListMusic size={22} color={colors.textPrimary} strokeWidth={1.8} />
+                      <ListMusic size={28} color={colors.textPrimary} strokeWidth={1.8} />
                     )}
                   </View>
 
@@ -1063,8 +1063,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm + 2,
   },
   playlistCardIconBox: {
-    width: 44,
-    height: 44,
+    width: 55,
+    height: 55,
     borderRadius: radius.md,
     backgroundColor: colors.backgroundSecondary,
     justifyContent: 'center',
