@@ -20,6 +20,7 @@ const LyricLineItem = React.memo(({
   activeIndex,
   isSynced,
   onPress,
+  isDark = false,
 }) => {
   const isStarted = activeIndex >= 0;
   const isActive = isSynced && index === activeIndex;
@@ -94,6 +95,7 @@ const LyricLineItem = React.memo(({
         style={[
           styles.lyricText,
           isActive ? styles.activeLyricText : styles.inactiveLyricText,
+          isDark && (isActive ? styles.activeLyricTextDark : styles.inactiveLyricTextDark),
           {
             opacity: animOpacity,
             transform: [{ scale: animScale }],
@@ -114,6 +116,7 @@ export const SyncedLyricsView = ({
   seekTo,
   height,
   width,
+  isDark = false,
 }) => {
   const { t } = useLanguage();
   const [prevTrackId, setPrevTrackId] = useState(currentTrack?.id);
@@ -243,41 +246,42 @@ export const SyncedLyricsView = ({
         activeIndex={activeIndex}
         isSynced={Boolean(lyrics?.isSynced)}
         onPress={handleLinePress}
+        isDark={isDark}
       />
     ),
-    [activeIndex, lyrics?.isSynced, handleLinePress]
+    [activeIndex, lyrics?.isSynced, handleLinePress, isDark]
   );
 
   const renderFooter = useCallback(() => {
     if (!lyrics?.lines || lyrics.lines.length === 0) return null;
     return (
       <View style={styles.lyricsFooter}>
-        <View style={styles.lyricsSourceBadge}>
-          <Text style={styles.lyricsSourceText}>
+        <View style={[styles.lyricsSourceBadge, isDark && styles.lyricsSourceBadgeDark]}>
+          <Text style={[styles.lyricsSourceText, isDark && styles.lyricsSourceTextDark]}>
             {t('lyrics.source', { source: lyrics.source || 'LRCLIB' })}
           </Text>
         </View>
       </View>
     );
-  }, [lyrics, t]);
+  }, [lyrics, t, isDark]);
 
   return (
     <View style={[styles.container, { width, height, borderRadius: radius.xl }]} collapsable={false}>
       {loading ? (
         <View style={[styles.centerContainer, { height }]}>
-          <ActivityIndicator size="small" color={colors.primary} />
-          <Text style={styles.loadingText}>{t('lyrics.searching')}</Text>
+          <ActivityIndicator size="small" color={isDark ? '#FFFFFF' : colors.primary} />
+          <Text style={[styles.loadingText, isDark && styles.textDark]}>{t('lyrics.searching')}</Text>
         </View>
       ) : error || !lyrics ? (
         <View style={[styles.centerContainer, { height }]}>
-          <Text style={styles.errorText}>{error || t('lyrics.notFoundGeneric')}</Text>
+          <Text style={[styles.errorText, isDark && styles.textDark]}>{error || t('lyrics.notFoundGeneric')}</Text>
           <TouchableOpacity
-            style={styles.retryBtn}
+            style={[styles.retryBtn, isDark && styles.retryBtnDark]}
             onPress={handleRetry}
             activeOpacity={0.7}
           >
-            <RefreshCw size={13} color={colors.primary} style={{ marginRight: 6 }} />
-            <Text style={styles.retryText}>{t('lyrics.retry')}</Text>
+            <RefreshCw size={13} color={isDark ? '#FFFFFF' : colors.primary} style={{ marginRight: 6 }} />
+            <Text style={[styles.retryText, isDark && styles.retryTextDark]}>{t('lyrics.retry')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -385,6 +389,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: typography.fonts.bold,
     color: colors.primary,
+  },
+  activeLyricTextDark: {
+    color: '#FFFFFF',
+  },
+  inactiveLyricTextDark: {
+    color: '#FFFFFF',
+  },
+  lyricsSourceBadgeDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  lyricsSourceTextDark: {
+    color: 'rgba(255, 255, 255, 0.65)',
+  },
+  textDark: {
+    color: 'rgba(255, 255, 255, 0.70)',
+  },
+  retryBtnDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  retryTextDark: {
+    color: '#FFFFFF',
   },
 });
 

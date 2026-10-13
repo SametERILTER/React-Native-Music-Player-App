@@ -176,9 +176,23 @@ export const hexToRgba = (hex, alpha = 1) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-export const createTwoToneGradientColors = (primaryHex, secondaryHex, bg = '#F3F3F4') => {
+export const createTwoToneGradientColors = (
+  primaryHex,
+  secondaryHex,
+  bg = '#F3F3F4',
+  isDark = false
+) => {
   const c1 = primaryHex || '#30343C';
   const c2 = secondaryHex || c1;
+  if (isDark) {
+    return [
+      hexToRgba(c1, 0.96),
+      hexToRgba(c1, 0.88),
+      hexToRgba(c2, 0.72),
+      hexToRgba(c2, 0.88),
+      bg || '#121316',
+    ];
+  }
   return [
     hexToRgba(c1, 0.96),
     hexToRgba(c1, 0.88),

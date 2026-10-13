@@ -4,6 +4,8 @@ import { safeStorage } from './storageService';
 import {
   createTwoToneGradientColors,
   getPlaylistCoverSource,
+  COVER_COLORS,
+  COVER_SECONDARY_COLORS,
 } from '../constants/playlistCovers';
 
 const memoryCache = new Map();
@@ -91,6 +93,43 @@ export const STATIC_LIGHT_GRAY_GRADIENT = [
   '#F3F3F4',
 ];
 
+export const getColorLuminance = (colorStr) => {
+  if (!colorStr || typeof colorStr !== 'string') return 255;
+  let r = 255;
+  let g = 255;
+  let b = 255;
+  if (colorStr.startsWith('#')) {
+    let clean = colorStr.replace('#', '').trim();
+    if (clean.length === 3) {
+      clean = clean.split('').map((c) => c + c).join('');
+    }
+    if (clean.length >= 6) {
+      r = parseInt(clean.substring(0, 2), 16) || 0;
+      g = parseInt(clean.substring(2, 4), 16) || 0;
+      b = parseInt(clean.substring(4, 6), 16) || 0;
+    }
+  } else if (colorStr.startsWith('rgb')) {
+    const match = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    if (match) {
+      r = parseInt(match[1], 10) || 0;
+      g = parseInt(match[2], 10) || 0;
+      b = parseInt(match[3], 10) || 0;
+    }
+  }
+  return (r * 299 + g * 587 + b * 114) / 1000;
+};
+
+export const isColorDark = (colorStr, threshold = 145) => {
+  return getColorLuminance(colorStr) < threshold;
+};
+
+export const isPaletteDark = (primaryHex, secondaryHex) => {
+  if (!primaryHex) return false;
+  const lum1 = getColorLuminance(primaryHex);
+  const lum2 = getColorLuminance(secondaryHex || primaryHex);
+  return lum1 * 0.5 + lum2 * 0.5 < 145;
+};
+
 export const getFallbackTrackColors = (track, bg = '#F3F3F4') => {
   const primary = DEFAULT_NEUTRAL_HEX;
   const secondary = DEFAULT_NEUTRAL_SECONDARY_HEX;
@@ -100,6 +139,7 @@ export const getFallbackTrackColors = (track, bg = '#F3F3F4') => {
     secondary,
     gradientColors: STATIC_LIGHT_GRAY_GRADIENT,
     isExtracted: false,
+    isDark: false,
   };
 };
 
@@ -198,7 +238,7 @@ export const resolveTrackColors = async (track, bg = '#F3F3F4') => {
     memoryCache.delete(cacheKey);
   }
 
-  const storageKey = `@track_palette_v9_${cacheKey}`;
+  const storageKey = `@track_palette_v10_${cacheKey}`;
   try {
     const stored = await safeStorage.getItem(storageKey);
     if (stored) {
@@ -218,22 +258,49 @@ export const resolveTrackColors = async (track, bg = '#F3F3F4') => {
   for (const uri of uris) {
     const extracted = await tryExtractColorsFromUri(uri, `${cacheKey}_${uri}`);
     if (extracted && extracted.primary) {
+      const isDark = isPaletteDark(extracted.primary, extracted.secondary);
+      const bottomBg = isDark ? '#121316' : bg;
       const gradientColors = createTwoToneGradientColors(
         extracted.primary,
         extracted.secondary,
-        bg
+        bottomBg,
+        isDark
       );
       const finalColors = {
         primary: extracted.primary,
         secondary: extracted.secondary,
         gradientColors,
         isExtracted: true,
+        isDark,
       };
 
       memoryCache.set(cacheKey, finalColors);
       safeStorage.setItem(storageKey, JSON.stringify(finalColors)).catch(() => {});
       return finalColors;
     }
+  }
+
+  if (track?.coverId && COVER_COLORS[track.coverId]) {
+    const presetPrimary = COVER_COLORS[track.coverId];
+    const presetSecondary = COVER_SECONDARY_COLORS[track.coverId] || presetPrimary;
+    const isDark = isPaletteDark(presetPrimary, presetSecondary);
+    const bottomBg = isDark ? '#121316' : bg;
+    const gradientColors = createTwoToneGradientColors(
+      presetPrimary,
+      presetSecondary,
+      bottomBg,
+      isDark
+    );
+    const finalColors = {
+      primary: presetPrimary,
+      secondary: presetSecondary,
+      gradientColors,
+      isExtracted: true,
+      isDark,
+    };
+    memoryCache.set(cacheKey, finalColors);
+    safeStorage.setItem(storageKey, JSON.stringify(finalColors)).catch(() => {});
+    return finalColors;
   }
 
   const fallback = getFallbackTrackColors(track, bg);

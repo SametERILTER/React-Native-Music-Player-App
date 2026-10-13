@@ -39,7 +39,7 @@ import { formatTime } from '../../services/musicService';
 import { fetchLyrics } from '../../services/lyricsService';
 import { fetchOnlineAlbumArt } from '../../services/albumArtService';
 import { useTrackColors } from '../../hooks/useTrackColors';
-import { STATIC_LIGHT_GRAY_GRADIENT } from '../../services/colorService';
+import { STATIC_LIGHT_GRAY_GRADIENT, isColorDark } from '../../services/colorService';
 import AlbumArtwork from '../home/AlbumArtwork';
 import EditSongModal from './EditSongModal';
 import SyncedLyricsView from './SyncedLyricsView';
@@ -259,6 +259,9 @@ export const FullPlayerModal = ({ visible, onClose }) => {
   const gradientColors = isExtracted
     ? trackColors?.gradientColors
     : STATIC_LIGHT_GRAY_GRADIENT;
+  const isDark = Boolean(
+    showGradient && (trackColors?.isDark ?? (isExtracted && isColorDark(trackColors?.primary)))
+  );
 
   return (
     <Modal
@@ -268,13 +271,13 @@ export const FullPlayerModal = ({ visible, onClose }) => {
       statusBarTranslucent
       onRequestClose={handleBackRequest}
     >
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <Animated.View
         style={[StyleSheet.absoluteFillObject, styles.overlay, overlayStyle]}
         pointerEvents="none"
       />
 
-      <Animated.View style={[styles.sheet, sheetStyle]}>
+      <Animated.View style={[styles.sheet, { backgroundColor: isDark ? '#121316' : '#F3F3F4' }, sheetStyle]}>
         {showGradient && gradientColors && (
           <LinearGradient
             colors={gradientColors}
@@ -294,28 +297,30 @@ export const FullPlayerModal = ({ visible, onClose }) => {
 
           <View style={styles.header}>
             <TouchableOpacity
-              style={styles.closeBtn}
+              style={[styles.closeBtn, isDark && styles.closeBtnDark]}
               onPress={handleClose}
               activeOpacity={0.7}
             >
-              <ChevronDown size={24} color={colors.textPrimary} />
+              <ChevronDown size={24} color={isDark ? '#FFFFFF' : colors.textPrimary} />
             </TouchableOpacity>
 
             <View style={styles.headerTitleWrapper}>
-              <Text style={styles.headerSubtitle}>{headerSubtitleText}</Text>
-              <Text style={styles.headerTitle} numberOfLines={1}>
+              <Text style={[styles.headerSubtitle, isDark && styles.headerSubtitleDark]}>
+                {headerSubtitleText}
+              </Text>
+              <Text style={[styles.headerTitle, isDark && styles.headerTitleDark]} numberOfLines={1}>
                 {headerTitleText}
               </Text>
             </View>
 
             <View style={styles.headerRightGroup}>
               <TouchableOpacity
-                style={styles.headerIconBtn}
+                style={[styles.headerIconBtn, isDark && styles.headerIconBtnDark]}
                 onPress={() => setIsEditSongModalVisible(true)}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <MoreVertical size={20} color={colors.textPrimary} />
+                <MoreVertical size={20} color={isDark ? '#FFFFFF' : colors.textPrimary} />
               </TouchableOpacity>
             </View>
           </View>
@@ -356,6 +361,7 @@ export const FullPlayerModal = ({ visible, onClose }) => {
                   seekTo={seekTo}
                   onToggleView={() => setShowLyrics(false)}
                   gradientColors={showGradient ? gradientColors : null}
+                  isDark={isDark}
                 />
               </Animated.View>
             </View>
@@ -367,20 +373,26 @@ export const FullPlayerModal = ({ visible, onClose }) => {
                 <TouchableOpacity
                   style={[
                     styles.lyricsPillButton,
-                    showLyrics && styles.lyricsPillButtonActive,
+                    isDark && styles.lyricsPillButtonDark,
+                    showLyrics && (isDark ? styles.lyricsPillButtonActiveDark : styles.lyricsPillButtonActive),
                   ]}
                   onPress={() => setShowLyrics((prev) => !prev)}
                   activeOpacity={0.8}
                 >
                   <Music
                     size={12}
-                    color={showLyrics ? colors.primaryContrast : colors.textPrimary}
+                    color={
+                      showLyrics
+                        ? (isDark ? '#000000' : colors.primaryContrast)
+                        : (isDark ? '#FFFFFF' : colors.textPrimary)
+                    }
                     style={{ marginRight: 5 }}
                   />
                   <Text
                     style={[
                       styles.lyricsPillText,
-                      showLyrics && styles.lyricsPillTextActive,
+                      isDark && styles.lyricsPillTextDark,
+                      showLyrics && (isDark ? styles.lyricsPillTextActiveDark : styles.lyricsPillTextActive),
                     ]}
                   >
                     {showLyrics ? t('player.showCover') : t('player.showLyrics')}
@@ -392,39 +404,43 @@ export const FullPlayerModal = ({ visible, onClose }) => {
             <View style={styles.metaSection}>
               <View style={styles.titleRow}>
                 <View style={styles.titleTextWrap}>
-                  <Text style={styles.trackTitle} numberOfLines={1}>
+                  <Text style={[styles.trackTitle, isDark && styles.trackTitleDark]} numberOfLines={1}>
                     {currentTrack.title}
                   </Text>
-                  <Text style={styles.trackArtist} numberOfLines={1}>
+                  <Text style={[styles.trackArtist, isDark && styles.trackArtistDark]} numberOfLines={1}>
                     {currentTrack.artist}
                   </Text>
                 </View>
 
                 <View style={styles.metaActionsCol}>
                   <TouchableOpacity
-                    style={styles.fetchCoverBtn}
+                    style={[styles.fetchCoverBtn, isDark && styles.actionBtnDark]}
                     onPress={handleFetchOnlineCover}
                     disabled={isFetchingCover}
                     activeOpacity={0.7}
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   >
                     {isFetchingCover ? (
-                      <ActivityIndicator size="small" color={colors.textPrimary} />
+                      <ActivityIndicator size="small" color={isDark ? '#FFFFFF' : colors.textPrimary} />
                     ) : (
-                      <ImageDown size={18} color={colors.textPrimary} strokeWidth={1.8} />
+                      <ImageDown size={18} color={isDark ? '#FFFFFF' : colors.textPrimary} strokeWidth={1.8} />
                     )}
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={styles.heartBtn}
+                    style={[styles.heartBtn, isDark && styles.actionBtnDark]}
                     onPress={() => toggleFavorite(currentTrack.id)}
                     activeOpacity={0.7}
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   >
                     <Heart
                       size={20}
-                      color={isFav ? colors.textPrimary : colors.textTertiary}
-                      fill={isFav ? colors.textPrimary : 'transparent'}
+                      color={
+                        isFav
+                          ? (isDark ? '#FFFFFF' : colors.textPrimary)
+                          : (isDark ? 'rgba(255, 255, 255, 0.55)' : colors.textTertiary)
+                      }
+                      fill={isFav ? (isDark ? '#FFFFFF' : colors.textPrimary) : 'transparent'}
                     />
                   </TouchableOpacity>
                 </View>
@@ -437,9 +453,9 @@ export const FullPlayerModal = ({ visible, onClose }) => {
                 minimumValue={0}
                 maximumValue={duration > 0 ? duration : 1}
                 value={currentPosition}
-                minimumTrackTintColor={colors.primary}
-                maximumTrackTintColor={colors.border}
-                thumbTintColor={colors.primary}
+                minimumTrackTintColor={isDark ? '#FFFFFF' : colors.primary}
+                maximumTrackTintColor={isDark ? 'rgba(255, 255, 255, 0.24)' : colors.border}
+                thumbTintColor={isDark ? '#FFFFFF' : colors.primary}
                 onValueChange={(val) => {
                   setIsSeeking(true);
                   setSeekingValue(val);
@@ -451,8 +467,8 @@ export const FullPlayerModal = ({ visible, onClose }) => {
               />
 
               <View style={styles.timeRow}>
-                <Text style={styles.timeText}>{formatTime(currentPosition)}</Text>
-                <Text style={styles.timeText}>{formatTime(duration)}</Text>
+                <Text style={[styles.timeText, isDark && styles.timeTextDark]}>{formatTime(currentPosition)}</Text>
+                <Text style={[styles.timeText, isDark && styles.timeTextDark]}>{formatTime(duration)}</Text>
               </View>
             </View>
 
@@ -464,7 +480,11 @@ export const FullPlayerModal = ({ visible, onClose }) => {
               >
                 <Shuffle
                   size={20}
-                  color={isShuffle ? colors.textPrimary : colors.textTertiary}
+                  color={
+                    isShuffle
+                      ? (isDark ? '#FFFFFF' : colors.textPrimary)
+                      : (isDark ? 'rgba(255, 255, 255, 0.45)' : colors.textTertiary)
+                  }
                 />
               </TouchableOpacity>
 
@@ -473,21 +493,29 @@ export const FullPlayerModal = ({ visible, onClose }) => {
                 onPress={playPrevious}
                 activeOpacity={0.7}
               >
-                <SkipBack size={26} color={colors.textPrimary} fill={colors.textPrimary} />
+                <SkipBack
+                  size={26}
+                  color={isDark ? '#FFFFFF' : colors.textPrimary}
+                  fill={isDark ? '#FFFFFF' : colors.textPrimary}
+                />
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.mainPlayBtn}
+                style={[styles.mainPlayBtn, isDark && styles.mainPlayBtnDark]}
                 onPress={togglePlayPause}
                 activeOpacity={0.85}
               >
                 {isPlaying ? (
-                  <Pause size={28} color={colors.primaryContrast} fill={colors.primaryContrast} />
+                  <Pause
+                    size={28}
+                    color={isDark ? '#000000' : colors.primaryContrast}
+                    fill={isDark ? '#000000' : colors.primaryContrast}
+                  />
                 ) : (
                   <Play
                     size={28}
-                    color={colors.primaryContrast}
-                    fill={colors.primaryContrast}
+                    color={isDark ? '#000000' : colors.primaryContrast}
+                    fill={isDark ? '#000000' : colors.primaryContrast}
                     style={{ marginLeft: 3 }}
                   />
                 )}
@@ -498,7 +526,11 @@ export const FullPlayerModal = ({ visible, onClose }) => {
                 onPress={playNext}
                 activeOpacity={0.7}
               >
-                <SkipForward size={26} color={colors.textPrimary} fill={colors.textPrimary} />
+                <SkipForward
+                  size={26}
+                  color={isDark ? '#FFFFFF' : colors.textPrimary}
+                  fill={isDark ? '#FFFFFF' : colors.textPrimary}
+                />
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -509,7 +541,7 @@ export const FullPlayerModal = ({ visible, onClose }) => {
               >
                 <ListMusic
                   size={20}
-                  color={colors.textPrimary}
+                  color={isDark ? '#FFFFFF' : colors.textPrimary}
                 />
               </TouchableOpacity>
             </View>
@@ -767,6 +799,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     ...shadows.floating,
+  },
+  closeBtnDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  headerIconBtnDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  headerTitleDark: {
+    color: '#FFFFFF',
+  },
+  headerSubtitleDark: {
+    color: 'rgba(255, 255, 255, 0.65)',
+  },
+  lyricsPillButtonDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  lyricsPillButtonActiveDark: {
+    backgroundColor: '#FFFFFF',
+  },
+  lyricsPillTextDark: {
+    color: '#FFFFFF',
+  },
+  lyricsPillTextActiveDark: {
+    color: '#000000',
+  },
+  trackTitleDark: {
+    color: '#FFFFFF',
+  },
+  trackArtistDark: {
+    color: 'rgba(255, 255, 255, 0.72)',
+  },
+  actionBtnDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+  },
+  timeTextDark: {
+    color: 'rgba(255, 255, 255, 0.65)',
+  },
+  mainPlayBtnDark: {
+    backgroundColor: '#FFFFFF',
   },
 });
 
