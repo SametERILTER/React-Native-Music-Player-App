@@ -975,8 +975,30 @@ export const PlayerProvider = ({ children }) => {
       return next;
     });
 
-    setFavorites((prev) => prev.filter((id) => id !== trackId));
+    setFavorites((prev) => {
+      const next = prev.filter((id) => id !== trackId);
+      safeStorage.setItem('@musicplayer_favorites', JSON.stringify(next)).catch(() => {});
+      return next;
+    });
     setQueue((prev) => prev.filter((t) => t.id !== trackId));
+
+    setTrackCovers((prev) => {
+      if (!prev || !prev[trackId]) return prev;
+      const next = { ...prev };
+      delete next[trackId];
+      trackCoversRef.current = next;
+      safeStorage.setItem('@musicplayer_track_covers', JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+
+    setCustomTrackMeta((prev) => {
+      if (!prev || !prev[trackId]) return prev;
+      const next = { ...prev };
+      delete next[trackId];
+      customTrackMetaRef.current = next;
+      safeStorage.setItem('@musicplayer_custom_track_meta', JSON.stringify(next)).catch(() => {});
+      return next;
+    });
 
     setPlaylists((prev) => {
       const next = prev.map((pl) => ({
