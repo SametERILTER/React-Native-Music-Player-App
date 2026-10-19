@@ -99,13 +99,20 @@ export const SearchScreen = () => {
   const bottomPadding = 220;
 
   const displayedTracks = useMemo(() => {
+    if (!tracks || tracks.length === 0) return [];
     if (query.trim() === '') return tracks;
-    const q = query.toLowerCase();
+    const q = query.toLowerCase().trim();
     return tracks.filter((track) => {
+      if (!track) return false;
+      const title = track.title ? String(track.title).toLowerCase() : '';
+      const artist = track.artist ? String(track.artist).toLowerCase() : '';
+      const album = track.album ? String(track.album).toLowerCase() : '';
+      const genre = track.genre ? String(track.genre).toLowerCase() : '';
       return (
-        track.title.toLowerCase().includes(q) ||
-        track.artist.toLowerCase().includes(q) ||
-        (track.genre && track.genre.toLowerCase().includes(q))
+        title.includes(q) ||
+        artist.includes(q) ||
+        album.includes(q) ||
+        genre.includes(q)
       );
     });
   }, [query, tracks]);
