@@ -3,7 +3,7 @@ import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { safeStorage } from '../services/storageService';
 import { fetchDeviceAudioTracks, extractTrackMetadata, checkMediaPermissions, requestMediaPermissions } from '../services/musicService';
-import { setupTrackPlayer, getTrackPlayer } from '../services/trackPlayerService';
+import { setupTrackPlayer, getTrackPlayer, Event, State, registerServiceCallbacks } from '../services/trackPlayerService';
 import { ALL_COVERS } from '../constants/playlistCovers';
 import { downloadAllOnlineCovers } from '../services/albumArtService';
 import { colors } from '../theme';
@@ -38,11 +38,17 @@ const DEFAULT_PLAYLISTS = [
 export const PlayerProgressProvider = ({ isPlaying, currentTrack, onTrackEnded, children }) => {
   const [prevTrackId, setPrevTrackId] = useState(currentTrack?.id);
   const [position, setPosition] = useState(0);
-  const duration = currentTrack?.duration || 180;
+  const [actualDuration, setActualDuration] = useState(currentTrack?.duration || 180);
+  const onTrackEndedRef = useRef(onTrackEnded);
+
+  useEffect(() => {
+    onTrackEndedRef.current = onTrackEnded;
+  }, [onTrackEnded]);
 
   if (currentTrack?.id !== prevTrackId) {
     setPrevTrackId(currentTrack?.id);
     setPosition(0);
+    setActualDuration(currentTrack?.duration || 180);
   }
 
   useEffect(() => {
@@ -54,25 +60,36 @@ export const PlayerProgressProvider = ({ isPlaying, currentTrack, onTrackEnded, 
           try {
             const prog = await TrackPlayer.getProgress();
             if (prog && typeof prog.position === 'number') {
-              setPosition(Math.round(prog.position));
+              const currentPos = Math.round(prog.position);
+              const trackDur = prog.duration > 0 ? Math.round(prog.duration) : (currentTrack?.duration || actualDuration);
+              setPosition(currentPos);
+              if (prog.duration > 0 && Math.round(prog.duration) !== actualDuration) {
+                setActualDuration(Math.round(prog.duration));
+              }
+
+              // Güvenlik kontrolü: Şarkı sonuna gelindiğinde sıradaki parçaya otomatik geçişi tetikle
+              if (trackDur > 5 && currentPos >= trackDur - 1) {
+                onTrackEndedRef.current?.();
+              }
               return;
             }
           } catch {
           }
         }
         setPosition((prev) => {
-          if (prev >= duration) {
-            onTrackEnded?.();
+          const next = prev + 1;
+          if (next >= actualDuration) {
+            setTimeout(() => onTrackEndedRef.current?.(), 0);
             return 0;
           }
-          return prev + 1;
+          return next;
         });
       }, 1000);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isPlaying, duration, onTrackEnded]);
+  }, [isPlaying, currentTrack?.duration, actualDuration]);
 
   const seekTo = useCallback(async (seconds) => {
     setPosition(seconds);
@@ -88,9 +105,9 @@ export const PlayerProgressProvider = ({ isPlaying, currentTrack, onTrackEnded, 
 
   const progressValue = useMemo(() => ({
     position,
-    duration,
+    duration: actualDuration,
     seekTo,
-  }), [position, duration, seekTo]);
+  }), [position, actualDuration, seekTo]);
 
   return (
     <PlayerProgressContext.Provider value={progressValue}>
@@ -547,6 +564,40 @@ export const PlayerProvider = ({ children }) => {
   const playlistModalTrack = songOptionsTrack;
 
 
+  const tracksRef = useRef(tracks);
+  const currentTrackRef = useRef(currentTrack);
+  const queueRef = useRef(queue);
+  const isShuffleRef = useRef(isShuffle);
+  const repeatModeRef = useRef(repeatMode);
+  const autoPlayNextRef = useRef(autoPlayNext);
+
+  useEffect(() => {
+    tracksRef.current = tracks;
+  }, [tracks]);
+
+  useEffect(() => {
+    currentTrackRef.current = currentTrack;
+  }, [currentTrack]);
+
+  useEffect(() => {
+    queueRef.current = queue;
+  }, [queue]);
+
+  useEffect(() => {
+    isShuffleRef.current = isShuffle;
+  }, [isShuffle]);
+
+  useEffect(() => {
+    repeatModeRef.current = repeatMode;
+  }, [repeatMode]);
+
+  useEffect(() => {
+    autoPlayNextRef.current = autoPlayNext;
+  }, [autoPlayNext]);
+
+  const isEndingRef = useRef(false);
+  const lastEndedTrackIdRef = useRef(null);
+
   const isTrackPlayerReady = useRef(false);
   const compactProgress = useSharedValue(0);
   const lastScrollY = useRef(0);
@@ -589,25 +640,25 @@ export const PlayerProvider = ({ children }) => {
     lastScrollY.current = currentY;
   }, [compactProgress]);
 
-
-
   const playTrack = useCallback(async (track, newQueue = null, newContext = null) => {
     if (!track) return;
+    lastEndedTrackIdRef.current = null;
+    isEndingRef.current = false;
+
     const activeCover = trackCoversRef.current[track.id] || track.coverId || null;
     const trackWithCover = { ...track, coverId: activeCover };
     setCurrentTrack(trackWithCover);
+    currentTrackRef.current = trackWithCover;
     setIsPlaying(true);
 
-    if (newQueue && Array.isArray(newQueue) && newQueue.length > 0) {
-      setQueue(newQueue);
-    } else {
-      setQueue((currQueue) => {
-        if (currQueue && currQueue.some((t) => t.id === track.id)) {
-          return currQueue;
-        }
-        return tracks && tracks.length > 0 ? tracks : [trackWithCover];
-      });
-    }
+    const targetQueue = (newQueue && Array.isArray(newQueue) && newQueue.length > 0)
+      ? newQueue
+      : (queueRef.current && queueRef.current.some((t) => t.id === track.id))
+        ? queueRef.current
+        : (tracksRef.current && tracksRef.current.length > 0 ? tracksRef.current : [trackWithCover]);
+
+    setQueue(targetQueue);
+    queueRef.current = targetQueue;
 
     if (newContext) {
       setPlaybackContext(newContext);
@@ -644,7 +695,7 @@ export const PlayerProvider = ({ children }) => {
         console.warn('TrackPlayer parça çalma uyarısı:', err?.message || err);
       }
     }
-  }, [tracks, t]);
+  }, [t]);
 
   const togglePlayPause = useCallback(async () => {
     setIsPlaying((prev) => {
@@ -666,82 +717,92 @@ export const PlayerProvider = ({ children }) => {
   }, []);
 
   const playNext = useCallback(() => {
-    setQueue((currQueue) => {
-      const activeList = currQueue && currQueue.length > 0 ? currQueue : tracks;
-      if (!activeList || activeList.length === 0) return currQueue;
+    const activeList = queueRef.current && queueRef.current.length > 0 ? queueRef.current : tracksRef.current;
+    if (!activeList || activeList.length === 0) return;
 
-      setCurrentTrack((curr) => {
-        const currentIndex = activeList.findIndex((t) => t.id === curr?.id);
-        let nextIndex = 0;
-        if (isShuffle) {
-          if (activeList.length > 1) {
-            do {
-              nextIndex = Math.floor(Math.random() * activeList.length);
-            } while (nextIndex === currentIndex && activeList.length > 1);
-          } else {
-            nextIndex = 0;
+    const curr = currentTrackRef.current;
+    const currentIndex = activeList.findIndex((t) => t.id === curr?.id);
+    let nextIndex = 0;
+
+    if (isShuffleRef.current) {
+      if (activeList.length > 1) {
+        do {
+          nextIndex = Math.floor(Math.random() * activeList.length);
+        } while (nextIndex === currentIndex && activeList.length > 1);
+      } else {
+        nextIndex = 0;
+      }
+    } else {
+      if (currentIndex === -1) {
+        nextIndex = 0;
+      } else if (currentIndex + 1 >= activeList.length) {
+        if (repeatModeRef.current === 'off' && !autoPlayNextRef.current) {
+          setIsPlaying(false);
+          const TrackPlayer = getTrackPlayer();
+          if (isTrackPlayerReady.current && TrackPlayer) {
+            TrackPlayer.pause().catch(() => {});
           }
-        } else {
-          if (currentIndex === -1) {
-            nextIndex = 0;
-          } else if (currentIndex + 1 >= activeList.length) {
-            if (repeatMode === 'off' && !autoPlayNext) {
-              setIsPlaying(false);
-              return curr;
-            }
-            nextIndex = 0;
-          } else {
-            nextIndex = currentIndex + 1;
-          }
+          return;
         }
+        nextIndex = 0;
+      } else {
+        nextIndex = currentIndex + 1;
+      }
+    }
 
-        const nextTrack = activeList[nextIndex];
-        if (nextTrack) {
-          playTrack(nextTrack, activeList);
-        }
-        return nextTrack || curr;
-      });
-
-      return currQueue;
-    });
-  }, [tracks, isShuffle, repeatMode, autoPlayNext, playTrack]);
+    const nextTrack = activeList[nextIndex];
+    if (nextTrack) {
+      playTrack(nextTrack, activeList);
+    }
+  }, [playTrack]);
 
   const playPrevious = useCallback(() => {
-    setQueue((currQueue) => {
-      const activeList = currQueue && currQueue.length > 0 ? currQueue : tracks;
-      if (!activeList || activeList.length === 0) return currQueue;
+    const activeList = queueRef.current && queueRef.current.length > 0 ? queueRef.current : tracksRef.current;
+    if (!activeList || activeList.length === 0) return;
 
-      setCurrentTrack((curr) => {
-        const currentIndex = activeList.findIndex((t) => t.id === curr?.id);
-        let prevIndex = currentIndex - 1;
-        if (prevIndex < 0) {
-          prevIndex = activeList.length - 1;
-        }
-        const prevTrack = activeList[prevIndex];
-        if (prevTrack) {
-          playTrack(prevTrack, activeList);
-        }
-        return prevTrack || curr;
-      });
-
-      return currQueue;
-    });
-  }, [tracks, playTrack]);
+    const curr = currentTrackRef.current;
+    const currentIndex = activeList.findIndex((t) => t.id === curr?.id);
+    let prevIndex = currentIndex - 1;
+    if (prevIndex < 0) {
+      prevIndex = activeList.length - 1;
+    }
+    const prevTrack = activeList[prevIndex];
+    if (prevTrack) {
+      playTrack(prevTrack, activeList);
+    }
+  }, [playTrack]);
 
   const removeFromQueue = useCallback((trackId) => {
     if (!trackId) return;
-    setQueue((prev) => prev.filter((t) => t.id !== trackId));
+    setQueue((prev) => {
+      const next = prev.filter((t) => t.id !== trackId);
+      queueRef.current = next;
+      return next;
+    });
   }, []);
 
   const clearUpcomingQueue = useCallback(() => {
     setQueue((prev) => {
-      if (!currentTrack) return prev;
-      return prev.filter((t) => t.id === currentTrack.id);
+      if (!currentTrackRef.current) return prev;
+      const next = prev.filter((t) => t.id === currentTrackRef.current.id);
+      queueRef.current = next;
+      return next;
     });
-  }, [currentTrack]);
+  }, []);
 
   const handleTrackEnded = useCallback(() => {
-    if (repeatMode === 'one') {
+    const currentTrackId = currentTrackRef.current?.id;
+    if (isEndingRef.current || (currentTrackId && lastEndedTrackIdRef.current === currentTrackId)) {
+      return;
+    }
+    isEndingRef.current = true;
+    lastEndedTrackIdRef.current = currentTrackId;
+    setTimeout(() => {
+      isEndingRef.current = false;
+    }, 2000);
+
+    const mode = repeatModeRef.current;
+    if (mode === 'one') {
       const TrackPlayer = getTrackPlayer();
       if (isTrackPlayerReady.current && TrackPlayer) {
         try {
@@ -749,14 +810,81 @@ export const PlayerProvider = ({ children }) => {
           TrackPlayer.play();
         } catch (_) {}
       }
+      setTimeout(() => {
+        lastEndedTrackIdRef.current = null;
+        isEndingRef.current = false;
+      }, 2000);
       return;
     }
-    if (autoPlayNext) {
-      playNext();
-    } else {
+
+    if (!autoPlayNextRef.current) {
       setIsPlaying(false);
+      const TrackPlayer = getTrackPlayer();
+      if (isTrackPlayerReady.current && TrackPlayer) {
+        TrackPlayer.pause().catch(() => {});
+      }
+      return;
     }
-  }, [repeatMode, autoPlayNext, playNext]);
+
+    playNext();
+  }, [playNext]);
+
+  useEffect(() => {
+    registerServiceCallbacks({
+      onNext: playNext,
+      onPrevious: playPrevious,
+      onPlay: () => {
+        setIsPlaying(true);
+        const TP = getTrackPlayer();
+        if (TP) TP.play().catch(() => {});
+      },
+      onPause: () => {
+        setIsPlaying(false);
+        const TP = getTrackPlayer();
+        if (TP) TP.pause().catch(() => {});
+      },
+      onTrackEnded: handleTrackEnded,
+    });
+  }, [playNext, playPrevious, handleTrackEnded]);
+
+  useEffect(() => {
+    const TrackPlayer = getTrackPlayer();
+    if (!TrackPlayer || typeof TrackPlayer.addEventListener !== 'function') return;
+
+    let subQueueEnded = null;
+    let subPlaybackState = null;
+
+    try {
+      const queueEndedEvent = Event?.PlaybackQueueEnded || 'playback-queue-ended';
+      subQueueEnded = TrackPlayer.addEventListener(queueEndedEvent, () => {
+        handleTrackEnded();
+      });
+    } catch (e) {
+      console.warn('PlaybackQueueEnded listener hatası:', e);
+    }
+
+    try {
+      const stateEvent = Event?.PlaybackState || 'playback-state';
+      subPlaybackState = TrackPlayer.addEventListener(stateEvent, (event) => {
+        const state = event?.state;
+        const endedState = State?.Ended || 'ended';
+        if (state === endedState || state === 'ended') {
+          handleTrackEnded();
+        }
+      });
+    } catch (e) {
+      console.warn('PlaybackState listener hatası:', e);
+    }
+
+    return () => {
+      try {
+        subQueueEnded?.remove?.();
+      } catch (_) {}
+      try {
+        subPlaybackState?.remove?.();
+      } catch (_) {}
+    };
+  }, [handleTrackEnded]);
 
   const toggleFavorite = useCallback((trackId) => {
     setFavorites((prev) => {
