@@ -288,6 +288,7 @@ export const LibraryScreen = ({ route }) => {
           <View style={styles.addSongArtworkWrap}>
             <AlbumArtwork
               size={42}
+              borderRadius={radius.sm}
               index={index + 1}
               track={item}
               coverId={item.coverId}

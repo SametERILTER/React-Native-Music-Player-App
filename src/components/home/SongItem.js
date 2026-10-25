@@ -28,7 +28,7 @@ export const SongItem = React.memo(({
         <View style={styles.artworkContainer}>
           <AlbumArtwork
             size={52}
-            borderRadius={radius.md + 2}
+            borderRadius={radius.sm}
             index={index + 1}
             track={track}
             coverId={track?.coverId}

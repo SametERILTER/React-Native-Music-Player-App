@@ -172,6 +172,7 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                 <View style={styles.trackInfoRow}>
                   <AlbumArtwork
                     size={42}
+                    borderRadius={radius.sm}
                     index={track.trackNumber || 1}
                     track={track}
                     coverId={track?.coverId}
