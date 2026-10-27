@@ -1,4 +1,5 @@
 import * as MediaLibrary from 'expo-media-library/legacy';
+import { extractFolderInfo } from '../utils/folderUtils';
 
 export const formatTime = (seconds) => {
   if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
@@ -219,14 +220,31 @@ export const fetchDeviceAudioTracks = async (requestPermission = true) => {
       return { success: true, tracks: [] };
     }
 
-    const validAssets = media.assets.filter((asset) => !isJunkOrVoiceRecording(asset));
+    let albumsMap = {};
+    try {
+      if (typeof MediaLibrary.getAlbumsAsync === 'function') {
+        const albums = await MediaLibrary.getAlbumsAsync();
+        if (albums && Array.isArray(albums)) {
+          albums.forEach((alb) => {
+            if (alb?.id && alb?.title) {
+              albumsMap[alb.id] = alb.title;
+            }
+          });
+        }
+      }
+    } catch (_) {}
+
+    const validAssets = (media && Array.isArray(media.assets))
+      ? media.assets.filter((asset) => !isJunkOrVoiceRecording(asset))
+      : [];
 
     const tracks = validAssets.map((asset, index) => {
+      const albumTitleFromMap = asset.albumId ? albumsMap[asset.albumId] : null;
       const { title, artist } = extractTrackMetadata(
         asset.filename || `Parça ${index + 1}`,
         asset.artist,
         asset.author || asset.composer,
-        asset.album
+        asset.album || albumTitleFromMap
       );
 
       // Cihaz ses dosyasının albüm kapağı URI'si (Android MediaStore content URI)
@@ -237,13 +255,19 @@ export const fetchDeviceAudioTracks = async (requestPermission = true) => {
         coverArt = `content://media/external/audio/media/${asset.id}/albumart`;
       }
 
+      const rawFolderSource = albumTitleFromMap || asset.album;
+      const folderExtract = extractFolderInfo({
+        uri: asset.uri,
+        album: rawFolderSource,
+      });
+
       return {
         id: `local-${asset.id}`,
         mediaId: asset.id ? String(asset.id) : null,
         albumId: asset.albumId ? String(asset.albumId) : null,
         title,
         artist,
-        album: asset.album || 'Cihaz Müzikleri',
+        album: asset.album || albumTitleFromMap || 'Cihaz Müzikleri',
         duration: Math.round(asset.duration || 0),
         uri: asset.uri,
         coverArt,
@@ -251,6 +275,8 @@ export const fetchDeviceAudioTracks = async (requestPermission = true) => {
         trackNumber: index + 1,
         genre: asset.genre || 'Müzik',
         creationTime: asset.creationTime,
+        folder: folderExtract.folderName,
+        folderPath: folderExtract.folderPath,
       };
     });
 

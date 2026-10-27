@@ -380,18 +380,12 @@ export const FullPlayerModal = ({ visible, onClose }) => {
 
   const headerRightNormalAnimStyle = useAnimatedStyle(() => ({
     opacity: Math.max(0, 1 - swipeProgress.value * 2.2),
-    transform: [
-      { scale: 1 - swipeProgress.value * 0.2 },
-      { translateY: 2 },
-    ],
+    transform: [{ scale: 1 - swipeProgress.value * 0.2 }],
   }));
 
   const headerRightCompactAnimStyle = useAnimatedStyle(() => ({
     opacity: Math.min(1, Math.max(0, (swipeProgress.value - 0.28) * 1.6)),
-    transform: [
-      { scale: 0.8 + Math.min(1, Math.max(0, swipeProgress.value)) * 0.2 },
-      { translateY: -2 },
-    ],
+    transform: [{ scale: 0.8 + Math.min(1, Math.max(0, swipeProgress.value)) * 0.2 }],
   }));
 
   const artworkDrawerAnimStyle = useAnimatedStyle(() => {
@@ -619,10 +613,7 @@ export const FullPlayerModal = ({ visible, onClose }) => {
             </View>
 
             <View style={styles.headerRightGroup}>
-              <Animated.View
-                style={[StyleSheet.absoluteFillObject, styles.headerIconBtnWrap, headerRightNormalAnimStyle]}
-                pointerEvents={isDrawerOpen ? 'none' : 'auto'}
-              >
+              <Animated.View style={headerRightNormalAnimStyle} pointerEvents={isDrawerOpen ? 'none' : 'auto'}>
                 <TouchableOpacity
                   style={[styles.headerIconBtn, isDark && styles.headerIconBtnDark]}
                   onPress={() => setIsEditSongModalVisible(true)}
