@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Folder, Play, Pause } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export const FolderCard = ({
   folder,
@@ -12,6 +13,8 @@ export const FolderCard = ({
   onPlay,
 }) => {
   const { t } = useLanguage();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isPlayingThisFolder = isCurrentFolder && isPlaying;
 
   const handlePlayPress = (e) => {
@@ -68,68 +71,70 @@ export const FolderCard = ({
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    width: 142,
-    height: 106,
-    backgroundColor: '#FFFFFF',
-    borderRadius: radius.lg,
-    padding: spacing.sm,
-    marginRight: spacing.sm,
-    justifyContent: 'space-between',
-    elevation: 0,
-    shadowOpacity: 0,
-  },
-  activeCard: {
-    backgroundColor: '#FFFFFF',
-  },
-  topRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  iconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.sm,
-    backgroundColor: colors.cardSubtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  activeIconBox: {
-    backgroundColor: colors.cardHigh,
-  },
-  playButton: {
-    width: 30,
-    height: 30,
-    borderRadius: radius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 0,
-    shadowOpacity: 0,
-  },
-  playButtonInactive: {
-    backgroundColor: colors.cardSubtle,
-  },
-  playButtonActive: {
-    backgroundColor: colors.primary,
-  },
-  bottomInfo: {
-    marginTop: spacing.xs,
-  },
-  folderName: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-    letterSpacing: typography.letterSpacing.tight,
-  },
-  trackCount: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xxs,
-    color: colors.textMuted,
-    marginTop: 2,
-    letterSpacing: typography.letterSpacing.wide,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    card: {
+      width: 142,
+      height: 106,
+      backgroundColor: colors.card,
+      borderRadius: radius.lg,
+      padding: spacing.sm,
+      marginRight: spacing.sm,
+      justifyContent: 'space-between',
+      borderWidth: 0,
+      elevation: 0,
+      shadowOpacity: 0,
+    },
+    activeCard: {
+      backgroundColor: colors.cardSelected,
+    },
+    topRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    iconBox: {
+      width: 36,
+      height: 36,
+      borderRadius: radius.sm,
+      backgroundColor: colors.cardSubtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    activeIconBox: {
+      backgroundColor: colors.cardHigh,
+    },
+    playButton: {
+      width: 30,
+      height: 30,
+      borderRadius: radius.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+      elevation: 0,
+      shadowOpacity: 0,
+    },
+    playButtonInactive: {
+      backgroundColor: colors.cardSubtle,
+    },
+    playButtonActive: {
+      backgroundColor: colors.primary,
+    },
+    bottomInfo: {
+      marginTop: spacing.xs,
+    },
+    folderName: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+      letterSpacing: typography.letterSpacing.tight,
+    },
+    trackCount: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.xxs,
+      color: colors.textMuted,
+      marginTop: 2,
+      letterSpacing: typography.letterSpacing.wide,
+    },
+  });
 
 export default FolderCard;

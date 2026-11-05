@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -25,8 +25,9 @@ import {
   ArrowRight,
   X,
 } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 
@@ -43,6 +44,8 @@ export const PermissionModal = ({
 }) => {
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   const translateY = useSharedValue(SCREEN_HEIGHT);
 
@@ -117,7 +120,6 @@ export const PermissionModal = ({
             contentContainerStyle={styles.scrollContent}
           >
             <View style={styles.mainContent}>
-              {/* Header / Title */}
               <View style={styles.headerArea}>
                 <View style={styles.iconCircle}>
                   <Music size={28} color={colors.textPrimary} strokeWidth={2.2} />
@@ -126,14 +128,12 @@ export const PermissionModal = ({
                 <Text style={styles.subtitle}>{t('permission.modalSubtitle')}</Text>
               </View>
 
-              {/* Informative Explanation */}
               <View style={styles.infoBox}>
                 <Text style={styles.descriptionText}>
                   {t('permission.description')}
                 </Text>
               </View>
 
-              {/* Feature Bullets */}
               <View style={styles.featureList}>
                 <View style={styles.featureItem}>
                   <View style={styles.featureIconWrap}>
@@ -179,7 +179,6 @@ export const PermissionModal = ({
               </View>
             </View>
 
-            {/* Action Buttons */}
             <View style={styles.actionsWrap}>
               <TouchableOpacity
                 style={styles.primaryBtn}
@@ -221,217 +220,214 @@ export const PermissionModal = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlayRoot: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.62)',
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  sheetContainer: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
-    height: Math.round(SCREEN_HEIGHT * 0.88),
-    borderWidth: 1,
-    borderColor: 'rgba(0, 0, 0, 0.05)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.14,
-        shadowRadius: 18,
-      },
-      android: {
-        elevation: 24,
-      },
-    }),
-  },
-  handleBar: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
-    alignSelf: 'center',
-    marginTop: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
-  },
-  badgeWrap: {
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    paddingHorizontal: spacing.sm + 4,
-    paddingVertical: 5,
-    borderRadius: radius.full,
-  },
-  badgeText: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: 10.5,
-    color: colors.textPrimary,
-    letterSpacing: 0.8,
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingTop: spacing.xs,
-    paddingBottom: spacing.sm,
-    flexGrow: 1,
-    justifyContent: 'space-between',
-  },
-  mainContent: {
-    flex: 1,
-  },
-  headerArea: {
-    alignItems: 'center',
-    marginVertical: spacing.sm,
-  },
-  iconCircle: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.sm,
-  },
-  title: {
-    fontFamily: typography.fonts.bold,
-    fontSize: typography.sizes.xl + 1,
-    color: colors.textPrimary,
-    textAlign: 'center',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-  infoBox: {
-    backgroundColor: colors.background,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    marginVertical: spacing.sm + 2,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  descriptionText: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs + 1.5,
-    color: colors.textSecondary,
-    lineHeight: 21,
-    textAlign: 'center',
-  },
-  featureList: {
-    marginVertical: spacing.xs,
-    backgroundColor: colors.card,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: spacing.sm + 4,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0, 0, 0, 0.04)',
-  },
-  featureItemLast: {
-    borderBottomWidth: 0,
-  },
-  featureIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.sm,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm + 2,
-    marginTop: 2,
-  },
-  featureTextWrap: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-    letterSpacing: -0.2,
-  },
-  featureDesc: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-    lineHeight: 17,
-    marginTop: 2,
-  },
-  actionsWrap: {
-    marginTop: spacing.md,
-    paddingTop: spacing.xs,
-    gap: spacing.xs,
-  },
-  primaryBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    paddingVertical: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.15,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
-  },
-  primaryBtnText: {
-    fontFamily: typography.fonts.bold,
-    fontSize: typography.sizes.sm + 1,
-    color: colors.primaryContrast,
-    letterSpacing: -0.2,
-  },
-  arrowIcon: {
-    marginLeft: 6,
-  },
-  secondaryBtn: {
-    paddingVertical: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryBtnText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.sm,
-    color: colors.textMuted,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    overlayRoot: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.62)',
+      justifyContent: 'flex-end',
+    },
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    sheetContainer: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.xs,
+      height: Math.round(SCREEN_HEIGHT * 0.88),
+      borderWidth: 0,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.14,
+          shadowRadius: 18,
+        },
+        android: {
+          elevation: 24,
+        },
+      }),
+    },
+    handleBar: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.borderMuted,
+      alignSelf: 'center',
+      marginTop: spacing.xs,
+      marginBottom: spacing.xs,
+    },
+    topBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingTop: spacing.xs,
+      paddingBottom: spacing.sm,
+    },
+    badgeWrap: {
+      backgroundColor: colors.backgroundSecondary,
+      paddingHorizontal: spacing.sm + 4,
+      paddingVertical: 5,
+      borderRadius: radius.full,
+    },
+    badgeText: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: 10.5,
+      color: colors.textPrimary,
+      letterSpacing: 0.8,
+    },
+    closeBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.backgroundSecondary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingTop: spacing.xs,
+      paddingBottom: spacing.sm,
+      flexGrow: 1,
+      justifyContent: 'space-between',
+    },
+    mainContent: {
+      flex: 1,
+    },
+    headerArea: {
+      alignItems: 'center',
+      marginVertical: spacing.sm,
+    },
+    iconCircle: {
+      width: 62,
+      height: 62,
+      borderRadius: 31,
+      backgroundColor: colors.backgroundSecondary,
+      borderWidth: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: spacing.sm,
+    },
+    title: {
+      fontFamily: typography.fonts.bold,
+      fontSize: typography.sizes.xl + 1,
+      color: colors.textPrimary,
+      textAlign: 'center',
+      letterSpacing: -0.5,
+    },
+    subtitle: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.sm,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginTop: 4,
+    },
+    infoBox: {
+      backgroundColor: colors.backgroundSecondary,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      marginVertical: spacing.sm + 2,
+      borderWidth: 0,
+    },
+    descriptionText: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs + 1.5,
+      color: colors.textSecondary,
+      lineHeight: 21,
+      textAlign: 'center',
+    },
+    featureList: {
+      marginVertical: spacing.xs,
+      backgroundColor: colors.card,
+      borderRadius: radius.md,
+      borderWidth: 0,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+    },
+    featureItem: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      paddingVertical: spacing.sm + 4,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    featureItemLast: {
+      borderBottomWidth: 0,
+    },
+    featureIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: radius.sm,
+      backgroundColor: colors.backgroundSecondary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.sm + 2,
+      marginTop: 2,
+    },
+    featureTextWrap: {
+      flex: 1,
+    },
+    featureTitle: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+      letterSpacing: -0.2,
+    },
+    featureDesc: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textMuted,
+      lineHeight: 17,
+      marginTop: 2,
+    },
+    actionsWrap: {
+      marginTop: spacing.md,
+      paddingTop: spacing.xs,
+      gap: spacing.xs,
+    },
+    primaryBtn: {
+      backgroundColor: colors.primary,
+      borderRadius: radius.md,
+      paddingVertical: 15,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.15,
+          shadowRadius: 6,
+        },
+        android: {
+          elevation: 3,
+        },
+      }),
+    },
+    primaryBtnText: {
+      fontFamily: typography.fonts.bold,
+      fontSize: typography.sizes.sm + 1,
+      color: colors.primaryContrast,
+      letterSpacing: -0.2,
+    },
+    arrowIcon: {
+      marginLeft: 6,
+    },
+    secondaryBtn: {
+      paddingVertical: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    secondaryBtnText: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.sm,
+      color: colors.textMuted,
+    },
+  });
 
 export default PermissionModal;

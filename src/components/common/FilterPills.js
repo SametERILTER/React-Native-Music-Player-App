@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export const FilterPills = ({ categories, selectedCategory, onSelectCategory }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={styles.container}>
       <ScrollView
@@ -55,59 +59,60 @@ export const FilterPills = ({ categories, selectedCategory, onSelectCategory }) 
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    marginVertical: spacing.xs,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.xs,
-  },
-  pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: radius.full,
-  },
-  pillActive: {
-    backgroundColor: colors.primary,
-  },
-  pillInactive: {
-    backgroundColor: colors.card,
-  },
-  pillText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.sm,
-  },
-  pillTextActive: {
-    color: colors.primaryContrast,
-  },
-  pillTextInactive: {
-    color: colors.textSecondary,
-  },
-  countBadge: {
-    marginLeft: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radius.full,
-  },
-  countBadgeActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  countBadgeInactive: {
-    backgroundColor: colors.backgroundSecondary,
-  },
-  countText: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.xxs,
-  },
-  countTextActive: {
-    color: colors.primaryContrast,
-  },
-  countTextInactive: {
-    color: colors.textMuted,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      marginVertical: spacing.xs,
+    },
+    scrollContent: {
+      paddingHorizontal: spacing.lg,
+      gap: spacing.xs,
+    },
+    pill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: radius.full,
+    },
+    pillActive: {
+      backgroundColor: colors.primary,
+    },
+    pillInactive: {
+      backgroundColor: colors.card,
+    },
+    pillText: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.sm,
+    },
+    pillTextActive: {
+      color: colors.primaryContrast,
+    },
+    pillTextInactive: {
+      color: colors.textSecondary,
+    },
+    countBadge: {
+      marginLeft: 6,
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: radius.full,
+    },
+    countBadgeActive: {
+      backgroundColor: colors.surfaceSubtle,
+    },
+    countBadgeInactive: {
+      backgroundColor: colors.backgroundSecondary,
+    },
+    countText: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.xxs,
+    },
+    countTextActive: {
+      color: colors.primaryContrast,
+    },
+    countTextInactive: {
+      color: colors.textMuted,
+    },
+  });
 
 export default FilterPills;

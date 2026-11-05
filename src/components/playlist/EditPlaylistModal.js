@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -30,9 +30,10 @@ import {
   AlignCenter,
   AlignRight,
 } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { PLAYLIST_COVERS, getPlaylistCoverSource } from '../../constants/playlistCovers';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 
@@ -49,6 +50,8 @@ const EditPlaylistContent = ({
   translateY,
 }) => {
   const { t } = useLanguage();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [name, setName] = useState(playlist?.name || '');
   const [selectedCoverId, setSelectedCoverId] = useState(playlist?.coverId || null);
   const [coverPosition, setCoverPosition] = useState(playlist?.coverPosition || 'left');
@@ -292,6 +295,8 @@ export const EditPlaylistModal = ({
   onSave,
 }) => {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const translateY = useSharedValue(SCREEN_HEIGHT);
 
   useEffect(() => {
@@ -336,261 +341,260 @@ export const EditPlaylistModal = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlayRoot: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    justifyContent: 'flex-end',
-  },
-  keyboardWrap: {
-    justifyContent: 'flex-end',
-  },
-  sheetContainer: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    elevation: 24,
-    height: Math.round(SCREEN_HEIGHT * 0.92),
-    maxHeight: Math.round(SCREEN_HEIGHT * 0.95),
-  },
-  handleBar: {
-    width: 38,
-    height: 4,
-    borderRadius: radius.full,
-    backgroundColor: colors.borderMuted,
-    alignSelf: 'center',
-    marginBottom: spacing.md,
-    opacity: 0.7,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingBottom: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderLight,
-  },
-  headerTextWrap: {
-    flex: 1,
-  },
-  headerSubtitle: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: 10,
-    color: colors.textMuted,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  headerTitle: {
-    fontFamily: typography.fonts.bold,
-    fontSize: typography.sizes.base,
-    color: colors.textPrimary,
-    marginTop: 2,
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.full,
-    backgroundColor: colors.backgroundSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  scrollArea: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingVertical: spacing.md,
-    paddingBottom: spacing.xl,
-  },
-  coverPreviewContainer: {
-    marginVertical: spacing.sm,
-  },
-  coverImageFrame: {
-    width: 130,
-    height: 130,
-    borderRadius: radius.lg,
-    overflow: 'hidden',
-    backgroundColor: colors.backgroundSecondary,
-    borderWidth: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  coverPreviewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  emptyCoverBox: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.backgroundSecondary,
-    gap: 4,
-  },
-  emptyCoverText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: 11,
-    color: colors.textTertiary,
-  },
-  coverPreviewLabel: {
-    fontFamily: typography.fonts.medium,
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: spacing.xs,
-  },
-  inputSection: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  sectionLabel: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: 11,
-    color: colors.textMuted,
-    letterSpacing: 0.8,
-    marginBottom: spacing.xs,
-  },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-  },
-  textInput: {
-    flex: 1,
-    height: 46,
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-  },
-  clearBtn: {
-    padding: 6,
-    backgroundColor: colors.card,
-    borderRadius: radius.full,
-  },
-  positionSection: {
-    marginBottom: spacing.md,
-  },
-  positionRow: {
-    flexDirection: 'row',
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: radius.md,
-    padding: 4,
-    gap: 6,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  positionOption: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 9,
-    borderRadius: radius.sm,
-    gap: 6,
-  },
-  positionOptionActive: {
-    backgroundColor: colors.primary,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.14,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  positionText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
-  },
-  positionTextActive: {
-    fontFamily: typography.fonts.semiBold,
-    color: colors.primaryContrast,
-  },
-  coversSection: {
-    marginBottom: spacing.xl,
-  },
-  coverOptionsRow: {
-    paddingVertical: spacing.xs,
-    gap: spacing.sm,
-  },
-  coverOptionCard: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  coverOptionCardActive: {
-    transform: [{ scale: 1.04 }],
-  },
-  coverThumbnail: {
-    width: 66,
-    height: 66,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: 'transparent',
-    position: 'relative',
-    backgroundColor: colors.backgroundSecondary,
-  },
-  defaultThumbnail: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.backgroundSecondary,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  coverThumbImage: {
-    width: '100%',
-    height: '100%',
-  },
-  selectedBadge: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.textPrimary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  saveBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    height: 50,
-    borderRadius: radius.full,
-    gap: spacing.xs,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.16,
-    shadowRadius: 8,
-    elevation: 4,
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  saveBtnDisabled: {
-    opacity: 0.4,
-  },
-  saveBtnText: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.primaryContrast,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    overlayRoot: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.65)',
+      justifyContent: 'flex-end',
+    },
+    keyboardWrap: {
+      justifyContent: 'flex-end',
+    },
+    sheetContainer: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+      borderWidth: 0,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.18,
+      shadowRadius: 18,
+      elevation: 24,
+      height: Math.round(SCREEN_HEIGHT * 0.92),
+      maxHeight: Math.round(SCREEN_HEIGHT * 0.95),
+    },
+    handleBar: {
+      width: 38,
+      height: 4,
+      borderRadius: radius.full,
+      backgroundColor: colors.borderMuted,
+      alignSelf: 'center',
+      marginBottom: spacing.md,
+      opacity: 0.7,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      paddingBottom: spacing.sm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.borderLight,
+    },
+    headerTextWrap: {
+      flex: 1,
+    },
+    headerSubtitle: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: 10,
+      color: colors.textMuted,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
+    headerTitle: {
+      fontFamily: typography.fonts.bold,
+      fontSize: typography.sizes.base,
+      color: colors.textPrimary,
+      marginTop: 2,
+    },
+    closeBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: radius.full,
+      backgroundColor: colors.backgroundSecondary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 2,
+    },
+    scrollArea: {
+      flex: 1,
+    },
+    scrollContent: {
+      paddingVertical: spacing.md,
+      paddingBottom: spacing.xl,
+    },
+    coverPreviewContainer: {
+      marginVertical: spacing.sm,
+    },
+    coverImageFrame: {
+      width: 130,
+      height: 130,
+      borderRadius: radius.lg,
+      overflow: 'hidden',
+      backgroundColor: colors.backgroundSecondary,
+      borderWidth: 0,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.12,
+      shadowRadius: 10,
+      elevation: 6,
+    },
+    coverPreviewImage: {
+      width: '100%',
+      height: '100%',
+    },
+    emptyCoverBox: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.backgroundSecondary,
+      gap: 4,
+    },
+    emptyCoverText: {
+      fontFamily: typography.fonts.medium,
+      fontSize: 11,
+      color: colors.textTertiary,
+    },
+    coverPreviewLabel: {
+      fontFamily: typography.fonts.medium,
+      fontSize: 11,
+      color: colors.textMuted,
+      marginTop: spacing.xs,
+    },
+    inputSection: {
+      marginTop: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    sectionLabel: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: 11,
+      color: colors.textMuted,
+      letterSpacing: 0.8,
+      marginBottom: spacing.xs,
+    },
+    inputWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.backgroundSecondary,
+      borderRadius: radius.md,
+      borderWidth: 0,
+      paddingHorizontal: spacing.md,
+    },
+    textInput: {
+      flex: 1,
+      height: 46,
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+    },
+    clearBtn: {
+      padding: 6,
+      backgroundColor: colors.card,
+      borderRadius: radius.full,
+    },
+    positionSection: {
+      marginBottom: spacing.md,
+    },
+    positionRow: {
+      flexDirection: 'row',
+      backgroundColor: colors.backgroundSecondary,
+      borderRadius: radius.md,
+      padding: 4,
+      gap: 6,
+      borderWidth: 0,
+    },
+    positionOption: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 9,
+      borderRadius: radius.sm,
+      gap: 6,
+    },
+    positionOptionActive: {
+      backgroundColor: colors.primary,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.14,
+      shadowRadius: 4,
+      elevation: 2,
+    },
+    positionText: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.xs,
+      color: colors.textSecondary,
+    },
+    positionTextActive: {
+      fontFamily: typography.fonts.semiBold,
+      color: colors.primaryContrast,
+    },
+    coversSection: {
+      marginBottom: spacing.xl,
+    },
+    coverOptionsRow: {
+      paddingVertical: spacing.xs,
+      gap: spacing.sm,
+    },
+    coverOptionCard: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    coverOptionCardActive: {
+      transform: [{ scale: 1.04 }],
+    },
+    coverThumbnail: {
+      width: 66,
+      height: 66,
+      borderRadius: radius.md,
+      overflow: 'hidden',
+      borderWidth: 2,
+      borderColor: 'transparent',
+      position: 'relative',
+      backgroundColor: colors.backgroundSecondary,
+    },
+    defaultThumbnail: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.backgroundSecondary,
+      borderWidth: 0,
+    },
+    coverThumbImage: {
+      width: '100%',
+      height: '100%',
+    },
+    selectedBadge: {
+      position: 'absolute',
+      top: 4,
+      right: 4,
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+      backgroundColor: colors.textPrimary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 1 },
+      shadowOpacity: 0.3,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+    saveBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      height: 50,
+      borderRadius: radius.full,
+      gap: spacing.xs,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.16,
+      shadowRadius: 8,
+      elevation: 4,
+      marginTop: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    saveBtnDisabled: {
+      opacity: 0.4,
+    },
+    saveBtnText: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.sm,
+      color: colors.primaryContrast,
+    },
+  });
 
 export default EditPlaylistModal;

@@ -10,8 +10,9 @@ import {
   Easing,
 } from 'react-native';
 import { RefreshCw } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 import { fetchLyrics } from '../../services/lyricsService';
 
 const LyricLineItem = React.memo(({
@@ -21,6 +22,7 @@ const LyricLineItem = React.memo(({
   isSynced,
   onPress,
   isDark = false,
+  styles,
 }) => {
   const isStarted = activeIndex >= 0;
   const isActive = isSynced && index === activeIndex;
@@ -118,6 +120,8 @@ export const SyncedLyricsView = ({
   width,
   isDark = false,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { t } = useLanguage();
   const [prevTrackId, setPrevTrackId] = useState(currentTrack?.id);
   const [lyrics, setLyrics] = useState(null);
@@ -247,9 +251,10 @@ export const SyncedLyricsView = ({
         isSynced={Boolean(lyrics?.isSynced)}
         onPress={handleLinePress}
         isDark={isDark}
+        styles={styles}
       />
     ),
-    [activeIndex, lyrics?.isSynced, handleLinePress, isDark]
+    [activeIndex, lyrics?.isSynced, handleLinePress, isDark, styles]
   );
 
   const renderFooter = useCallback(() => {
@@ -263,7 +268,7 @@ export const SyncedLyricsView = ({
         </View>
       </View>
     );
-  }, [lyrics, t, isDark]);
+  }, [lyrics, t, isDark, styles]);
 
   return (
     <View style={[styles.container, { width, height, borderRadius: radius.xl }]} collapsable={false}>
@@ -306,7 +311,7 @@ export const SyncedLyricsView = ({
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   container: {
     backgroundColor: 'transparent',
     overflow: 'hidden',

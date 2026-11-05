@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { RefreshCw } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 
 export const Header = ({ title, subtitle, onRefresh, isRefreshing, style }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <View style={[styles.container, style]}>
       <View style={styles.titleWrapper}>
@@ -29,50 +33,51 @@ export const Header = ({ title, subtitle, onRefresh, isRefreshing, style }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
-  },
-  titleWrapper: {
-    flex: 1,
-  },
-  subtitle: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-    letterSpacing: typography.letterSpacing.wide,
-    marginBottom: spacing.xxs,
-  },
-  title: {
-    fontFamily: typography.fonts.headerBold,
-    fontSize: typography.sizes.display,
-    color: colors.headerTitle,
-    letterSpacing: typography.letterSpacing.tight,
-  },
-  refreshButton: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: colors.shadowColor,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-    marginBottom: 4,
-  },
-  spinning: {
-    opacity: 0.6,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.sm,
+    },
+    titleWrapper: {
+      flex: 1,
+    },
+    subtitle: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.xs,
+      color: colors.textMuted,
+      letterSpacing: typography.letterSpacing.wide,
+      marginBottom: spacing.xxs,
+    },
+    title: {
+      fontFamily: typography.fonts.headerBold,
+      fontSize: typography.sizes.display,
+      color: colors.headerTitle,
+      letterSpacing: typography.letterSpacing.tight,
+    },
+    refreshButton: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.full,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      justifyContent: 'center',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.04,
+      shadowRadius: 6,
+      elevation: 2,
+      marginBottom: 4,
+    },
+    spinning: {
+      opacity: 0.6,
+    },
+  });
 
 export default Header;

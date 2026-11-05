@@ -13,14 +13,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Search as SearchIcon } from 'lucide-react-native';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import Header from '../components/common/Header';
 import SearchBar from '../components/common/SearchBar';
 import SongItem from '../components/home/SongItem';
 
 export const SearchScreen = () => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   const {
@@ -140,7 +143,7 @@ export const SearchScreen = () => {
         </Text>
       </View>
     </View>
-  ), [query, tracks.length, displayedTracks.length, handleClear, t]);
+  ), [query, tracks.length, displayedTracks.length, handleClear, t, styles]);
 
   const renderItem = useCallback(({ item, index }) => (
     <View style={styles.songItemWrapper}>
@@ -160,7 +163,7 @@ export const SearchScreen = () => {
         onOpenPlaylistModal={handleOpenPlaylist}
       />
     </View>
-  ), [currentTrack?.id, isPlaying, favorites, displayedTracks, playTrack, toggleFavorite, handleOpenPlaylist, t]);
+  ), [currentTrack?.id, isPlaying, favorites, displayedTracks, playTrack, toggleFavorite, handleOpenPlaylist, t, styles]);
 
   const handleScroll = useCallback(
     (event) => {
@@ -215,13 +218,7 @@ export const SearchScreen = () => {
         pointerEvents={isTopBarVisible ? 'auto' : 'none'}
       >
         <LinearGradient
-          colors={[
-            colors.background,
-            colors.background,
-            'rgba(243, 243, 244, 0.95)',
-            'rgba(243, 243, 244, 0.65)',
-            'rgba(243, 243, 244, 0)',
-          ]}
+          colors={colors.gradientStickySearch}
           locations={[0, 0.42, 0.68, 0.86, 1]}
           style={StyleSheet.absoluteFillObject}
           pointerEvents="none"
@@ -269,11 +266,7 @@ export const SearchScreen = () => {
       />
 
       <LinearGradient
-        colors={[
-          colors.background,
-          'rgba(243, 243, 243, 0.85)',
-          'rgba(243, 243, 243, 0)',
-        ]}
+        colors={colors.gradientTop}
         locations={[0, 0.5, 1]}
         style={[styles.gradientTop, { height: topPadding + 16 }]}
         pointerEvents="none"
@@ -321,7 +314,7 @@ export const SearchScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   mainWrapper: {
     flex: 1,
     backgroundColor: colors.background,

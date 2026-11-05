@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,10 +21,11 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { X, Check, CheckCircle2, ListPlus } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { ALL_COVERS } from '../../constants/playlistCovers';
 import { usePlayer } from '../../context/PlayerContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 import AlbumArtwork from '../home/AlbumArtwork';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
@@ -40,6 +41,8 @@ const EditSongContent = ({
   insets,
   translateY,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { t } = useLanguage();
   const {
     updateTrackCover,
@@ -266,6 +269,8 @@ export const EditSongModal = ({
   onClose,
   useModal = false,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(SCREEN_HEIGHT * 0.9);
   const backdropOpacity = useSharedValue(0);
@@ -329,7 +334,7 @@ export const EditSongModal = ({
   return content;
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   overlayRoot: {
     position: 'absolute',
     top: 0,
@@ -462,8 +467,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.fonts.medium,
     fontSize: typography.sizes.sm,
     color: colors.textPrimary,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
   },
   gradientOptionCard: {
     flexDirection: 'row',
@@ -475,8 +479,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginTop: spacing.sm,
     marginBottom: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
   },
   gradientOptionTextWrap: {
     flex: 1,
@@ -529,8 +532,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.backgroundSecondary,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 0,
   },
   coverThumbImage: {
     width: '100%',

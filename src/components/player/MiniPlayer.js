@@ -1,16 +1,19 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { Play, Pause, SkipForward, Heart } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { usePlayer } from '../../context/PlayerContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 import AlbumArtwork from '../home/AlbumArtwork';
 
 export const MiniPlayer = ({ onOpenFullPlayer }) => {
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     currentTrack,
     isPlaying,
@@ -116,7 +119,7 @@ export const MiniPlayer = ({ onOpenFullPlayer }) => {
                 >
                   <Heart
                     size={18}
-                    color={isFav ? '#FFFFFF' : '#A5A6AF'}
+                    color={isFav ? '#FFFFFF' : colors.miniPlayerTextSecondary}
                     fill={isFav ? '#FFFFFF' : 'transparent'}
                   />
                 </TouchableOpacity>
@@ -154,72 +157,73 @@ export const MiniPlayer = ({ onOpenFullPlayer }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  outerContainer: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    elevation: 0,
-    shadowOpacity: 0,
-    zIndex: 99
-  },
-  container: {
-    backgroundColor: colors.miniPlayerBackground,
-    borderRadius: radius.lg,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderWidth: 0,
-    elevation: 4,
-    shadowRadius: 12,
-    shadowOpacity: 0.2,
-    shadowColor: 'rgba(0, 0, 0, 0.35)',
-  },
-  contentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  leftInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  textWrapper: {
-    marginLeft: spacing.sm,
-    flex: 1,
-  },
-  title: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.sm,
-    color: colors.miniPlayerTextPrimary,
-    letterSpacing: typography.letterSpacing.tight,
-  },
-  artist: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.miniPlayerTextSecondary,
-  },
-  controlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs + 2,
-  },
-  iconBtn: {
-    padding: 6,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.full,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    outerContainer: {
+      position: 'absolute',
+      left: 20,
+      right: 20,
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      elevation: 0,
+      shadowOpacity: 0,
+      zIndex: 99,
+    },
+    container: {
+      backgroundColor: colors.miniPlayerBackground,
+      borderRadius: radius.lg,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderWidth: 0,
+      elevation: 4,
+      shadowRadius: 12,
+      shadowOpacity: 0.2,
+      shadowColor: 'rgba(0, 0, 0, 0.35)',
+    },
+    contentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    leftInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: spacing.sm,
+    },
+    textWrapper: {
+      marginLeft: spacing.sm,
+      flex: 1,
+    },
+    title: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.sm,
+      color: colors.miniPlayerTextPrimary,
+      letterSpacing: typography.letterSpacing.tight,
+    },
+    artist: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.miniPlayerTextSecondary,
+    },
+    controlsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs + 2,
+    },
+    iconBtn: {
+      padding: 6,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    playBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: radius.full,
+      backgroundColor: '#FFFFFF',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+  });
 
 export default MiniPlayer;

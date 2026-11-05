@@ -38,14 +38,19 @@ import {
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing, radius, shadows } from '../../theme';
+import { typography, spacing, radius, shadows } from '../../theme';
 import { usePlayer, usePlayerProgress } from '../../context/PlayerContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 import { formatTime } from '../../services/musicService';
 import { fetchLyrics } from '../../services/lyricsService';
 import { fetchOnlineAlbumArt } from '../../services/albumArtService';
 import { useTrackColors } from '../../hooks/useTrackColors';
-import { STATIC_LIGHT_GRAY_GRADIENT, isColorDark } from '../../services/colorService';
+import {
+  STATIC_LIGHT_GRAY_GRADIENT,
+  STATIC_DARK_GRAY_GRADIENT,
+  isColorDark,
+} from '../../services/colorService';
 import AlbumArtwork from '../home/AlbumArtwork';
 import EditSongModal from './EditSongModal';
 import SyncedLyricsView from './SyncedLyricsView';
@@ -64,6 +69,8 @@ const EASE_IN = Easing.bezier(0.7, 0, 0.84, 0);
 const START_TRANSLATE_Y = 180;
 
 export const FullPlayerModal = ({ visible, onClose }) => {
+  const { colors, isDark: isThemeDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const drawerHeight = useMemo(() => Math.max(500, SCREEN_HEIGHT - insets.top - 78), [insets.top]);
   const { t } = useLanguage();
@@ -85,7 +92,7 @@ export const FullPlayerModal = ({ visible, onClose }) => {
     playTrack,
   } = usePlayer();
   const { position, duration, seekTo } = usePlayerProgress();
-  const trackColors = useTrackColors(currentTrack, '#F3F3F4');
+  const trackColors = useTrackColors(currentTrack, colors.background);
 
   const [isEditSongModalVisible, setIsEditSongModalVisible] = useState(false);
   const [isQueueModalVisible, setIsQueueModalVisible] = useState(false);
@@ -461,9 +468,9 @@ export const FullPlayerModal = ({ visible, onClose }) => {
   const isExtracted = trackColors?.isExtracted === true;
   const gradientColors = isExtracted
     ? trackColors?.gradientColors
-    : STATIC_LIGHT_GRAY_GRADIENT;
+    : (isThemeDark ? STATIC_DARK_GRAY_GRADIENT : STATIC_LIGHT_GRAY_GRADIENT);
   const isDark = Boolean(
-    showGradient && (trackColors?.isDark ?? (isExtracted && isColorDark(trackColors?.primary)))
+    isThemeDark || (showGradient && (trackColors?.isDark ?? (isExtracted && isColorDark(trackColors?.primary))))
   );
 
   const drawerGradientColors = useMemo(() => {
@@ -543,7 +550,7 @@ export const FullPlayerModal = ({ visible, onClose }) => {
         </TouchableOpacity>
       );
     },
-    [currentTrackId, isDark, t, handlePlayDrawerSong]
+    [currentTrackId, isDark, t, handlePlayDrawerSong, colors, styles]
   );
 
   if (!currentTrack) return null;
@@ -565,7 +572,13 @@ export const FullPlayerModal = ({ visible, onClose }) => {
         pointerEvents="none"
       />
 
-      <Animated.View style={[styles.sheet, { backgroundColor: isDark ? '#121316' : '#F3F3F4' }, sheetStyle]}>
+      <Animated.View
+        style={[
+          styles.sheet,
+          { backgroundColor: isThemeDark ? colors.background : isDark ? '#050506' : '#F3F3F4' },
+          sheetStyle,
+        ]}
+      >
         {showGradient && gradientColors && (
           <LinearGradient
             colors={gradientColors}
@@ -1077,7 +1090,7 @@ export const FullPlayerModal = ({ visible, onClose }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   overlay: {
     backgroundColor: 'rgba(0, 0, 0, 0.65)',
   },
@@ -1376,11 +1389,11 @@ const styles = StyleSheet.create({
   },
   closeBtnDark: {
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 0,
   },
   headerIconBtnDark: {
     backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 0,
   },
   headerTitleDark: {
     color: '#FFFFFF',
@@ -1408,7 +1421,7 @@ const styles = StyleSheet.create({
   },
   actionBtnDark: {
     backgroundColor: 'rgba(255, 255, 255, 0.14)',
-    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderWidth: 0,
   },
   timeTextDark: {
     color: 'rgba(255, 255, 255, 0.65)',

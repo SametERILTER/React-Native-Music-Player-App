@@ -93,6 +93,14 @@ export const STATIC_LIGHT_GRAY_GRADIENT = [
   '#F3F3F4',
 ];
 
+export const STATIC_DARK_GRAY_GRADIENT = [
+  'rgba(44, 44, 44, 0.50)',
+  'rgba(28, 28, 28, 0.32)',
+  'rgba(14, 14, 14, 0.16)',
+  '#050505',
+  '#050505',
+];
+
 export const getColorLuminance = (colorStr) => {
   if (!colorStr || typeof colorStr !== 'string') return 255;
   let r = 255;
@@ -133,13 +141,14 @@ export const isPaletteDark = (primaryHex, secondaryHex) => {
 export const getFallbackTrackColors = (track, bg = '#F3F3F4') => {
   const primary = DEFAULT_NEUTRAL_HEX;
   const secondary = DEFAULT_NEUTRAL_SECONDARY_HEX;
+  const bgDark = isColorDark(bg);
 
   return {
     primary,
     secondary,
-    gradientColors: STATIC_LIGHT_GRAY_GRADIENT,
+    gradientColors: bgDark ? STATIC_DARK_GRAY_GRADIENT : STATIC_LIGHT_GRAY_GRADIENT,
     isExtracted: false,
-    isDark: false,
+    isDark: bgDark,
   };
 };
 
@@ -148,7 +157,8 @@ export const getSynchronousTrackColors = (track, bg = '#F3F3F4') => {
 
   const uris = getCandidateImageUris(track);
   const primaryUri = uris[0] || null;
-  const cacheKey = getCacheKey(track, primaryUri);
+  const bgDark = isColorDark(bg);
+  const cacheKey = `${getCacheKey(track, primaryUri)}_${bgDark ? 'd' : 'l'}`;
 
   if (memoryCache.has(cacheKey)) {
     return memoryCache.get(cacheKey);
@@ -227,8 +237,9 @@ export const resolveTrackColors = async (track, bg = '#F3F3F4') => {
   if (!track) return getFallbackTrackColors(null, bg);
 
   const uris = getCandidateImageUris(track);
-
-  const cacheKey = getCacheKey(track, uris[0] || null);
+  const bgDark = isColorDark(bg);
+  const baseCacheKey = getCacheKey(track, uris[0] || null);
+  const cacheKey = `${baseCacheKey}_${bgDark ? 'd' : 'l'}`;
 
   if (memoryCache.has(cacheKey)) {
     const cached = memoryCache.get(cacheKey);
@@ -238,7 +249,7 @@ export const resolveTrackColors = async (track, bg = '#F3F3F4') => {
     memoryCache.delete(cacheKey);
   }
 
-  const storageKey = `@track_palette_v10_${cacheKey}`;
+  const storageKey = `@track_palette_v12_${cacheKey}`;
   try {
     const stored = await safeStorage.getItem(storageKey);
     if (stored) {
@@ -256,10 +267,10 @@ export const resolveTrackColors = async (track, bg = '#F3F3F4') => {
   } catch (_) {}
 
   for (const uri of uris) {
-    const extracted = await tryExtractColorsFromUri(uri, `${cacheKey}_${uri}`);
+    const extracted = await tryExtractColorsFromUri(uri, `${baseCacheKey}_${uri}`);
     if (extracted && extracted.primary) {
-      const isDark = isPaletteDark(extracted.primary, extracted.secondary);
-      const bottomBg = isDark ? '#121316' : bg;
+      const isDark = bgDark || isPaletteDark(extracted.primary, extracted.secondary);
+      const bottomBg = bgDark ? bg : isDark ? '#121316' : bg;
       const gradientColors = createTwoToneGradientColors(
         extracted.primary,
         extracted.secondary,
@@ -283,8 +294,8 @@ export const resolveTrackColors = async (track, bg = '#F3F3F4') => {
   if (track?.coverId && COVER_COLORS[track.coverId]) {
     const presetPrimary = COVER_COLORS[track.coverId];
     const presetSecondary = COVER_SECONDARY_COLORS[track.coverId] || presetPrimary;
-    const isDark = isPaletteDark(presetPrimary, presetSecondary);
-    const bottomBg = isDark ? '#121316' : bg;
+    const isDark = bgDark || isPaletteDark(presetPrimary, presetSecondary);
+    const bottomBg = bgDark ? bg : isDark ? '#121316' : bg;
     const gradientColors = createTwoToneGradientColors(
       presetPrimary,
       presetSecondary,

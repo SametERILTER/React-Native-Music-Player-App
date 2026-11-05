@@ -6,7 +6,7 @@ import {
 
 export const useTrackColors = (track, defaultBg = '#F3F3F4') => {
   const [extractedData, setExtractedData] = useState(null);
-  const trackKey = track ? `${track.id || ''}_${track.coverId || ''}_${track.coverArt || ''}` : null;
+  const trackKey = track ? `${track.id || ''}_${track.coverId || ''}_${track.coverArt || ''}_${defaultBg}` : null;
 
   useEffect(() => {
     let isCancelled = false;

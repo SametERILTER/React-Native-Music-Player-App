@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -36,9 +36,10 @@ import {
   HardDrive,
   FileText,
 } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { usePlayer } from '../../context/PlayerContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 import { formatTime } from '../../services/musicService';
 import AlbumArtwork from '../home/AlbumArtwork';
 
@@ -51,6 +52,8 @@ const EASE_IN = Easing.bezier(0.7, 0, 0.84, 0);
 
 export const SongOptionsModal = ({ visible, track, onClose }) => {
   const { t } = useLanguage();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const {
     playlists,
@@ -241,7 +244,7 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                   activeOpacity={0.65}
                 >
                   <View style={[styles.optionIconContainer, styles.deleteIconContainer]}>
-                    <Trash2 size={20} color={colors.error || '#D9534F'} />
+                    <Trash2 size={20} color={colors.error} />
                   </View>
                   <View style={styles.optionContent}>
                     <Text style={[styles.optionTitle, styles.deleteOptionTitle]}>
@@ -342,7 +345,7 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                             >
                               <ListMusic
                                 size={18}
-                                color={isInPlaylist ? colors.primaryText || '#FFFFFF' : colors.textPrimary}
+                                color={isInPlaylist ? colors.primaryContrast : colors.textPrimary}
                               />
                             </View>
                             <View style={styles.playlistTexts}>
@@ -364,7 +367,7 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
                             {isInPlaylist && (
                               <Check
                                 size={14}
-                                color={colors.primaryText || '#FFFFFF'}
+                                color={colors.primaryContrast}
                                 strokeWidth={3}
                               />
                             )}
@@ -456,360 +459,356 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  overlayRoot: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    justifyContent: 'flex-end',
-  },
-  keyboardWrap: {
-    width: '100%',
-  },
-  sheetContainer: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    minHeight: Math.round(SCREEN_HEIGHT * 0.52),
-    maxHeight: Math.round(SCREEN_HEIGHT * 0.88),
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 16,
-      },
-      android: {
-        elevation: 20,
-      },
-    }),
-  },
-  handleBar: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(0, 0, 0, 0.15)',
-    alignSelf: 'center',
-    marginBottom: spacing.md,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-  },
-  trackInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  trackTexts: {
-    marginLeft: spacing.sm,
-    flex: 1,
-  },
-  trackTitle: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.md,
-    color: colors.textPrimary,
-    letterSpacing: -0.3,
-  },
-  trackArtist: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  backText: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-    marginLeft: 2,
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  optionsList: {
-    paddingTop: spacing.md,
-    paddingBottom: spacing.lg,
-  },
-  optionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.04)',
-  },
-  deleteOptionItem: {
-    borderBottomWidth: 0,
-    marginTop: 2,
-  },
-  optionIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.md,
-  },
-  deleteIconContainer: {
-    backgroundColor: 'rgba(217, 83, 79, 0.08)',
-  },
-  optionContent: {
-    flex: 1,
-  },
-  optionTitle: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.md,
-    color: colors.textPrimary,
-    letterSpacing: -0.2,
-  },
-  deleteOptionTitle: {
-    fontFamily: typography.fonts.semiBold,
-    color: colors.error || '#D9534F',
-  },
-  optionDesc: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
-    marginTop: 3,
-  },
-  subViewContainer: {
-    paddingTop: spacing.md,
-    flex: 1,
-  },
-  subViewHeader: {
-    marginBottom: spacing.md,
-  },
-  subViewTitle: {
-    fontFamily: typography.fonts.bold,
-    fontSize: typography.sizes.base,
-    color: colors.textPrimary,
-    letterSpacing: -0.3,
-  },
-  subViewSubtitle: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
-    marginTop: 3,
-  },
-  createBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.04)',
-    borderRadius: radius.md,
-    paddingVertical: spacing.sm + 4,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderStyle: 'dashed',
-    marginBottom: spacing.md,
-  },
-  createBtnText: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-    marginLeft: spacing.xs,
-  },
-  createInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  createInput: {
-    flex: 1,
-    height: 44,
-    backgroundColor: 'rgba(0,0,0,0.03)',
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  createConfirmBtn: {
-    backgroundColor: colors.textPrimary,
-    paddingHorizontal: spacing.md,
-    height: 44,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: spacing.xs,
-  },
-  createConfirmBtnDisabled: {
-    opacity: 0.4,
-  },
-  createConfirmText: {
-    fontFamily: typography.fonts.semiBold,
-    color: '#FFFFFF',
-    fontSize: typography.sizes.sm,
-  },
-  createCancelBtn: {
-    width: 36,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 4,
-  },
-  playlistsScroll: {
-    maxHeight: Math.round(SCREEN_HEIGHT * 0.44),
-  },
-  playlistRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: spacing.sm,
-    borderRadius: radius.md,
-    marginBottom: 6,
-    backgroundColor: 'transparent',
-  },
-  playlistRowActive: {
-    backgroundColor: 'rgba(0,0,0,0.035)',
-  },
-  playlistRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  playlistIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.sm,
-    backgroundColor: 'rgba(0,0,0,0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm,
-  },
-  playlistIconBoxActive: {
-    backgroundColor: colors.textPrimary,
-  },
-  playlistTexts: {
-    flex: 1,
-  },
-  playlistName: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-  },
-  playlistCount: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: colors.borderLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxActive: {
-    backgroundColor: colors.textPrimary,
-    borderColor: colors.textPrimary,
-  },
-  emptyWrap: {
-    alignItems: 'center',
-    paddingVertical: spacing.xxl,
-  },
-  emptyText: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    marginTop: spacing.sm,
-  },
-  emptySubtext: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textTertiary,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  pathCard: {
-    backgroundColor: 'rgba(0, 0, 0, 0.025)',
-    borderRadius: radius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    marginBottom: spacing.md,
-  },
-  pathCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  pathCardLabel: {
-    fontFamily: typography.fonts.bold,
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginLeft: 6,
-    letterSpacing: 0.5,
-  },
-  pathValue: {
-    fontFamily: typography.fonts.regular,
-    fontSize: 13,
-    color: colors.textPrimary,
-    lineHeight: 19,
-    backgroundColor: '#FFFFFF',
-    padding: spacing.md,
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.06)',
-  },
-  detailsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: radius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    marginBottom: spacing.md,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  detailLabelWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  detailLabel: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.sm,
-    color: colors.textSecondary,
-    marginLeft: 8,
-  },
-  detailValue: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-  },
-  detailDivider: {
-    height: 1,
-    backgroundColor: 'rgba(0,0,0,0.04)',
-    marginVertical: 4,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    overlayRoot: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.65)',
+      justifyContent: 'flex-end',
+    },
+    keyboardWrap: {
+      width: '100%',
+    },
+    sheetContainer: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+      minHeight: Math.round(SCREEN_HEIGHT * 0.52),
+      maxHeight: Math.round(SCREEN_HEIGHT * 0.88),
+      borderWidth: 0,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000000',
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.12,
+          shadowRadius: 16,
+        },
+        android: {
+          elevation: 20,
+        },
+      }),
+    },
+    handleBar: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.borderMuted,
+      alignSelf: 'center',
+      marginBottom: spacing.md,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    trackInfoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: spacing.sm,
+    },
+    trackTexts: {
+      marginLeft: spacing.sm,
+      flex: 1,
+    },
+    trackTitle: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.md,
+      color: colors.textPrimary,
+      letterSpacing: -0.3,
+    },
+    trackArtist: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    backBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 4,
+    },
+    backText: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+      marginLeft: 2,
+    },
+    closeBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.backgroundSecondary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    optionsList: {
+      paddingTop: spacing.md,
+      paddingBottom: spacing.lg,
+    },
+    optionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 18,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderLight,
+    },
+    deleteOptionItem: {
+      borderBottomWidth: 0,
+      marginTop: 2,
+    },
+    optionIconContainer: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      backgroundColor: colors.backgroundSecondary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.md,
+    },
+    deleteIconContainer: {
+      backgroundColor: colors.errorBg,
+    },
+    optionContent: {
+      flex: 1,
+    },
+    optionTitle: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.md,
+      color: colors.textPrimary,
+      letterSpacing: -0.2,
+    },
+    deleteOptionTitle: {
+      fontFamily: typography.fonts.semiBold,
+      color: colors.error,
+    },
+    optionDesc: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textSecondary,
+      marginTop: 3,
+    },
+    subViewContainer: {
+      paddingTop: spacing.md,
+      flex: 1,
+    },
+    subViewHeader: {
+      marginBottom: spacing.md,
+    },
+    subViewTitle: {
+      fontFamily: typography.fonts.bold,
+      fontSize: typography.sizes.base,
+      color: colors.textPrimary,
+      letterSpacing: -0.3,
+    },
+    subViewSubtitle: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textSecondary,
+      marginTop: 3,
+    },
+    createBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.backgroundSecondary,
+      borderRadius: radius.md,
+      paddingVertical: spacing.sm + 4,
+      borderWidth: 0,
+      marginBottom: spacing.md,
+    },
+    createBtnText: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+      marginLeft: spacing.xs,
+    },
+    createInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+    },
+    createInput: {
+      flex: 1,
+      height: 44,
+      backgroundColor: colors.backgroundSecondary,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+      borderWidth: 0,
+    },
+    createConfirmBtn: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: spacing.md,
+      height: 44,
+      borderRadius: radius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: spacing.xs,
+    },
+    createConfirmBtnDisabled: {
+      opacity: 0.4,
+    },
+    createConfirmText: {
+      fontFamily: typography.fonts.semiBold,
+      color: colors.primaryContrast,
+      fontSize: typography.sizes.sm,
+    },
+    createCancelBtn: {
+      width: 36,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: 4,
+    },
+    playlistsScroll: {
+      maxHeight: Math.round(SCREEN_HEIGHT * 0.44),
+    },
+    playlistRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      paddingHorizontal: spacing.sm,
+      borderRadius: radius.md,
+      marginBottom: 6,
+      backgroundColor: 'transparent',
+    },
+    playlistRowActive: {
+      backgroundColor: colors.surfaceHighlight,
+    },
+    playlistRowLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    playlistIconBox: {
+      width: 38,
+      height: 38,
+      borderRadius: radius.sm,
+      backgroundColor: colors.backgroundSecondary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing.sm,
+    },
+    playlistIconBoxActive: {
+      backgroundColor: colors.primary,
+    },
+    playlistTexts: {
+      flex: 1,
+    },
+    playlistName: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+    },
+    playlistCount: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textSecondary,
+      marginTop: 2,
+    },
+    checkbox: {
+      width: 22,
+      height: 22,
+      borderRadius: 6,
+      borderWidth: 1.5,
+      borderColor: colors.borderMuted,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkboxActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    emptyWrap: {
+      alignItems: 'center',
+      paddingVertical: spacing.xxl,
+    },
+    emptyText: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.sm,
+      color: colors.textSecondary,
+      marginTop: spacing.sm,
+    },
+    emptySubtext: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textTertiary,
+      marginTop: 4,
+      textAlign: 'center',
+    },
+    pathCard: {
+      backgroundColor: colors.backgroundSecondary,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      borderWidth: 0,
+      marginBottom: spacing.md,
+    },
+    pathCardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    pathCardLabel: {
+      fontFamily: typography.fonts.bold,
+      fontSize: 11,
+      color: colors.textSecondary,
+      marginLeft: 6,
+      letterSpacing: 0.5,
+    },
+    pathValue: {
+      fontFamily: typography.fonts.regular,
+      fontSize: 13,
+      color: colors.textPrimary,
+      lineHeight: 19,
+      backgroundColor: colors.card,
+      padding: spacing.md,
+      borderRadius: radius.sm,
+      borderWidth: 0,
+    },
+    detailsCard: {
+      backgroundColor: colors.cardSubtle,
+      borderRadius: radius.md,
+      padding: spacing.md,
+      borderWidth: 0,
+      marginBottom: spacing.md,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 8,
+    },
+    detailLabelWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    detailLabel: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.sm,
+      color: colors.textSecondary,
+      marginLeft: 8,
+    },
+    detailValue: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+      maxWidth: '55%',
+      textAlign: 'right',
+    },
+    detailDivider: {
+      height: 1,
+      backgroundColor: colors.borderLight,
+      marginVertical: 2,
+    },
+  });
 
 export default SongOptionsModal;

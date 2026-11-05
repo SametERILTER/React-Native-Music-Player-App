@@ -27,9 +27,10 @@ import {
   Volume2,
   Trash2,
 } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { usePlayer } from '../../context/PlayerContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 import { formatTime } from '../../services/musicService';
 import AlbumArtwork from '../home/AlbumArtwork';
 
@@ -41,6 +42,8 @@ const EASE_OUT = Easing.bezier(0.16, 1, 0.3, 1);
 const EASE_IN = Easing.bezier(0.7, 0, 0.84, 0);
 
 const QueueContent = ({ onClose, insets, translateY }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { t } = useLanguage();
   const {
     currentTrack,
@@ -143,7 +146,7 @@ const QueueContent = ({ onClose, insets, translateY }) => {
         </TouchableOpacity>
       </View>
     ),
-    [handlePlayFromQueue, removeFromQueue, t]
+    [handlePlayFromQueue, removeFromQueue, t, colors, styles]
   );
 
   return (
@@ -373,6 +376,8 @@ export const QueueModal = ({
   onClose,
   useModal = false,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(SCREEN_HEIGHT * 0.9);
   const backdropOpacity = useSharedValue(0);
@@ -436,7 +441,7 @@ export const QueueModal = ({
   return content;
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   overlayRoot: {
     position: 'absolute',
     top: 0,
@@ -501,7 +506,7 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     marginLeft: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.06)',
+    backgroundColor: colors.surfaceSubtle,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: radius.full,
@@ -515,7 +520,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: radius.full,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: colors.surfaceSubtle,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -528,7 +533,7 @@ const styles = StyleSheet.create({
   quickChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: colors.surfaceSubtle,
     paddingHorizontal: 11,
     paddingVertical: 6,
     borderRadius: radius.full,
@@ -586,7 +591,7 @@ const styles = StyleSheet.create({
   liveIndicator: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: colors.surfaceSubtle,
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: radius.full,
@@ -694,7 +699,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: radius.full,
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    backgroundColor: colors.surfaceHighlight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,

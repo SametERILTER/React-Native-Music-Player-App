@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Search, X } from 'lucide-react-native';
-import { colors, typography, spacing, radius, shadows } from '../../theme';
+import { typography, spacing, radius, shadows } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export const SearchBar = React.forwardRef(({ value, onChangeText, onClear, placeholder, style }, ref) => {
   const { t } = useLanguage();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const activePlaceholder = placeholder || t('search.placeholder');
 
   return (
@@ -36,33 +39,33 @@ export const SearchBar = React.forwardRef(({ value, onChangeText, onClear, place
 
 SearchBar.displayName = 'SearchBar';
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    height: 46,
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.xs,
-    ...shadows.subtle,
-  },
-  searchIcon: {
-    marginRight: spacing.xs,
-  },
-  input: {
-    flex: 1,
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-    paddingVertical: 0,
-  },
-  clearBtn: {
-    padding: 4,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: radius.full,
+      borderWidth: 0,
+      paddingHorizontal: spacing.md,
+      height: 46,
+      marginHorizontal: spacing.lg,
+      marginVertical: spacing.xs,
+      ...shadows.subtle,
+    },
+    searchIcon: {
+      marginRight: spacing.xs,
+    },
+    input: {
+      flex: 1,
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+      paddingVertical: 0,
+    },
+    clearBtn: {
+      padding: 4,
+    },
+  });
 
 export default SearchBar;

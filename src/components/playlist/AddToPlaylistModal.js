@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,9 +22,10 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { Plus, Check, ListMusic, X } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { usePlayer } from '../../context/PlayerContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 import { getPlaylistCoverSource } from '../../constants/playlistCovers';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
@@ -37,6 +38,8 @@ const EASE_IN = Easing.bezier(0.7, 0, 0.84, 0);
 export const AddToPlaylistModal = ({ visible, track, onClose }) => {
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { playlists, createPlaylist, toggleTrackInPlaylist } = usePlayer();
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -268,239 +271,241 @@ export const AddToPlaylistModal = ({ visible, track, onClose }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  overlayRoot: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    justifyContent: 'flex-end',
-  },
-  keyboardWrap: {
-    justifyContent: 'flex-end',
-  },
-  sheetContainer: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    maxHeight: SCREEN_HEIGHT * 0.78,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 20,
-  },
-  handleBar: {
-    width: 38,
-    height: 4,
-    borderRadius: radius.full,
-    backgroundColor: colors.borderMuted,
-    alignSelf: 'center',
-    marginBottom: spacing.md,
-    opacity: 0.7,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingBottom: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderLight,
-  },
-  headerTextWrap: {
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  headerSubtitle: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: 10,
-    color: colors.textMuted,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  trackTitle: {
-    fontFamily: typography.fonts.bold,
-    fontSize: typography.sizes.base,
-    color: colors.textPrimary,
-    marginTop: 2,
-  },
-  trackArtist: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
-    marginTop: 1,
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.full,
-    backgroundColor: colors.backgroundSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  newPlaylistBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
-  },
-  newPlaylistIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.full,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  newPlaylistBtnText: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-  },
-  createInputContainer: {
-    paddingVertical: spacing.sm,
-    gap: spacing.xs,
-  },
-  input: {
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: radius.md,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-  },
-  createActionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: spacing.xxs,
-  },
-  cancelBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-  },
-  cancelBtnText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-  },
-  addBtn: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: radius.full,
-  },
-  addBtnDisabled: {
-    opacity: 0.4,
-  },
-  addBtnText: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.xs,
-    color: colors.primaryContrast,
-  },
-  playlistsScroll: {
-    marginTop: spacing.xs,
-  },
-  playlistsContent: {
-    paddingBottom: spacing.sm,
-  },
-  playlistItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 9,
-    paddingHorizontal: 8,
-    borderRadius: radius.md,
-    marginBottom: 4,
-  },
-  playlistItemAdded: {
-    backgroundColor: 'rgba(0, 0, 0, 0.035)',
-  },
-  playlistLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    flex: 1,
-  },
-  playlistIconWrap: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.md,
-    backgroundColor: colors.backgroundSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  playlistIconWrapCover: {
-    backgroundColor: 'transparent',
-  },
-  playlistThumbImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: radius.md,
-  },
-  playlistIconWrapActive: {
-    backgroundColor: colors.primary,
-  },
-  playlistTextWrap: {
-    flex: 1,
-    paddingRight: spacing.xs,
-  },
-  playlistName: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-  },
-  playlistCount: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  checkCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: radius.full,
-    borderWidth: 1.5,
-    borderColor: colors.borderMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkCircleActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  emptyWrap: {
-    paddingVertical: spacing.xl,
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  emptyIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.full,
-    backgroundColor: colors.backgroundSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  emptyTitle: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-  },
-  emptyText: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-    textAlign: 'center',
-    paddingHorizontal: spacing.xl,
-    lineHeight: 18,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    overlayRoot: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.65)',
+      justifyContent: 'flex-end',
+    },
+    keyboardWrap: {
+      justifyContent: 'flex-end',
+    },
+    sheetContainer: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 26,
+      borderTopRightRadius: 26,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+      maxHeight: SCREEN_HEIGHT * 0.78,
+      borderWidth: 0,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 16,
+      elevation: 20,
+    },
+    handleBar: {
+      width: 38,
+      height: 4,
+      borderRadius: radius.full,
+      backgroundColor: colors.borderMuted,
+      alignSelf: 'center',
+      marginBottom: spacing.md,
+      opacity: 0.7,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      paddingBottom: spacing.sm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.borderLight,
+    },
+    headerTextWrap: {
+      flex: 1,
+      marginRight: spacing.md,
+    },
+    headerSubtitle: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: 10,
+      color: colors.textMuted,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
+    trackTitle: {
+      fontFamily: typography.fonts.bold,
+      fontSize: typography.sizes.base,
+      color: colors.textPrimary,
+      marginTop: 2,
+    },
+    trackArtist: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textSecondary,
+      marginTop: 1,
+    },
+    closeBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: radius.full,
+      backgroundColor: colors.backgroundSecondary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 2,
+    },
+    newPlaylistBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: spacing.md,
+      gap: spacing.sm,
+    },
+    newPlaylistIconBox: {
+      width: 38,
+      height: 38,
+      borderRadius: radius.full,
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    newPlaylistBtnText: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+    },
+    createInputContainer: {
+      paddingVertical: spacing.sm,
+      gap: spacing.xs,
+    },
+    input: {
+      backgroundColor: colors.backgroundSecondary,
+      borderRadius: radius.md,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+    },
+    createActionsRow: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+      gap: spacing.xs,
+      marginTop: spacing.xxs,
+    },
+    cancelBtn: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: radius.full,
+    },
+    cancelBtnText: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.xs,
+      color: colors.textMuted,
+    },
+    addBtn: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: radius.full,
+    },
+    addBtnDisabled: {
+      opacity: 0.4,
+    },
+    addBtnText: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.xs,
+      color: colors.primaryContrast,
+    },
+    playlistsScroll: {
+      marginTop: spacing.xs,
+    },
+    playlistsContent: {
+      paddingBottom: spacing.sm,
+    },
+    playlistItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 9,
+      paddingHorizontal: 8,
+      borderRadius: radius.md,
+      marginBottom: 4,
+    },
+    playlistItemAdded: {
+      backgroundColor: colors.surfaceHighlight,
+    },
+    playlistLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      flex: 1,
+    },
+    playlistIconWrap: {
+      width: 38,
+      height: 38,
+      borderRadius: radius.md,
+      backgroundColor: colors.backgroundSecondary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    playlistIconWrapCover: {
+      backgroundColor: 'transparent',
+    },
+    playlistThumbImage: {
+      width: '100%',
+      height: '100%',
+      borderRadius: radius.md,
+    },
+    playlistIconWrapActive: {
+      backgroundColor: colors.primary,
+    },
+    playlistTextWrap: {
+      flex: 1,
+      paddingRight: spacing.xs,
+    },
+    playlistName: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+    },
+    playlistCount: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+    checkCircle: {
+      width: 22,
+      height: 22,
+      borderRadius: radius.full,
+      borderWidth: 1.5,
+      borderColor: colors.borderMuted,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    checkCircleActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    emptyWrap: {
+      paddingVertical: spacing.xl,
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    emptyIconBox: {
+      width: 48,
+      height: 48,
+      borderRadius: radius.full,
+      backgroundColor: colors.backgroundSecondary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    emptyTitle: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+    },
+    emptyText: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textMuted,
+      textAlign: 'center',
+      paddingHorizontal: spacing.xl,
+      lineHeight: 18,
+    },
+  });
 
 export default AddToPlaylistModal;

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Heart, MoreVertical } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { formatTime } from '../../services/musicService';
 import AlbumArtwork from './AlbumArtwork';
 
@@ -15,6 +16,9 @@ export const SongItem = React.memo(({
   onToggleFavorite,
   onOpenPlaylistModal,
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TouchableOpacity
       style={[
@@ -92,101 +96,102 @@ export const SongItem = React.memo(({
   );
 });
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: spacing.xs,
-    borderWidth: 0,
-    borderBottomWidth: 0,
-  },
-  activeContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.04)',
-    borderRadius: radius.md,
-  },
-  leftSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  artworkContainer: {
-    position: 'relative',
-  },
-  playingOverlay: {
-    position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: colors.primary,
-    borderWidth: 2,
-    borderColor: colors.card,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playingDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.primaryContrast,
-  },
-  trackInfo: {
-    marginLeft: spacing.md - 2,
-    flex: 1,
-  },
-  title: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.md,
-    color: colors.textPrimary,
-    letterSpacing: typography.letterSpacing.tight,
-  },
-  activeText: {
-    fontFamily: typography.fonts.semiBold,
-    color: colors.primary,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-    gap: 6,
-  },
-  localBadge: {
-    backgroundColor: colors.backgroundSecondary,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: radius.xs,
-  },
-  localBadgeText: {
-    fontFamily: typography.fonts.bold,
-    fontSize: 8,
-    color: colors.textMuted,
-    letterSpacing: 0.5,
-  },
-  artist: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-    flex: 1,
-  },
-  rightSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs + 2,
-  },
-  duration: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textTertiary,
-    marginRight: 2,
-  },
-  actionBtn: {
-    padding: 4,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 8,
+      paddingHorizontal: spacing.xs,
+      borderWidth: 0,
+      borderBottomWidth: 0,
+    },
+    activeContainer: {
+      backgroundColor: colors.surfaceHighlight,
+      borderRadius: radius.md,
+    },
+    leftSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+      marginRight: spacing.sm,
+    },
+    artworkContainer: {
+      position: 'relative',
+    },
+    playingOverlay: {
+      position: 'absolute',
+      bottom: -2,
+      right: -2,
+      width: 14,
+      height: 14,
+      borderRadius: 7,
+      backgroundColor: colors.primary,
+      borderWidth: 2,
+      borderColor: colors.card,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    playingDot: {
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.primaryContrast,
+    },
+    trackInfo: {
+      marginLeft: spacing.md - 2,
+      flex: 1,
+    },
+    title: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+      letterSpacing: typography.letterSpacing.tight,
+    },
+    activeText: {
+      fontFamily: typography.fonts.semiBold,
+      color: colors.primary,
+    },
+    metaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 2,
+      gap: 6,
+    },
+    localBadge: {
+      backgroundColor: colors.backgroundSecondary,
+      paddingHorizontal: 4,
+      paddingVertical: 1,
+      borderRadius: radius.xs,
+    },
+    localBadgeText: {
+      fontFamily: typography.fonts.bold,
+      fontSize: 8,
+      color: colors.textMuted,
+      letterSpacing: 0.5,
+    },
+    artist: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textMuted,
+      flex: 1,
+    },
+    rightSection: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs + 2,
+    },
+    duration: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textTertiary,
+      marginRight: 2,
+    },
+    actionBtn: {
+      padding: 4,
+    },
+  });
 
 SongItem.displayName = 'SongItem';
 

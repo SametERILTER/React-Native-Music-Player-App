@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,9 +19,10 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { Plus, Trash2, X, Pencil, ListMusic } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { getPlaylistCoverSource } from '../../constants/playlistCovers';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('screen');
 
@@ -40,6 +41,8 @@ export const PlaylistOptionsModal = ({
   onToggleGradient,
 }) => {
   const { t } = useLanguage();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const translateY = useSharedValue(SCREEN_HEIGHT * 0.5);
 
@@ -173,7 +176,7 @@ export const PlaylistOptionsModal = ({
                 value={Boolean(playlist?.isGradientEnabled)}
                 onValueChange={() => onToggleGradient?.(playlist)}
                 trackColor={{ false: colors.borderLight, true: colors.primary }}
-                thumbColor={colors.card}
+                thumbColor={colors.primaryContrast}
                 ios_backgroundColor={colors.borderLight}
               />
             </TouchableOpacity>
@@ -197,7 +200,7 @@ export const PlaylistOptionsModal = ({
               activeOpacity={0.7}
               onPress={handleDeletePress}
             >
-              <View style={[styles.optionIconBox, { backgroundColor: 'rgba(186, 26, 26, 0.09)' }]}>
+              <View style={[styles.optionIconBox, { backgroundColor: colors.errorBg }]}>
                 <Trash2 size={19} color={colors.error} strokeWidth={2} />
               </View>
               <View style={styles.optionTextWrap}>
@@ -212,126 +215,127 @@ export const PlaylistOptionsModal = ({
   );
 };
 
-const styles = StyleSheet.create({
-  overlayRoot: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-    justifyContent: 'flex-end',
-  },
-  sheetContainer: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.sm,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 20,
-  },
-  handleBar: {
-    width: 38,
-    height: 4,
-    borderRadius: radius.full,
-    backgroundColor: colors.borderMuted,
-    alignSelf: 'center',
-    marginBottom: spacing.md,
-    opacity: 0.7,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingBottom: spacing.sm,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderLight,
-  },
-  headerCoverWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.md,
-    overflow: 'hidden',
-    marginRight: spacing.md,
-    backgroundColor: colors.backgroundSecondary,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-  },
-  headerCoverImage: {
-    width: '100%',
-    height: '100%',
-  },
-  headerCoverFallback: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.backgroundSecondary,
-  },
-  headerTextWrap: {
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  headerSubtitle: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: 10,
-    color: colors.textMuted,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  playlistTitle: {
-    fontFamily: typography.fonts.bold,
-    fontSize: typography.sizes.base,
-    color: colors.textPrimary,
-    marginTop: 2,
-  },
-  playlistCount: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
-    marginTop: 1,
-  },
-  closeBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.full,
-    backgroundColor: colors.backgroundSecondary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  optionsList: {
-    paddingVertical: spacing.sm,
-    gap: spacing.xs,
-  },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: radius.md,
-    gap: spacing.md,
-  },
-  optionIconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  optionTextWrap: {
-    flex: 1,
-  },
-  optionTitle: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-  },
-  optionDesc: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    overlayRoot: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.65)',
+      justifyContent: 'flex-end',
+    },
+    sheetContainer: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 26,
+      borderTopRightRadius: 26,
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.sm,
+      borderWidth: 0,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -4 },
+      shadowOpacity: 0.15,
+      shadowRadius: 16,
+      elevation: 20,
+    },
+    handleBar: {
+      width: 38,
+      height: 4,
+      borderRadius: radius.full,
+      backgroundColor: colors.borderMuted,
+      alignSelf: 'center',
+      marginBottom: spacing.md,
+      opacity: 0.7,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingBottom: spacing.sm,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.borderLight,
+    },
+    headerCoverWrap: {
+      width: 48,
+      height: 48,
+      borderRadius: radius.md,
+      overflow: 'hidden',
+      marginRight: spacing.md,
+      backgroundColor: colors.backgroundSecondary,
+      borderWidth: 0,
+    },
+    headerCoverImage: {
+      width: '100%',
+      height: '100%',
+    },
+    headerCoverFallback: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.backgroundSecondary,
+    },
+    headerTextWrap: {
+      flex: 1,
+      marginRight: spacing.md,
+    },
+    headerSubtitle: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: 10,
+      color: colors.textMuted,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
+    playlistTitle: {
+      fontFamily: typography.fonts.bold,
+      fontSize: typography.sizes.base,
+      color: colors.textPrimary,
+      marginTop: 2,
+    },
+    playlistCount: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textSecondary,
+      marginTop: 1,
+    },
+    closeBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: radius.full,
+      backgroundColor: colors.backgroundSecondary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginTop: 2,
+    },
+    optionsList: {
+      paddingVertical: spacing.sm,
+      gap: spacing.xs,
+    },
+    optionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 8,
+      borderRadius: radius.md,
+      gap: spacing.md,
+    },
+    optionIconBox: {
+      width: 42,
+      height: 42,
+      borderRadius: radius.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    optionTextWrap: {
+      flex: 1,
+    },
+    optionTitle: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+    },
+    optionDesc: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+  });
 
 export default PlaylistOptionsModal;

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,7 +8,8 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { House, ListMusic, Search, Heart, Settings } from 'lucide-react-native';
-import { colors, radius } from '../../theme';
+import { radius } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 
 const TabButton = ({
   route,
@@ -17,6 +18,7 @@ const TabButton = ({
   onTabPressIn,
   onTabPressOut,
   getTabIcon,
+  styles,
 }) => {
   const itemScale = useSharedValue(1);
 
@@ -68,8 +70,10 @@ const TabButton = ({
   );
 };
 
-export const FloatingTabBar = ({ state, descriptors, navigation }) => {
+export const FloatingTabBar = ({ state, navigation }) => {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const bottomMargin = Math.max(insets.bottom, 16);
 
   const barScale = useSharedValue(1);
@@ -129,12 +133,7 @@ export const FloatingTabBar = ({ state, descriptors, navigation }) => {
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
       <LinearGradient
-        colors={[
-          'rgba(243, 243, 243, 0)',
-          'rgba(243, 243, 243, 0.5)',
-          'rgba(243, 243, 243, 0.95)',
-          colors.background,
-        ]}
+        colors={colors.gradientBottom}
         locations={[0, 0.35, 0.75, 1]}
         style={styles.gradientBottom}
         pointerEvents="none"
@@ -167,6 +166,7 @@ export const FloatingTabBar = ({ state, descriptors, navigation }) => {
                 onTabPressIn={handleBarPressIn}
                 onTabPressOut={handleBarPressOut}
                 getTabIcon={getTabIcon}
+                styles={styles}
               />
             );
           })}
@@ -176,56 +176,57 @@ export const FloatingTabBar = ({ state, descriptors, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  wrapper: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'transparent',
-  },
-  gradientBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 150,
-  },
-  tabBarInner: {
-    paddingHorizontal: 28,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    width: '100%',
-  },
-  container: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 1)',
-    borderRadius: radius.full,
-    paddingVertical: 7,
-    paddingHorizontal: 6,
-    width: '100%',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 0,
-    elevation: 0,
-    shadowColor: 'transparent',
-    shadowOpacity: 0,
-  },
-  tabItemPressable: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tabItem: {
-    width: '100%',
-    height: 42,
-    borderRadius: radius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tabItemActive: {
-    backgroundColor: colors.tabBarActive,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    wrapper: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: 'transparent',
+    },
+    gradientBottom: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: 150,
+    },
+    tabBarInner: {
+      paddingHorizontal: 28,
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+      width: '100%',
+    },
+    container: {
+      flexDirection: 'row',
+      backgroundColor: colors.tabBarBackground,
+      borderRadius: radius.full,
+      paddingVertical: 7,
+      paddingHorizontal: 6,
+      width: '100%',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      borderWidth: 0,
+      elevation: 0,
+      shadowColor: 'transparent',
+      shadowOpacity: 0,
+    },
+    tabItemPressable: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tabItem: {
+      width: '100%',
+      height: 42,
+      borderRadius: radius.full,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    tabItemActive: {
+      backgroundColor: colors.tabBarActive,
+    },
+  });
 
 export default FloatingTabBar;

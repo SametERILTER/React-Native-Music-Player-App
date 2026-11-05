@@ -35,14 +35,20 @@ import {
   Globe,
   ShieldCheck,
   ImageDown,
+  Sun,
+  Moon,
+  Smartphone,
 } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../theme';
+import { typography, spacing, radius } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import { safeStorage } from '../services/storageService';
 import { clearLyricsCache } from '../services/lyricsService';
 
 export const SettingsScreen = () => {
+  const { colors, themeMode, setThemeMode } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const { t, language, setLanguage } = useLanguage();
@@ -454,9 +460,11 @@ export const SettingsScreen = () => {
                             (downloadCoversProgress?.total || 1)) *
                             100
                         )}%`
-                      : customCoverCount > 0
-                      ? t('settings.customCount', { count: customCoverCount })
-                      : t('settings.defaultCover')}
+                      : themeMode === 'dark'
+                      ? t('settings.themeDark')
+                      : themeMode === 'light'
+                      ? t('settings.themeLight')
+                      : t('settings.themeSystem')}
                   </Text>
                   <ChevronRight size={18} color={colors.textTertiary} />
                 </View>
@@ -581,6 +589,63 @@ export const SettingsScreen = () => {
 
         {activeSubpage === 'theme' && (
           <View style={styles.unifiedCard}>
+            <View style={styles.themeModeSection}>
+              <View style={styles.settingRowCompact}>
+                <View style={styles.menuIconBox}>
+                  {themeMode === 'light' ? (
+                    <Sun size={18} color={colors.textPrimary} />
+                  ) : themeMode === 'system' ? (
+                    <Smartphone size={18} color={colors.textPrimary} />
+                  ) : (
+                    <Moon size={18} color={colors.textPrimary} />
+                  )}
+                </View>
+                <View style={styles.settingTextWrap}>
+                  <Text style={styles.settingTitle}>{t('settings.themeSectionTitle')}</Text>
+                  <Text style={styles.settingSubtitle}>
+                    {t('settings.themeSectionDesc')}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.themeSegmentContainer}>
+                {[
+                  { key: 'light', label: t('settings.themeLight'), Icon: Sun },
+                  { key: 'dark', label: t('settings.themeDark'), Icon: Moon },
+                  { key: 'system', label: t('settings.themeSystem'), Icon: Smartphone },
+                ].map(({ key, label, Icon }) => {
+                  const isSelected = themeMode === key;
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      style={[
+                        styles.themeSegmentBtn,
+                        isSelected && styles.themeSegmentBtnActive,
+                      ]}
+                      onPress={() => setThemeMode(key)}
+                      activeOpacity={0.8}
+                    >
+                      <Icon
+                        size={15}
+                        color={isSelected ? colors.primaryContrast : colors.textSecondary}
+                        strokeWidth={isSelected ? 2.2 : 1.8}
+                      />
+                      <Text
+                        style={[
+                          styles.themeSegmentText,
+                          isSelected && styles.themeSegmentTextActive,
+                        ]}
+                      >
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
             <View style={styles.settingRow}>
               <View style={styles.menuIconBox}>
                 <Sparkles size={18} color={colors.textPrimary} />
@@ -875,11 +940,7 @@ export const SettingsScreen = () => {
       </ScrollView>
 
       <LinearGradient
-        colors={[
-          colors.background,
-          'rgba(243, 243, 243, 0.85)',
-          'rgba(243, 243, 243, 0)',
-        ]}
+        colors={colors.gradientTop}
         locations={[0, 0.5, 1]}
         style={[styles.gradientTop, { height: topPadding + 16 }]}
         pointerEvents="none"
@@ -888,7 +949,7 @@ export const SettingsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   mainWrapper: {
     flex: 1,
     backgroundColor: colors.background,
@@ -916,8 +977,7 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: radius.full,
     backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.sm,
@@ -938,8 +998,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.xl,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
   },
   menuItem: {
     flexDirection: 'row',
@@ -1015,8 +1074,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.full,
     backgroundColor: colors.backgroundSecondary,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
   },
   badgeActionText: {
     fontFamily: typography.fonts.semiBold,
@@ -1040,8 +1098,7 @@ const styles = StyleSheet.create({
     height: 58,
     borderRadius: 29,
     backgroundColor: colors.backgroundSecondary,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.sm,
@@ -1098,18 +1155,57 @@ const styles = StyleSheet.create({
   settingRowDownloading: {
     paddingVertical: spacing.xs,
   },
+  themeModeSection: {
+    paddingTop: spacing.md - 1,
+    paddingBottom: spacing.md,
+  },
+  settingRowCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  themeSegmentContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: radius.lg,
+    padding: 4,
+    marginTop: spacing.sm + 2,
+    borderWidth: 0,
+    gap: 4,
+  },
+  themeSegmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 9,
+    paddingHorizontal: 8,
+    borderRadius: radius.md - 2,
+    gap: 6,
+  },
+  themeSegmentBtnActive: {
+    backgroundColor: colors.primary,
+  },
+  themeSegmentText: {
+    fontFamily: typography.fonts.medium,
+    fontSize: typography.sizes.xs,
+    color: colors.textSecondary,
+  },
+  themeSegmentTextActive: {
+    fontFamily: typography.fonts.semiBold,
+    color: colors.primaryContrast,
+  },
   badgeActionStop: {
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: radius.full,
-    backgroundColor: '#FEE2E2',
-    borderWidth: 1,
-    borderColor: '#FCA5A5',
+    backgroundColor: colors.errorBg,
+    borderWidth: 0,
   },
   badgeActionStopText: {
     fontFamily: typography.fonts.semiBold,
     fontSize: 11,
-    color: '#DC2626',
+    color: colors.error,
   },
   progressContainer: {
     paddingLeft: 50,

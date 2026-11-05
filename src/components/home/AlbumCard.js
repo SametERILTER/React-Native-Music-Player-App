@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Play, Pause } from 'lucide-react-native';
-import { colors, typography, spacing, radius, shadows } from '../../theme';
+import { typography, spacing, radius, shadows } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import AlbumArtwork from './AlbumArtwork';
 
 export const AlbumCard = ({ track, isCurrent, isPlaying, onPlay }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <TouchableOpacity
       style={styles.card}
@@ -44,51 +48,51 @@ export const AlbumCard = ({ track, isCurrent, isPlaying, onPlay }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  card: {
-    width: 148,
-    backgroundColor: colors.card,
-    borderRadius: radius.lg,
-    padding: spacing.xs,
-    marginRight: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    ...shadows.subtle,
-  },
-  artworkWrapper: {
-    width: '100%',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  floatingPlayBtn: {
-    position: 'absolute',
-    bottom: 8,
-    right: 8,
-    width: 34,
-    height: 34,
-    borderRadius: radius.full,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.card,
-  },
-  infoWrapper: {
-    marginTop: spacing.xs,
-    paddingHorizontal: spacing.xxs,
-    paddingBottom: spacing.xxs,
-  },
-  title: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-    letterSpacing: typography.letterSpacing.tight,
-  },
-  artist: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    card: {
+      width: 148,
+      backgroundColor: colors.card,
+      borderRadius: radius.lg,
+      padding: spacing.xs,
+      marginRight: spacing.md,
+      borderWidth: 0,
+      ...shadows.subtle,
+    },
+    artworkWrapper: {
+      width: '100%',
+      alignItems: 'center',
+      position: 'relative',
+    },
+    floatingPlayBtn: {
+      position: 'absolute',
+      bottom: 8,
+      right: 8,
+      width: 34,
+      height: 34,
+      borderRadius: radius.full,
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+      ...shadows.card,
+    },
+    infoWrapper: {
+      marginTop: spacing.xs,
+      paddingHorizontal: spacing.xxs,
+      paddingBottom: spacing.xxs,
+    },
+    title: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.xs,
+      color: colors.textPrimary,
+      letterSpacing: typography.letterSpacing.tight,
+    },
+    artist: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+  });
 
 export default AlbumCard;

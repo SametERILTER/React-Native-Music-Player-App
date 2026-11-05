@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { View, StyleSheet, Image } from 'react-native';
 import { Disc3, Music2, Radio, AudioWaveform } from 'lucide-react-native';
-import { colors, radius } from '../../theme';
+import { radius } from '../../theme';
+import { useTheme } from '../../context/ThemeContext';
 import { getTrackCoverSource } from '../../constants/playlistCovers';
 
 export const AlbumArtwork = React.memo(({
@@ -16,6 +17,9 @@ export const AlbumArtwork = React.memo(({
   borderWidth = 0,
   borderColor = 'transparent',
 }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   const w = width || size;
   const h = height || size;
 
@@ -26,10 +30,8 @@ export const AlbumArtwork = React.memo(({
   const albumId = track?.albumId || null;
   const mediaId = track?.mediaId || (track?.id && String(track.id).startsWith('local-') ? String(track.id).replace('local-', '') : null);
 
-  // If user selected a preset artwork from the app's collection
   const presetCover = finalCoverId ? getTrackCoverSource(finalCoverId) : null;
 
-  // Primary content URI
   const primaryArtworkUri = useMemo(() => {
     if (rawArtwork) return rawArtwork;
     if (albumId) return `content://media/external/audio/albumart/${albumId}`;
@@ -37,7 +39,6 @@ export const AlbumArtwork = React.memo(({
     return null;
   }, [rawArtwork, albumId, mediaId]);
 
-  // Secondary fallback URI if primary fails
   const secondaryArtworkUri = useMemo(() => {
     if (mediaId) {
       const mediaUri = `content://media/external/audio/media/${mediaId}/albumart`;
@@ -114,36 +115,37 @@ export const AlbumArtwork = React.memo(({
   );
 });
 
-const styles = StyleSheet.create({
-  artworkContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: radius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-    borderWidth: 0,
-  },
-  coverImage: {
-    width: '100%',
-    height: '100%',
-  },
-  innerPattern: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FAFAFA',
-  },
-  centerDot: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.textTertiary,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    artworkContainer: {
+      backgroundColor: colors.card,
+      borderRadius: radius.md,
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+      borderWidth: 0,
+    },
+    coverImage: {
+      width: '100%',
+      height: '100%',
+    },
+    innerPattern: {
+      width: '100%',
+      height: '100%',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.artworkPatternBg,
+    },
+    centerDot: {
+      position: 'absolute',
+      top: 6,
+      right: 6,
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.textTertiary,
+    },
+  });
 
 AlbumArtwork.displayName = 'AlbumArtwork';
 

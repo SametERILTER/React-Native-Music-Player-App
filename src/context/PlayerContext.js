@@ -6,7 +6,7 @@ import { fetchDeviceAudioTracks, extractTrackMetadata, checkMediaPermissions, re
 import { setupTrackPlayer, getTrackPlayer, Event, State, registerServiceCallbacks } from '../services/trackPlayerService';
 import { ALL_COVERS } from '../constants/playlistCovers';
 import { downloadAllOnlineCovers } from '../services/albumArtService';
-import { colors } from '../theme';
+import { useTheme } from './ThemeContext';
 import { useLanguage } from './LanguageContext';
 
 const PlayerContext = createContext(null);
@@ -118,6 +118,7 @@ export const PlayerProgressProvider = ({ isPlaying, currentTrack, onTrackEnded, 
 
 export const PlayerProvider = ({ children }) => {
   const { t } = useLanguage();
+  const { colors } = useTheme();
   const [tracks, setTracks] = useState([]);
   const [currentTrack, setCurrentTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -1292,7 +1293,7 @@ export const PlayerProvider = ({ children }) => {
 
   if (!isLibraryLoaded) {
     return (
-      <View style={loadingStyles.container}>
+      <View style={[loadingStyles.container, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="small" color={colors.textPrimary} />
       </View>
     );
@@ -1314,7 +1315,6 @@ export const PlayerProvider = ({ children }) => {
 const loadingStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },

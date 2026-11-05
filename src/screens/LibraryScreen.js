@@ -31,9 +31,10 @@ import {
   MoreVertical,
   Check,
 } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../theme';
+import { typography, spacing, radius } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import SongItem from '../components/home/SongItem';
 import AlbumArtwork from '../components/home/AlbumArtwork';
 import PlaylistOptionsModal from '../components/playlist/PlaylistOptionsModal';
@@ -42,6 +43,8 @@ import { getPlaylistCoverSource, getPlaylistScreenGradientColors } from '../cons
 
 
 export const LibraryScreen = ({ route }) => {
+  const { colors, isDark } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   const {
@@ -311,7 +314,7 @@ export const LibraryScreen = ({ route }) => {
         </TouchableOpacity>
       );
     },
-    [activePlaylist, toggleTrackInPlaylist]
+    [activePlaylist, toggleTrackInPlaylist, colors, styles]
   );
 
   const handlePlayFromActivePlaylist = useCallback(
@@ -344,7 +347,7 @@ export const LibraryScreen = ({ route }) => {
         />
       </View>
     ),
-    [currentTrack?.id, isPlaying, favorites, handlePlayFromActivePlaylist, toggleFavorite, openAddToPlaylist]
+    [currentTrack?.id, isPlaying, favorites, handlePlayFromActivePlaylist, toggleFavorite, openAddToPlaylist, styles]
   );
 
   const detailKeyExtractor = useCallback((item) => item.id.toString(), []);
@@ -543,11 +546,7 @@ export const LibraryScreen = ({ route }) => {
           pointerEvents="none"
         >
           <LinearGradient
-            colors={[
-              colors.background,
-              'rgba(243, 243, 243, 0.85)',
-              'rgba(243, 243, 243, 0)',
-            ]}
+            colors={colors.gradientTop}
             locations={[0, 0.5, 1]}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
@@ -812,11 +811,7 @@ export const LibraryScreen = ({ route }) => {
       />
 
       <LinearGradient
-        colors={[
-          colors.background,
-          'rgba(243, 243, 243, 0.85)',
-          'rgba(243, 243, 243, 0)',
-        ]}
+        colors={colors.gradientTop}
         locations={[0, 0.5, 1]}
         style={[styles.gradientTop, { height: topPadding + 16 }]}
         pointerEvents="none"
@@ -968,7 +963,7 @@ export const LibraryScreen = ({ route }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors, isDark) => StyleSheet.create({
   mainWrapper: {
     flex: 1,
     backgroundColor: colors.background,
@@ -1030,6 +1025,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
+    borderWidth: 0,
     paddingVertical: 7,
     paddingHorizontal: 12,
     borderRadius: radius.full,
@@ -1049,13 +1045,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: colors.card,
+    borderWidth: 0,
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: radius.lg,
     elevation: 1.2,
     shadowRadius: 8,
-    shadowOpacity: 0.06,
-    shadowColor: 'rgba(176, 176, 176, 0.4)',
+    shadowOpacity: isDark ? 0.25 : 0.06,
+    shadowColor: isDark ? '#000000' : 'rgba(176, 176, 176, 0.4)',
   },
   playlistCardLeft: {
     flexDirection: 'row',
@@ -1182,8 +1179,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.card,
     borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
     paddingHorizontal: 14,
     height: 42,
     marginTop: spacing.sm,
@@ -1226,6 +1222,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
+    borderWidth: 0,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: radius.full,
@@ -1241,8 +1238,7 @@ const styles = StyleSheet.create({
     height: 38,
     borderRadius: radius.full,
     backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 'auto',
@@ -1322,7 +1318,7 @@ const styles = StyleSheet.create({
     height: 60,
   },
   addSongRowActive: {
-    backgroundColor: 'rgba(0, 0, 0, 0.03)',
+    backgroundColor: colors.surfaceHighlight,
   },
   addSongArtworkWrap: {
     marginRight: spacing.sm + 2,

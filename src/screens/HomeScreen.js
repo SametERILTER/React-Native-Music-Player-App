@@ -30,9 +30,10 @@ import {
   X,
   HardDrive,
 } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../theme';
+import { typography, spacing, radius } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import { Header } from '../components/common/Header';
 import { SongItem } from '../components/home/SongItem';
 import { FolderSection } from '../components/home/FolderSection';
@@ -40,6 +41,8 @@ import { getPlaylistCoverSource } from '../constants/playlistCovers';
 import { groupTracksByFolder } from '../utils/folderUtils';
 
 export const HomeScreen = () => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { t } = useLanguage();
@@ -413,11 +416,7 @@ export const HomeScreen = () => {
         />
 
         <LinearGradient
-          colors={[
-            colors.background,
-            'rgba(243, 243, 243, 0.85)',
-            'rgba(243, 243, 243, 0)',
-          ]}
+          colors={colors.gradientTop}
           locations={[0, 0.5, 1]}
           style={[styles.gradientTop, { height: topPadding + 16 }]}
           pointerEvents="none"
@@ -567,11 +566,7 @@ export const HomeScreen = () => {
         />
 
         <LinearGradient
-          colors={[
-            colors.background,
-            'rgba(243, 243, 243, 0.85)',
-            'rgba(243, 243, 243, 0)',
-          ]}
+          colors={colors.gradientTop}
           locations={[0, 0.5, 1]}
           style={[styles.gradientTop, { height: topPadding + 16 }]}
           pointerEvents="none"
@@ -712,11 +707,7 @@ export const HomeScreen = () => {
       </ScrollView>
 
       <LinearGradient
-        colors={[
-          colors.background,
-          'rgba(243, 243, 243, 0.85)',
-          'rgba(243, 243, 243, 0)',
-        ]}
+        colors={colors.gradientTop}
         locations={[0, 0.5, 1]}
         style={[styles.gradientTop, { height: topPadding + 16 }]}
         pointerEvents="none"
@@ -725,7 +716,7 @@ export const HomeScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   mainWrapper: {
     flex: 1,
     backgroundColor: colors.background,
@@ -791,8 +782,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     overflow: 'hidden',
     backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
@@ -833,9 +823,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     padding: spacing.md,
     gap: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
-    borderStyle: 'dashed',
+    borderWidth: 0,
   },
   createPlaylistIconBox: {
     width: 44,
@@ -866,8 +854,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.card,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
     marginTop: spacing.xs,
   },
   emptyRecentTitle: {
@@ -900,6 +887,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: radius.full,
     backgroundColor: colors.card,
+    borderWidth: 0,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.xs,
@@ -923,6 +911,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: radius.md,
     backgroundColor: colors.card,
+    borderWidth: 0,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 0,
@@ -950,6 +939,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     backgroundColor: colors.card,
+    borderWidth: 0,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: radius.full,
@@ -972,7 +962,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.card,
+    borderWidth: 0,
     borderRadius: radius.lg,
     paddingVertical: spacing.sm + 2,
     paddingHorizontal: spacing.md,
@@ -980,7 +971,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
   },
   folderItemActiveCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.cardSelected,
   },
   folderItemLeft: {
     flexDirection: 'row',
@@ -1056,8 +1047,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.card,
     borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderWidth: 0,
     paddingHorizontal: 14,
     height: 42,
     marginTop: spacing.sm,
@@ -1100,6 +1090,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.card,
+    borderWidth: 0,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: radius.full,

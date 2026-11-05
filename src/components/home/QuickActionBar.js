@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Shuffle, Play, RefreshCw } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 
 export const QuickActionBar = ({
   trackCount = 0,
@@ -13,6 +14,8 @@ export const QuickActionBar = ({
   isScanningDevice,
 }) => {
   const { t } = useLanguage();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <View style={styles.container}>
@@ -72,81 +75,82 @@ export const QuickActionBar = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    marginVertical: spacing.sm,
-  },
-  countWrapper: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-  },
-  countNumber: {
-    fontFamily: typography.fonts.bold,
-    fontSize: typography.sizes.md,
-    color: colors.textPrimary,
-  },
-  countLabel: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xxs,
-    color: colors.textMuted,
-    letterSpacing: typography.letterSpacing.wider,
-  },
-  actionsWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  scanButton: {
-    width: 32,
-    height: 32,
-    borderRadius: radius.full,
-    backgroundColor: colors.card,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  shuffleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: radius.full,
-    gap: 6,
-  },
-  shuffleInactive: {
-    backgroundColor: colors.card,
-  },
-  shuffleActive: {
-    backgroundColor: colors.primary,
-  },
-  shuffleText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xs,
-  },
-  shuffleTextInactive: {
-    color: colors.textPrimary,
-  },
-  shuffleTextActive: {
-    color: colors.primaryContrast,
-  },
-  playAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: radius.full,
-    gap: 6,
-  },
-  playAllText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xs,
-    color: colors.primaryContrast,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      marginVertical: spacing.sm,
+    },
+    countWrapper: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: 4,
+    },
+    countNumber: {
+      fontFamily: typography.fonts.bold,
+      fontSize: typography.sizes.md,
+      color: colors.textPrimary,
+    },
+    countLabel: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.xxs,
+      color: colors.textMuted,
+      letterSpacing: typography.letterSpacing.wider,
+    },
+    actionsWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    scanButton: {
+      width: 32,
+      height: 32,
+      borderRadius: radius.full,
+      backgroundColor: colors.card,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    shuffleButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: radius.full,
+      gap: 6,
+    },
+    shuffleInactive: {
+      backgroundColor: colors.card,
+    },
+    shuffleActive: {
+      backgroundColor: colors.primary,
+    },
+    shuffleText: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.xs,
+    },
+    shuffleTextInactive: {
+      color: colors.textPrimary,
+    },
+    shuffleTextActive: {
+      color: colors.primaryContrast,
+    },
+    playAllButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.primary,
+      paddingVertical: 8,
+      paddingHorizontal: 14,
+      borderRadius: radius.full,
+      gap: 6,
+    },
+    playAllText: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.xs,
+      color: colors.primaryContrast,
+    },
+  });
 
 export default QuickActionBar;

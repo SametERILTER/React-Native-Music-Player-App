@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet, Appearance } from 'react-native';
+import React from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
@@ -11,25 +11,13 @@ import {
 } from '@expo-google-fonts/geist';
 import { Doto_900Black } from '@expo-google-fonts/doto';
 
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { LanguageProvider } from './src/context/LanguageContext';
 import { PlayerProvider } from './src/context/PlayerContext';
 import AppNavigator from './src/navigation/AppNavigator';
-import { colors } from './src/theme';
 
-if (Appearance && Appearance.setColorScheme) {
-  try {
-    Appearance.setColorScheme('light');
-  } catch (e) { }
-}
-
-export default function App() {
-  useEffect(() => {
-    if (Appearance && Appearance.setColorScheme) {
-      try {
-        Appearance.setColorScheme('light');
-      } catch (e) { }
-    }
-  }, []);
+const AppContent = () => {
+  const { colors, isDark } = useTheme();
   const [fontsLoaded] = useFonts({
     Geist_400Regular,
     Geist_500Medium,
@@ -40,20 +28,28 @@ export default function App() {
 
   if (!fontsLoaded) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="small" color={colors.textPrimary} />
       </View>
     );
   }
 
   return (
+    <LanguageProvider>
+      <PlayerProvider>
+        <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.background} />
+        <AppNavigator />
+      </PlayerProvider>
+    </LanguageProvider>
+  );
+};
+
+export default function App() {
+  return (
     <SafeAreaProvider>
-      <LanguageProvider>
-        <PlayerProvider>
-          <StatusBar style="dark" backgroundColor={colors.background} />
-          <AppNavigator />
-        </PlayerProvider>
-      </LanguageProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
@@ -61,7 +57,6 @@ export default function App() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },

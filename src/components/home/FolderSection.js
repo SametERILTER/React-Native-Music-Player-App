@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Folder, RefreshCw, ChevronRight } from 'lucide-react-native';
-import { colors, typography, spacing, radius } from '../../theme';
+import { typography, spacing, radius } from '../../theme';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 import { FolderCard } from './FolderCard';
 
 export const FolderSection = ({
@@ -16,6 +17,8 @@ export const FolderSection = ({
   isScanningDevice = false,
 }) => {
   const { t } = useLanguage();
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
   if (folders.length === 0 && !onScanDevice) {
     return null;
@@ -105,103 +108,105 @@ export const FolderSection = ({
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    marginTop: spacing.xs,
-    marginBottom: spacing.xs,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.xs,
-  },
-  titleLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  title: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.base,
-    color: colors.textPrimary,
-    letterSpacing: typography.letterSpacing.tight,
-  },
-  countBadge: {
-    backgroundColor: colors.cardSubtle,
-    paddingHorizontal: 7,
-    paddingVertical: 1,
-    borderRadius: radius.full,
-  },
-  countBadgeText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xxs,
-    color: colors.textMuted,
-  },
-  scanBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: radius.full,
-    backgroundColor: colors.cardSubtle,
-  },
-  scanBtnText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xs,
-    color: colors.textSecondary,
-  },
-  scrollList: {
-    paddingLeft: spacing.lg,
-    paddingRight: spacing.sm,
-    paddingVertical: 4,
-  },
-  seeAllBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  seeAllText: {
-    fontFamily: typography.fonts.medium,
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-  },
-  emptyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: 260,
-    height: 90,
-    backgroundColor: '#FFFFFF',
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    gap: spacing.sm,
-    elevation: 0,
-    shadowOpacity: 0,
-  },
-  emptyIconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: radius.md,
-    backgroundColor: colors.cardSubtle,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyTextBox: {
-    flex: 1,
-  },
-  emptyTitle: {
-    fontFamily: typography.fonts.semiBold,
-    fontSize: typography.sizes.sm,
-    color: colors.textPrimary,
-  },
-  emptySub: {
-    fontFamily: typography.fonts.regular,
-    fontSize: typography.sizes.xs,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-});
+const createStyles = (colors) =>
+  StyleSheet.create({
+    container: {
+      marginTop: spacing.xs,
+      marginBottom: spacing.xs,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.xs,
+    },
+    titleLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    title: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.base,
+      color: colors.textPrimary,
+      letterSpacing: typography.letterSpacing.tight,
+    },
+    countBadge: {
+      backgroundColor: colors.cardSubtle,
+      paddingHorizontal: 7,
+      paddingVertical: 1,
+      borderRadius: radius.full,
+    },
+    countBadgeText: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.xxs,
+      color: colors.textMuted,
+    },
+    scanBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingVertical: 4,
+      paddingHorizontal: 8,
+      borderRadius: radius.full,
+      backgroundColor: colors.cardSubtle,
+    },
+    scanBtnText: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.xs,
+      color: colors.textSecondary,
+    },
+    scrollList: {
+      paddingLeft: spacing.lg,
+      paddingRight: spacing.sm,
+      paddingVertical: 4,
+    },
+    seeAllBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    seeAllText: {
+      fontFamily: typography.fonts.medium,
+      fontSize: typography.sizes.xs,
+      color: colors.textMuted,
+    },
+    emptyCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      width: 260,
+      height: 90,
+      backgroundColor: colors.card,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      gap: spacing.sm,
+      borderWidth: 0,
+      elevation: 0,
+      shadowOpacity: 0,
+    },
+    emptyIconBox: {
+      width: 42,
+      height: 42,
+      borderRadius: radius.md,
+      backgroundColor: colors.cardSubtle,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyTextBox: {
+      flex: 1,
+    },
+    emptyTitle: {
+      fontFamily: typography.fonts.semiBold,
+      fontSize: typography.sizes.sm,
+      color: colors.textPrimary,
+    },
+    emptySub: {
+      fontFamily: typography.fonts.regular,
+      fontSize: typography.sizes.xs,
+      color: colors.textMuted,
+      marginTop: 2,
+    },
+  });
 
 export default FolderSection;

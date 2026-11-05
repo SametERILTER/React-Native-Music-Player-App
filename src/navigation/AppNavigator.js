@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import HomeScreen from '../screens/HomeScreen';
@@ -14,11 +14,12 @@ import FullPlayerModal from '../components/player/FullPlayerModal';
 import SongOptionsModal from '../components/playlist/SongOptionsModal';
 import PermissionModal from '../components/common/PermissionModal';
 import { usePlayer } from '../context/PlayerContext';
-import { colors } from '../theme';
+import { useTheme } from '../context/ThemeContext';
 
 const Tab = createBottomTabNavigator();
 
 export const AppNavigator = () => {
+  const { colors, isDark } = useTheme();
   const {
     isFullPlayerOpen,
     openFullPlayer,
@@ -31,9 +32,24 @@ export const AppNavigator = () => {
     isScanningDevice,
   } = usePlayer();
 
+  const navigationTheme = useMemo(() => {
+    const base = isDark ? DarkTheme : DefaultTheme;
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        background: colors.background,
+        card: colors.card,
+        text: colors.textPrimary,
+        border: colors.borderLight,
+        primary: colors.primary,
+      },
+    };
+  }, [isDark, colors]);
+
   return (
-    <NavigationContainer>
-      <View style={styles.container}>
+    <NavigationContainer theme={navigationTheme}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Tab.Navigator
           tabBar={(props) => <FloatingTabBar {...props} />}
           sceneContainerStyle={{ backgroundColor: colors.background }}
@@ -88,7 +104,6 @@ export const AppNavigator = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
   },
 });
 

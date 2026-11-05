@@ -9,13 +9,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Heart } from 'lucide-react-native';
-import { colors, typography, spacing } from '../theme';
+import { typography, spacing } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 import Header from '../components/common/Header';
 import SongItem from '../components/home/SongItem';
 
 export const FavoritesScreen = () => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   const {
@@ -93,11 +96,7 @@ export const FavoritesScreen = () => {
       />
 
       <LinearGradient
-        colors={[
-          colors.background,
-          'rgba(243, 243, 243, 0.85)',
-          'rgba(243, 243, 243, 0)',
-        ]}
+        colors={colors.gradientTop}
         locations={[0, 0.5, 1]}
         style={[styles.gradientTop, { height: topPadding + 16 }]}
         pointerEvents="none"
@@ -106,7 +105,7 @@ export const FavoritesScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
+const createStyles = (colors) => StyleSheet.create({
   mainWrapper: {
     flex: 1,
     backgroundColor: colors.background,
