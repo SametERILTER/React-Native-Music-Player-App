@@ -1,23 +1,29 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   Platform,
+  Image,
+  TouchableOpacity,
+  TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Heart } from 'lucide-react-native';
-import { typography, spacing } from '../theme';
+import { Heart, Play, Shuffle, Search, X } from 'lucide-react-native';
+import { typography, spacing, radius } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import Header from '../components/common/Header';
 import SongItem from '../components/home/SongItem';
 
+const DOT_HEART_LIGHT = require('../../assets/favorites_dot_light.png');
+const DOT_HEART_DARK = require('../../assets/favorites_dot_dark.png');
+
 export const FavoritesScreen = () => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
@@ -32,12 +38,42 @@ export const FavoritesScreen = () => {
     openAddToPlaylist,
   } = usePlayer();
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 16) + spacing.sm;
   const bottomPadding = 220;
 
-  const favoriteTracks = useMemo(() => {
-    return tracks.filter((t) => favorites.includes(t.id));
+  const allFavoriteTracks = useMemo(() => {
+    return tracks.filter((tItem) => favorites.includes(tItem.id));
   }, [tracks, favorites]);
+
+  const favoriteTracks = useMemo(() => {
+    if (!searchQuery.trim()) return allFavoriteTracks;
+    const q = searchQuery.toLowerCase().trim();
+    return allFavoriteTracks.filter(
+      (tItem) =>
+        tItem.title?.toLowerCase().includes(q) ||
+        tItem.artist?.toLowerCase().includes(q) ||
+        tItem.album?.toLowerCase().includes(q)
+    );
+  }, [allFavoriteTracks, searchQuery]);
+
+  const handlePlayFavorites = useCallback(
+    (shouldShuffle = false) => {
+      if (!favoriteTracks || favoriteTracks.length === 0) return;
+      const context = {
+        type: 'favorites',
+        name: t('favorites.likedSongs'),
+      };
+      if (shouldShuffle) {
+        const randomIndex = Math.floor(Math.random() * favoriteTracks.length);
+        playTrack(favoriteTracks[randomIndex], favoriteTracks, context);
+      } else {
+        playTrack(favoriteTracks[0], favoriteTracks, context);
+      }
+    },
+    [favoriteTracks, playTrack, t]
+  );
 
   return (
     <View style={styles.mainWrapper}>
@@ -50,13 +86,75 @@ export const FavoritesScreen = () => {
         maxToRenderPerBatch={8}
         windowSize={5}
         removeClippedSubviews={Platform.OS === 'android'}
+        keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <View style={styles.headerContainer}>
             <Header title={t('favorites.title')} />
-            <View style={styles.listTitleRow}>
-              <Text style={styles.listTitle}>
-                {t('favorites.likedSongsCount', { count: favoriteTracks.length })}
-              </Text>
+            <View style={styles.heroIconContainer}>
+              <Image
+                source={isDark ? DOT_HEART_DARK : DOT_HEART_LIGHT}
+                style={styles.heroIconImage}
+                resizeMode="contain"
+              />
+            </View>
+
+            <View style={styles.controlsSection}>
+              <View style={styles.favoritesSearchBar}>
+                <Search size={17} color={colors.textTertiary} style={styles.searchIcon} />
+                <TextInput
+                  style={styles.searchInput}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  placeholder={t('library.searchInListPlaceholder')}
+                  placeholderTextColor={colors.textTertiary}
+                  autoCorrect={false}
+                  clearButtonMode="never"
+                />
+                {searchQuery ? (
+                  <TouchableOpacity
+                    onPress={() => setSearchQuery('')}
+                    style={styles.searchClearBtn}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <X size={15} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              <View style={styles.actionsRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.primaryActionBtn,
+                    favoriteTracks.length === 0 && styles.disabledBtn,
+                  ]}
+                  onPress={() => handlePlayFavorites(false)}
+                  disabled={favoriteTracks.length === 0}
+                  activeOpacity={0.8}
+                >
+                  <Play size={15} color={colors.primaryContrast} fill={colors.primaryContrast} />
+                  <Text style={styles.primaryActionBtnText}>{t('library.playAll')}</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.secondaryActionBtn,
+                    favoriteTracks.length === 0 && styles.disabledBtn,
+                  ]}
+                  onPress={() => handlePlayFavorites(true)}
+                  disabled={favoriteTracks.length === 0}
+                  activeOpacity={0.8}
+                >
+                  <Shuffle size={15} color={colors.textPrimary} />
+                  <Text style={styles.secondaryActionBtnText}>{t('library.shuffle')}</Text>
+                </TouchableOpacity>
+
+                <Text style={styles.listTitle}>
+                  {favoriteTracks.length !== allFavoriteTracks.length
+                    ? `${favoriteTracks.length} / ${allFavoriteTracks.length}`
+                    : t('favorites.likedSongsCount', { count: allFavoriteTracks.length })}
+                </Text>
+              </View>
             </View>
           </View>
         }
@@ -87,9 +185,13 @@ export const FavoritesScreen = () => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Heart size={32} color={colors.textTertiary} />
-            <Text style={styles.emptyTitle}>{t('favorites.emptyTitle')}</Text>
+            <Text style={styles.emptyTitle}>
+              {searchQuery ? t('library.searchNoResultTitle') : t('favorites.emptyTitle')}
+            </Text>
             <Text style={styles.emptyDesc}>
-              {t('favorites.emptyDesc')}
+              {searchQuery
+                ? t('library.searchNoResultDesc', { query: searchQuery })
+                : t('favorites.emptyDesc')}
             </Text>
           </View>
         }
@@ -122,15 +224,86 @@ const createStyles = (colors) => StyleSheet.create({
   headerContainer: {
     paddingBottom: spacing.xs,
   },
-  listTitleRow: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
+  heroIconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xs,
+  },
+  heroIconImage: {
+    width: 118,
+    height: 118,
+  },
+  controlsSection: {
     paddingHorizontal: spacing.lg,
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  favoritesSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: radius.full,
+    borderWidth: 0,
+    paddingHorizontal: 14,
+    height: 42,
+  },
+  searchIcon: {
+    marginRight: spacing.xs,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: typography.fonts.regular,
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
+    paddingVertical: 0,
+  },
+  searchClearBtn: {
+    padding: 4,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs + 2,
+    marginTop: spacing.md,
+  },
+  primaryActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: radius.full,
+    gap: 6,
+  },
+  primaryActionBtnText: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: typography.sizes.xs,
+    color: colors.primaryContrast,
+  },
+  secondaryActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderWidth: 0,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: radius.full,
+    gap: 6,
+  },
+  secondaryActionBtnText: {
+    fontFamily: typography.fonts.medium,
+    fontSize: typography.sizes.xs,
+    color: colors.textPrimary,
+  },
+  disabledBtn: {
+    opacity: 0.4,
   },
   listTitle: {
-    fontFamily: typography.fonts.bold,
-    fontSize: 14,
-    color: colors.textSecondary,
+    marginLeft: 'auto',
+    fontFamily: typography.fonts.medium,
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
     letterSpacing: -0.2,
   },
   songItemWrapper: {

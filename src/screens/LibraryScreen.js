@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -127,10 +127,15 @@ export const LibraryScreen = ({ route }) => {
   const [detailOpacity] = useState(() => new Animated.Value(0));
   const [detailTranslateY] = useState(() => new Animated.Value(12));
   const [detailScrollY] = useState(() => new Animated.Value(0));
+  const [stickyBarAnim] = useState(() => new Animated.Value(0));
+  const [isDetailStickyVisible, setIsDetailStickyVisible] = useState(false);
+  const isDetailStickyRef = useRef(false);
 
   useEffect(() => {
     if (selectedPlaylistId) {
       detailScrollY.setValue(0);
+      stickyBarAnim.setValue(0);
+      isDetailStickyRef.current = false;
       detailOpacity.setValue(0);
       detailTranslateY.setValue(12);
       const frame = requestAnimationFrame(() => {
@@ -151,10 +156,13 @@ export const LibraryScreen = ({ route }) => {
       });
       return () => cancelAnimationFrame(frame);
     }
-  }, [selectedPlaylistId, detailOpacity, detailTranslateY, detailScrollY]);
+  }, [selectedPlaylistId, detailOpacity, detailTranslateY, detailScrollY, stickyBarAnim]);
 
   const handleBackToPlaylists = useCallback(() => {
     detailScrollY.setValue(0);
+    stickyBarAnim.setValue(0);
+    isDetailStickyRef.current = false;
+    setIsDetailStickyVisible(false);
     setPlaylistSearchQuery('');
     setIsPlaylistOptionsModalVisible(false);
     setIsAddSongsModalVisible(false);
@@ -176,7 +184,7 @@ export const LibraryScreen = ({ route }) => {
       setSelectedPlaylistId(null);
       detailTranslateY.setValue(0);
     });
-  }, [detailOpacity, detailTranslateY, detailScrollY]);
+  }, [detailOpacity, detailTranslateY, detailScrollY, stickyBarAnim]);
 
   useEffect(() => {
     if (!selectedPlaylistId) return;
@@ -357,8 +365,37 @@ export const LibraryScreen = ({ route }) => {
       onScrollForPlayer(event);
       const offsetY = event?.nativeEvent?.contentOffset?.y ?? 0;
       detailScrollY.setValue(offsetY);
+
+      if (offsetY > 210 && !isDetailStickyRef.current) {
+        isDetailStickyRef.current = true;
+        setIsDetailStickyVisible(true);
+        Animated.timing(stickyBarAnim, {
+          toValue: 1,
+          duration: 220,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start();
+      } else if (offsetY < 180 && isDetailStickyRef.current) {
+        isDetailStickyRef.current = false;
+        setIsDetailStickyVisible(false);
+        Animated.timing(stickyBarAnim, {
+          toValue: 0,
+          duration: 180,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }).start();
+      }
     },
-    [onScrollForPlayer, detailScrollY]
+    [onScrollForPlayer, detailScrollY, stickyBarAnim]
+  );
+
+  const stickyBarTranslateY = useMemo(
+    () =>
+      stickyBarAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-18, 0],
+      }),
+    [stickyBarAnim]
   );
 
   const detailGradientTopOpacity = useMemo(() => {
@@ -551,6 +588,49 @@ export const LibraryScreen = ({ route }) => {
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
           />
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.stickyDetailHeader,
+            {
+              paddingTop: topPadding - 4,
+              opacity: stickyBarAnim,
+              transform: [{ translateY: stickyBarTranslateY }],
+            },
+          ]}
+          pointerEvents={isDetailStickyVisible ? 'box-none' : 'none'}
+        >
+          <LinearGradient
+            colors={colors.gradientStickySearch}
+            locations={[0, 0.6, 0.8, 0.92, 1]}
+            style={StyleSheet.absoluteFillObject}
+            pointerEvents="none"
+          />
+          <View style={styles.stickyDetailBarRow}>
+            <TouchableOpacity
+              style={styles.stickyIconBtn}
+              onPress={handleBackToPlaylists}
+              activeOpacity={0.7}
+            >
+              <ChevronLeft size={20} color={colors.textPrimary} />
+            </TouchableOpacity>
+
+            <Text style={styles.stickyHeaderTitle} numberOfLines={1}>
+              {activePlaylist.name}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.stickyIconBtn}
+              onPress={() => {
+                setOptionsTargetPlaylist(activePlaylist);
+                setIsPlaylistOptionsModalVisible(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <MoreVertical size={18} color={colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
         <PlaylistOptionsModal
@@ -983,6 +1063,47 @@ const createStyles = (colors, isDark) => StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
+  },
+  stickyDetailHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    zIndex: 45,
+  },
+  stickyDetailBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    backgroundColor: isDark ? '#181818' : colors.card,
+    borderRadius: radius.full,
+    paddingVertical: 5,
+    paddingHorizontal: 6,
+    elevation: 6,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.35 : 0.08,
+    shadowRadius: 10,
+  },
+  stickyIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    backgroundColor: isDark ? '#242424' : colors.backgroundSecondary,
+    borderWidth: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stickyHeaderTitle: {
+    flex: 1,
+    fontFamily: typography.fonts.semiBold,
+    fontSize: typography.sizes.base,
+    color: colors.headerTitle,
+    textAlign: 'center',
+    letterSpacing: typography.letterSpacing.tight,
   },
   fabContainer: {
     position: 'absolute',
