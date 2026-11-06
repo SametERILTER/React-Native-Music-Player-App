@@ -18,7 +18,7 @@ import Animated, {
   Easing,
   runOnJS,
 } from 'react-native-reanimated';
-import { Plus, Trash2, X, Pencil, ListMusic } from 'lucide-react-native';
+import { Plus, Trash2, X, Pencil, ListMusic, ArrowUpDown } from 'lucide-react-native';
 import { typography, spacing, radius } from '../../theme';
 import { getPlaylistCoverSource } from '../../constants/playlistCovers';
 import { useLanguage } from '../../context/LanguageContext';
@@ -37,6 +37,7 @@ export const PlaylistOptionsModal = ({
   onClose,
   onAddSongs,
   onEdit,
+  onReorder,
   onDelete,
   onToggleGradient,
 }) => {
@@ -68,6 +69,17 @@ export const PlaylistOptionsModal = ({
       if (finished) {
         if (onEdit) {
           runOnJS(onEdit)();
+        }
+      }
+    });
+  };
+
+  const handleReorderPress = () => {
+    // eslint-disable-next-line react-hooks/immutability
+    translateY.value = withTiming(SCREEN_HEIGHT * 0.5, { duration: CLOSE_MS, easing: EASE_IN }, (finished) => {
+      if (finished) {
+        if (onReorder) {
+          runOnJS(onReorder)();
         }
       }
     });
@@ -179,6 +191,20 @@ export const PlaylistOptionsModal = ({
                 thumbColor={colors.primaryContrast}
                 ios_backgroundColor={colors.borderLight}
               />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionRow}
+              activeOpacity={0.7}
+              onPress={handleReorderPress}
+            >
+              <View style={[styles.optionIconBox, { backgroundColor: colors.backgroundSecondary }]}>
+                <ArrowUpDown size={19} color={colors.textPrimary} strokeWidth={2} />
+              </View>
+              <View style={styles.optionTextWrap}>
+                <Text style={styles.optionTitle}>{t('library.editOrder')}</Text>
+                <Text style={styles.optionDesc}>{t('library.selectedCount', { count: playlist?.trackIds?.length || 0 })}</Text>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity

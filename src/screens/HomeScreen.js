@@ -35,6 +35,15 @@ import { usePlayer } from '../context/PlayerContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { Header } from '../components/common/Header';
+import { TypewriterTitle } from '../components/common/TypewriterTitle';
+
+const getGreetingText = (t) => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return t('home.greetingMorning');
+  if (hour >= 12 && hour < 18) return t('home.greetingAfternoon');
+  if (hour >= 18 && hour < 23) return t('home.greetingEvening');
+  return t('home.greetingNight');
+};
 import { SongItem } from '../components/home/SongItem';
 import { FolderSection } from '../components/home/FolderSection';
 import { getPlaylistCoverSource } from '../constants/playlistCovers';
@@ -586,7 +595,15 @@ export const HomeScreen = () => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <Header title={t('home.title')} />
+        <Header
+          title={(titleStyle) => (
+            <TypewriterTitle
+              style={titleStyle}
+              introText={t('home.title')}
+              finalText={getGreetingText(t)}
+            />
+          )}
+        />
 
         <FolderSection
           folders={folders}

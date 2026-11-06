@@ -30,6 +30,10 @@ import {
   Search,
   MoreVertical,
   Check,
+  ChevronUp,
+  ChevronDown,
+  Trash2,
+  SlidersHorizontal,
 } from 'lucide-react-native';
 import { typography, spacing, radius } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
@@ -65,6 +69,8 @@ export const LibraryScreen = ({ route }) => {
     onScrollForPlayer,
     openAddToPlaylist,
     toggleTrackInPlaylist,
+    reorderPlaylistTracks,
+    removeTracksFromPlaylist,
   } = usePlayer();
 
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(null);
@@ -83,6 +89,8 @@ export const LibraryScreen = ({ route }) => {
   const [addSongsSearchQuery, setAddSongsSearchQuery] = useState('');
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedTrackIds, setSelectedTrackIds] = useState([]);
 
   const isFocused = useIsFocused();
   const [animScale] = useState(() => new Animated.Value(0));
@@ -163,6 +171,8 @@ export const LibraryScreen = ({ route }) => {
     stickyBarAnim.setValue(0);
     isDetailStickyRef.current = false;
     setIsDetailStickyVisible(false);
+    setIsEditMode(false);
+    setSelectedTrackIds([]);
     setPlaylistSearchQuery('');
     setIsPlaylistOptionsModalVisible(false);
     setIsAddSongsModalVisible(false);
@@ -205,7 +215,10 @@ export const LibraryScreen = ({ route }) => {
 
   const activePlaylistTracks = useMemo(() => {
     if (!activePlaylist) return [];
-    const listTracks = tracks.filter((t) => activePlaylist.trackIds.includes(t.id));
+    const trackMap = new Map(tracks.map((t) => [t.id, t]));
+    const listTracks = activePlaylist.trackIds
+      .map((id) => trackMap.get(id))
+      .filter(Boolean);
     if (!playlistSearchQuery.trim()) return listTracks;
     const q = playlistSearchQuery.toLowerCase().trim();
     return listTracks.filter(
@@ -340,22 +353,144 @@ export const LibraryScreen = ({ route }) => {
     [activePlaylist, activePlaylistTracks, playTrack]
   );
 
+  const handleMoveTrack = useCallback((index, direction) => {
+    if (!activePlaylist) return;
+    const currentIds = [...activePlaylist.trackIds];
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= currentIds.length) return;
+    const temp = currentIds[index];
+    currentIds[index] = currentIds[targetIndex];
+    currentIds[targetIndex] = temp;
+    reorderPlaylistTracks(activePlaylist.id, currentIds);
+  }, [activePlaylist, reorderPlaylistTracks]);
+
+  const handleToggleSelectTrack = useCallback((trackId) => {
+    setSelectedTrackIds((prev) =>
+      prev.includes(trackId) ? prev.filter((id) => id !== trackId) : [...prev, trackId]
+    );
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    if (!activePlaylist) return;
+    if (selectedTrackIds.length === activePlaylist.trackIds.length) {
+      setSelectedTrackIds([]);
+    } else {
+      setSelectedTrackIds([...activePlaylist.trackIds]);
+    }
+  }, [activePlaylist, selectedTrackIds.length]);
+
+  const handleDeleteSelected = useCallback(() => {
+    if (!activePlaylist || selectedTrackIds.length === 0) return;
+    Alert.alert(
+      t('library.deleteSelected', { count: selectedTrackIds.length }),
+      t('library.confirmRemoveTracks', { count: selectedTrackIds.length }),
+      [
+        { text: t('library.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => {
+            removeTracksFromPlaylist(activePlaylist.id, selectedTrackIds);
+            setSelectedTrackIds([]);
+          },
+        },
+      ]
+    );
+  }, [activePlaylist, selectedTrackIds, removeTracksFromPlaylist, t]);
+
   const renderDetailItem = useCallback(
-    ({ item, index }) => (
-      <View style={styles.songItemWrapper}>
-        <SongItem
-          track={item}
-          index={index}
-          isCurrent={currentTrack?.id === item.id}
-          isPlaying={isPlaying}
-          isFavorite={favorites.includes(item.id)}
-          onPress={handlePlayFromActivePlaylist}
-          onToggleFavorite={toggleFavorite}
-          onOpenPlaylistModal={openAddToPlaylist}
-        />
-      </View>
-    ),
-    [currentTrack?.id, isPlaying, favorites, handlePlayFromActivePlaylist, toggleFavorite, openAddToPlaylist, styles]
+    ({ item, index }) => {
+      if (isEditMode) {
+        const isSelected = selectedTrackIds.includes(item.id);
+        const isFirst = index === 0;
+        const isLast = index === activePlaylistTracks.length - 1;
+        return (
+          <View style={styles.reorderItemContainer}>
+            <TouchableOpacity
+              style={[styles.reorderCheckCircle, isSelected && styles.reorderCheckCircleActive]}
+              onPress={() => handleToggleSelectTrack(item.id)}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              {isSelected && <Check size={13} color={colors.primaryContrast} strokeWidth={2.6} />}
+            </TouchableOpacity>
+
+            <View style={styles.reorderArtworkWrap}>
+              <AlbumArtwork
+                size={40}
+                borderRadius={radius.sm}
+                index={index + 1}
+                track={item}
+                coverId={item.coverId}
+                artwork={item.coverArt || item.artwork}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={styles.reorderTextWrap}
+              onPress={() => handleToggleSelectTrack(item.id)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.reorderTitle} numberOfLines={1}>
+                {item.title}
+              </Text>
+              <Text style={styles.reorderArtist} numberOfLines={1}>
+                {item.artist}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.reorderActions}>
+              <TouchableOpacity
+                style={[styles.reorderArrowBtn, isFirst && styles.reorderArrowBtnDisabled]}
+                onPress={() => handleMoveTrack(index, -1)}
+                disabled={isFirst}
+                activeOpacity={0.6}
+              >
+                <ChevronUp size={18} color={isFirst ? colors.textTertiary : colors.textPrimary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.reorderArrowBtn, isLast && styles.reorderArrowBtnDisabled]}
+                onPress={() => handleMoveTrack(index, 1)}
+                disabled={isLast}
+                activeOpacity={0.6}
+              >
+                <ChevronDown size={18} color={isLast ? colors.textTertiary : colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+      }
+
+      return (
+        <View style={styles.songItemWrapper}>
+          <SongItem
+            track={item}
+            index={index}
+            isCurrent={currentTrack?.id === item.id}
+            isPlaying={isPlaying}
+            isFavorite={favorites.includes(item.id)}
+            onPress={handlePlayFromActivePlaylist}
+            onToggleFavorite={toggleFavorite}
+            onOpenPlaylistModal={openAddToPlaylist}
+          />
+        </View>
+      );
+    },
+    [
+      isEditMode,
+      selectedTrackIds,
+      activePlaylistTracks.length,
+      handleToggleSelectTrack,
+      colors,
+      styles,
+      handleMoveTrack,
+      currentTrack?.id,
+      isPlaying,
+      favorites,
+      handlePlayFromActivePlaylist,
+      toggleFavorite,
+      openAddToPlaylist,
+    ]
   );
 
   const detailKeyExtractor = useCallback((item) => item.id.toString(), []);
@@ -517,42 +652,95 @@ export const LibraryScreen = ({ route }) => {
                 </View>
 
                 <View style={styles.detailActionsRow}>
-                  <TouchableOpacity
-                    style={[
-                      styles.primaryActionBtn,
-                      activePlaylistTracks.length === 0 && styles.disabledBtn,
-                    ]}
-                    onPress={() => handlePlayPlaylist(activePlaylistTracks, false)}
-                    disabled={activePlaylistTracks.length === 0}
-                    activeOpacity={0.8}
-                  >
-                    <Play size={15} color={colors.primaryContrast} fill={colors.primaryContrast} />
-                    <Text style={styles.primaryActionBtnText}>{t('library.playAll')}</Text>
-                  </TouchableOpacity>
+                  {isEditMode ? (
+                    <>
+                      <TouchableOpacity
+                        style={styles.primaryActionBtn}
+                        onPress={() => {
+                          setIsEditMode(false);
+                          setSelectedTrackIds([]);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Check size={15} color={colors.primaryContrast} strokeWidth={2.4} />
+                        <Text style={styles.primaryActionBtnText}>{t('library.doneReorder')}</Text>
+                      </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[
-                      styles.secondaryActionBtn,
-                      activePlaylistTracks.length === 0 && styles.disabledBtn,
-                    ]}
-                    onPress={() => handlePlayPlaylist(activePlaylistTracks, true)}
-                    disabled={activePlaylistTracks.length === 0}
-                    activeOpacity={0.8}
-                  >
-                    <Shuffle size={15} color={colors.textPrimary} />
-                    <Text style={styles.secondaryActionBtnText}>{t('library.shuffle')}</Text>
-                  </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.secondaryActionBtn}
+                        onPress={handleSelectAll}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.secondaryActionBtnText}>
+                          {selectedTrackIds.length === activePlaylist.trackIds.length
+                            ? t('library.deselectAll')
+                            : t('library.selectAll')}
+                        </Text>
+                      </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.optionsActionBtn}
-                    onPress={() => {
-                      setOptionsTargetPlaylist(activePlaylist);
-                      setIsPlaylistOptionsModalVisible(true);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <MoreVertical size={18} color={colors.textPrimary} />
-                  </TouchableOpacity>
+                      {selectedTrackIds.length > 0 && (
+                        <TouchableOpacity
+                          style={styles.deleteSelectedActionBtn}
+                          onPress={handleDeleteSelected}
+                          activeOpacity={0.8}
+                        >
+                          <Trash2 size={15} color={colors.error} />
+                          <Text style={styles.deleteSelectedBtnText}>
+                            {t('library.deleteSelected', { count: selectedTrackIds.length })}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <TouchableOpacity
+                        style={[
+                          styles.primaryActionBtn,
+                          activePlaylistTracks.length === 0 && styles.disabledBtn,
+                        ]}
+                        onPress={() => handlePlayPlaylist(activePlaylistTracks, false)}
+                        disabled={activePlaylistTracks.length === 0}
+                        activeOpacity={0.8}
+                      >
+                        <Play size={15} color={colors.primaryContrast} fill={colors.primaryContrast} />
+                        <Text style={styles.primaryActionBtnText}>{t('library.playAll')}</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.secondaryActionBtn,
+                          activePlaylistTracks.length === 0 && styles.disabledBtn,
+                        ]}
+                        onPress={() => handlePlayPlaylist(activePlaylistTracks, true)}
+                        disabled={activePlaylistTracks.length === 0}
+                        activeOpacity={0.8}
+                      >
+                        <Shuffle size={15} color={colors.textPrimary} />
+                        <Text style={styles.secondaryActionBtnText}>{t('library.shuffle')}</Text>
+                      </TouchableOpacity>
+
+                      {activePlaylistTracks.length > 1 && (
+                        <TouchableOpacity
+                          style={styles.reorderToggleBtn}
+                          onPress={() => setIsEditMode(true)}
+                          activeOpacity={0.7}
+                        >
+                          <SlidersHorizontal size={16} color={colors.textPrimary} />
+                        </TouchableOpacity>
+                      )}
+
+                      <TouchableOpacity
+                        style={styles.optionsActionBtn}
+                        onPress={() => {
+                          setOptionsTargetPlaylist(activePlaylist);
+                          setIsPlaylistOptionsModalVisible(true);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <MoreVertical size={18} color={colors.textPrimary} />
+                      </TouchableOpacity>
+                    </>
+                  )}
                 </View>
               </View>
             </View>
@@ -643,6 +831,10 @@ export const LibraryScreen = ({ route }) => {
           onEdit={() => {
             setIsPlaylistOptionsModalVisible(false);
             setIsEditModalVisible(true);
+          }}
+          onReorder={() => {
+            setIsPlaylistOptionsModalVisible(false);
+            setIsEditMode(true);
           }}
           onAddSongs={() => {
             setIsPlaylistOptionsModalVisible(false);
@@ -1363,6 +1555,88 @@ const createStyles = (colors, isDark) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 'auto',
+  },
+  reorderToggleBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.full,
+    backgroundColor: colors.card,
+    borderWidth: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteSelectedActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.errorBg,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: radius.full,
+    gap: 6,
+    marginLeft: 'auto',
+  },
+  deleteSelectedBtnText: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: typography.sizes.xs,
+    color: colors.error,
+  },
+  reorderItemContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: radius.md,
+    marginHorizontal: spacing.sm,
+    marginBottom: spacing.xs,
+  },
+  reorderCheckCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: radius.full,
+    borderWidth: 1.5,
+    borderColor: colors.borderMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  reorderCheckCircleActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  reorderArtworkWrap: {
+    marginRight: 12,
+  },
+  reorderTextWrap: {
+    flex: 1,
+    marginRight: 8,
+  },
+  reorderTitle: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: typography.sizes.sm,
+    color: colors.textPrimary,
+  },
+  reorderArtist: {
+    fontFamily: typography.fonts.regular,
+    fontSize: typography.sizes.xs,
+    color: colors.textMuted,
+    marginTop: 2,
+  },
+  reorderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  reorderArrowBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
+    backgroundColor: colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reorderArrowBtnDisabled: {
+    opacity: 0.35,
   },
 
   addSongsModalRoot: {

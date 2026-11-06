@@ -895,7 +895,7 @@ export const SettingsScreen = () => {
               <View style={styles.appLogoCircle}>
                 <Music size={26} color={colors.textPrimary} />
               </View>
-              <Text style={styles.appName}>MusicPlayer</Text>
+              <Text style={styles.appName}>Sonorus</Text>
               <Text style={styles.appVersion}>{t('settings.version')}</Text>
             </View>
 

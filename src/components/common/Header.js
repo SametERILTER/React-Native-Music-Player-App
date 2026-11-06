@@ -12,7 +12,7 @@ export const Header = ({ title, subtitle, onRefresh, isRefreshing, style }) => {
     <View style={[styles.container, style]}>
       <View style={styles.titleWrapper}>
         {subtitle ? <Text style={styles.subtitle}>{subtitle.toUpperCase()}</Text> : null}
-        <Text style={styles.title}>{title}</Text>
+        {typeof title === 'string' ? <Text style={styles.title}>{title}</Text> : title?.(styles.title)}
       </View>
 
       {onRefresh && (

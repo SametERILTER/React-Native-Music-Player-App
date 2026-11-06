@@ -461,8 +461,8 @@ export const FullPlayerModal = ({ visible, onClose }) => {
   const headerTitleText = isPlaylistPlayback
     ? playbackContext.name
     : (currentTrack?.album && currentTrack.album !== 'Kütüphane' && currentTrack.album !== 'Library'
-        ? currentTrack.album
-        : t('player.deviceTracks'));
+      ? currentTrack.album
+      : t('player.deviceTracks'));
 
   const showGradient = isArtworkGradientEnabled !== false;
   const isExtracted = trackColors?.isExtracted === true;
@@ -1189,6 +1189,7 @@ const createStyles = (colors) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    transform: [{ translateY: 18 }],
   },
   headerIconBtnWrap: {
     justifyContent: 'center',

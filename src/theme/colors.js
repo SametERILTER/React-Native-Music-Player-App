@@ -64,12 +64,12 @@ export const lightColors = {
 
 export const darkColors = {
   background: '#050505',
-  backgroundSecondary: '#181818',
+  backgroundSecondary: '#222222',
 
-  card: '#121212',
-  cardSubtle: '#1A1A1A',
-  cardSelected: '#202020',
-  cardHigh: '#262626',
+  card: '#1E1E1E',
+  cardSubtle: '#282828',
+  cardSelected: '#323232',
+  cardHigh: '#3C3C3C',
 
   border: 'transparent',
   borderLight: 'transparent',
@@ -87,24 +87,24 @@ export const darkColors = {
   primaryContrast: '#050505',
   secondary: '#969696',
 
-  tabBarBackground: '#1C1C1C',
+  tabBarBackground: '#2A2A2A',
   tabBarActive: '#FFFFFF',
-  tabBarInactive: '#828282',
+  tabBarInactive: '#8C8C8C',
   tabBarPill: '#FFFFFF',
 
-  miniPlayerBackground: '#222222',
+  miniPlayerBackground: '#303030',
   miniPlayerTextPrimary: '#FFFFFF',
   miniPlayerTextSecondary: '#A3A3A3',
-  progressBarBackground: '#262626',
+  progressBarBackground: '#3C3C3C',
   progressBarFill: '#FFFFFF',
 
   error: '#FF6B6B',
   errorBg: 'rgba(255, 107, 107, 0.14)',
   errorBorder: 'transparent',
 
-  surfaceHighlight: 'rgba(255, 255, 255, 0.06)',
-  surfaceSubtle: 'rgba(255, 255, 255, 0.07)',
-  artworkPatternBg: '#171717',
+  surfaceHighlight: 'rgba(255, 255, 255, 0.09)',
+  surfaceSubtle: 'rgba(255, 255, 255, 0.11)',
+  artworkPatternBg: '#262626',
 
   gradientTop: [
     '#050505',

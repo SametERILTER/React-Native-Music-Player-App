@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   Image,
   TouchableOpacity,
   TextInput,
+  Animated,
+  Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,7 +26,7 @@ const DOT_HEART_DARK = require('../../assets/favorites_dot_dark.png');
 
 export const FavoritesScreen = () => {
   const { colors, isDark } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
   const {
@@ -39,9 +41,49 @@ export const FavoritesScreen = () => {
   } = usePlayer();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [stickyBarAnim] = useState(() => new Animated.Value(0));
+  const [isStickyVisible, setIsStickyVisible] = useState(false);
+  const isStickyRef = useRef(false);
 
   const topPadding = Math.max(insets.top, Platform.OS === 'android' ? 24 : 16) + spacing.sm;
   const bottomPadding = 220;
+
+  const handleScroll = useCallback(
+    (event) => {
+      onScrollForPlayer(event);
+      const offsetY = event?.nativeEvent?.contentOffset?.y ?? 0;
+
+      if (offsetY > 190 && !isStickyRef.current) {
+        isStickyRef.current = true;
+        setIsStickyVisible(true);
+        Animated.timing(stickyBarAnim, {
+          toValue: 1,
+          duration: 220,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }).start();
+      } else if (offsetY < 160 && isStickyRef.current) {
+        isStickyRef.current = false;
+        setIsStickyVisible(false);
+        Animated.timing(stickyBarAnim, {
+          toValue: 0,
+          duration: 180,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+    [onScrollForPlayer, stickyBarAnim]
+  );
+
+  const stickyBarTranslateY = useMemo(
+    () =>
+      stickyBarAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-18, 0],
+      }),
+    [stickyBarAnim]
+  );
 
   const allFavoriteTracks = useMemo(() => {
     return tracks.filter((tItem) => favorites.includes(tItem.id));
@@ -80,8 +122,8 @@ export const FavoritesScreen = () => {
       <FlatList
         data={favoriteTracks}
         keyExtractor={(item) => item.id.toString()}
-        onScroll={onScrollForPlayer}
-        scrollEventThrottle={64}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
         initialNumToRender={8}
         maxToRenderPerBatch={8}
         windowSize={5}
@@ -203,11 +245,48 @@ export const FavoritesScreen = () => {
         style={[styles.gradientTop, { height: topPadding + 16 }]}
         pointerEvents="none"
       />
+
+      <Animated.View
+        style={[
+          styles.stickyHeader,
+          {
+            paddingTop: topPadding - 4,
+            opacity: stickyBarAnim,
+            transform: [{ translateY: stickyBarTranslateY }],
+          },
+        ]}
+        pointerEvents={isStickyVisible ? 'box-none' : 'none'}
+      >
+        <LinearGradient
+          colors={colors.gradientStickySearch}
+          locations={[0, 0.6, 0.8, 0.92, 1]}
+          style={StyleSheet.absoluteFillObject}
+          pointerEvents="none"
+        />
+        <View style={styles.stickyBarRow}>
+          <View style={styles.stickyIconBox}>
+            <Heart size={18} color={isDark ? '#FFFFFF' : colors.primary} fill={isDark ? '#FFFFFF' : colors.primary} />
+          </View>
+
+          <Text style={styles.stickyHeaderTitle} numberOfLines={1}>
+            {t('favorites.title')}
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.stickyActionBtn, favoriteTracks.length === 0 && styles.disabledBtn]}
+            onPress={() => handlePlayFavorites(false)}
+            disabled={favoriteTracks.length === 0}
+            activeOpacity={0.7}
+          >
+            <Play size={16} color={colors.textPrimary} fill={colors.textPrimary} style={{ marginLeft: 1 }} />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
     </View>
   );
 };
 
-const createStyles = (colors) => StyleSheet.create({
+const createStyles = (colors, isDark) => StyleSheet.create({
   mainWrapper: {
     flex: 1,
     backgroundColor: colors.background,
@@ -218,6 +297,54 @@ const createStyles = (colors) => StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
+  },
+  stickyHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    zIndex: 45,
+  },
+  stickyBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    backgroundColor: isDark ? '#181818' : colors.card,
+    borderRadius: radius.full,
+    paddingVertical: 5,
+    paddingHorizontal: 6,
+    elevation: 6,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: isDark ? 0.35 : 0.08,
+    shadowRadius: 10,
+  },
+  stickyIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    backgroundColor: isDark ? '#242424' : colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stickyHeaderTitle: {
+    flex: 1,
+    fontFamily: typography.fonts.semiBold,
+    fontSize: typography.sizes.base,
+    color: colors.headerTitle,
+    textAlign: 'center',
+    letterSpacing: typography.letterSpacing.tight,
+  },
+  stickyActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.full,
+    backgroundColor: isDark ? '#242424' : colors.backgroundSecondary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   listContent: {
   },

@@ -35,9 +35,10 @@ const DEFAULT_PLAYLISTS = [
   },
 ];
 
-export const PlayerProgressProvider = ({ isPlaying, currentTrack, onTrackEnded, children }) => {
+export const PlayerProgressProvider = ({ isPlaying, currentTrack, onTrackEnded, initialPosition = 0, children }) => {
   const [prevTrackId, setPrevTrackId] = useState(currentTrack?.id);
-  const [position, setPosition] = useState(0);
+  const [isLoadedOnce, setIsLoadedOnce] = useState(false);
+  const [position, setPosition] = useState(initialPosition || 0);
   const [actualDuration, setActualDuration] = useState(currentTrack?.duration || 180);
   const onTrackEndedRef = useRef(onTrackEnded);
 
@@ -47,9 +48,20 @@ export const PlayerProgressProvider = ({ isPlaying, currentTrack, onTrackEnded, 
 
   if (currentTrack?.id !== prevTrackId) {
     setPrevTrackId(currentTrack?.id);
-    setPosition(0);
+    if (isLoadedOnce) {
+      setPosition(0);
+    } else {
+      setIsLoadedOnce(true);
+    }
     setActualDuration(currentTrack?.duration || 180);
   }
+
+  // Pozisyonu periyodik olarak kaydet (resume için)
+  useEffect(() => {
+    if (position > 0 && currentTrack?.id) {
+      safeStorage.setItem('@musicplayer_saved_position', String(position)).catch(() => {});
+    }
+  }, [position, currentTrack?.id]);
 
   useEffect(() => {
     let interval = null;
@@ -129,6 +141,7 @@ export const PlayerProvider = ({ children }) => {
   const [autoPlayNext, setAutoPlayNextState] = useState(true);
   const [queue, setQueue] = useState([]);
   const [playbackContext, setPlaybackContext] = useState(null);
+  const [initialSavedPosition, setInitialSavedPosition] = useState(0);
 
   const toggleRepeatMode = useCallback(() => {
     setRepeatMode((prev) => {
@@ -184,12 +197,16 @@ export const PlayerProvider = ({ children }) => {
     let isMounted = true;
     const initializeLibrary = async () => {
       try {
-        const [storedCovers, storedTracks, storedFavorites, storedPlaylists, storedCustomMeta] = await Promise.all([
+        const [storedCovers, storedTracks, storedFavorites, storedPlaylists, storedCustomMeta, storedLastTrackId, storedLastQueue, storedLastContext, storedLastPosition] = await Promise.all([
           safeStorage.getItem('@musicplayer_track_covers'),
           safeStorage.getItem(CACHED_TRACKS_KEY),
           safeStorage.getItem('@musicplayer_favorites'),
           safeStorage.getItem('@musicplayer_playlists'),
           safeStorage.getItem('@musicplayer_custom_track_meta'),
+          safeStorage.getItem('@musicplayer_last_track_id'),
+          safeStorage.getItem('@musicplayer_last_queue'),
+          safeStorage.getItem('@musicplayer_last_context'),
+          safeStorage.getItem('@musicplayer_saved_position'),
         ]);
 
         if (!isMounted) return;
@@ -325,16 +342,80 @@ export const PlayerProvider = ({ children }) => {
           }
           return t;
         });
-        setTracks(allTracks);
-        setQueue((currQ) => (currQ && currQ.length > 0 ? currQ.filter((t) => !t.id.startsWith('demo-')) : allTracks));
-        setPlaybackContext((currCtx) => currCtx || { type: 'library', name: 'Cihaz Müzikleri' });
+        // Kaydedilmiş son sıra ve bağlamı geri yükle
+        let restoredQueue = allTracks;
+        if (storedLastQueue) {
+          try {
+            const parsedQueueIds = JSON.parse(storedLastQueue);
+            if (Array.isArray(parsedQueueIds) && parsedQueueIds.length > 0) {
+              const tracksMap = new Map(allTracks.map((t) => [t.id, t]));
+              const reconstructedQueue = parsedQueueIds
+                .map((id) => tracksMap.get(id))
+                .filter(Boolean);
+              if (reconstructedQueue.length > 0) {
+                restoredQueue = reconstructedQueue;
+              }
+            }
+          } catch (_) {}
+        }
 
-        setCurrentTrack((curr) => {
-          if (!curr || (curr.id && curr.id.startsWith('demo-'))) {
-            return allTracks[0] || null;
+        let restoredContext = { type: 'library', name: 'Cihaz Müzikleri' };
+        if (storedLastContext) {
+          try {
+            const parsedContext = JSON.parse(storedLastContext);
+            if (parsedContext && parsedContext.type) {
+              restoredContext = parsedContext;
+            }
+          } catch (_) {}
+        }
+
+        let restoredTrack = null;
+        if (storedLastTrackId) {
+          restoredTrack = allTracks.find((t) => t.id === storedLastTrackId) || null;
+        }
+        if (!restoredTrack) {
+          restoredTrack = restoredQueue[0] || allTracks[0] || null;
+        }
+
+        let restoredPos = 0;
+        if (storedLastPosition) {
+          const parsedPos = parseInt(storedLastPosition, 10);
+          if (!isNaN(parsedPos) && parsedPos > 0) {
+            restoredPos = parsedPos;
+            setInitialSavedPosition(parsedPos);
           }
-          return curr;
-        });
+        }
+
+        setTracks(allTracks);
+        setQueue(restoredQueue);
+        setPlaybackContext(restoredContext);
+        setCurrentTrack(restoredTrack);
+
+        // TrackPlayer'a şarkıyı hazırla ama otomatik çalma (kullanıcı hazır olduğunda play'e basabilir)
+        if (restoredTrack) {
+          setupTrackPlayer().then(async (ready) => {
+            if (ready) {
+              const TrackPlayer = getTrackPlayer();
+              if (TrackPlayer) {
+                try {
+                  await TrackPlayer.reset();
+                  await TrackPlayer.add({
+                    id: String(restoredTrack.id),
+                    url: restoredTrack.uri,
+                    title: restoredTrack.title,
+                    artist: restoredTrack.artist || 'Bilinmeyen Sanatçı',
+                    album: restoredTrack.album || 'Kütüphane',
+                    duration: restoredTrack.duration,
+                    artwork: restoredTrack.coverArt,
+                  });
+                  if (restoredPos > 0 && typeof TrackPlayer.seekTo === 'function') {
+                    await TrackPlayer.seekTo(restoredPos);
+                  }
+                } catch (_) {}
+              }
+            }
+          });
+        }
       } catch (err) {
         console.warn('Kütüphane başlatılırken hata:', err);
         if (isMounted) {
@@ -661,20 +742,31 @@ export const PlayerProvider = ({ children }) => {
     setQueue(targetQueue);
     queueRef.current = targetQueue;
 
+    // Son çalınan şarkı ve sırayı kalıcı hafızaya kaydet
+    safeStorage.setItem('@musicplayer_last_track_id', String(track.id)).catch(() => {});
+    if (Array.isArray(targetQueue) && targetQueue.length > 0) {
+      const queueIds = targetQueue.map((t) => t.id);
+      safeStorage.setItem('@musicplayer_last_queue', JSON.stringify(queueIds)).catch(() => {});
+    }
+
     if (newContext) {
       setPlaybackContext(newContext);
+      safeStorage.setItem('@musicplayer_last_context', JSON.stringify(newContext)).catch(() => {});
     } else {
       setPlaybackContext((currContext) => {
         if (currContext && (!newQueue || currContext.id)) {
+          safeStorage.setItem('@musicplayer_last_context', JSON.stringify(currContext)).catch(() => {});
           return currContext;
         }
-        return {
+        const fallbackContext = {
           type: 'library',
           name:
             track.album && track.album !== 'Kütüphane' && track.album !== 'Library'
               ? track.album
               : t('playerContext.deviceTracks'),
         };
+        safeStorage.setItem('@musicplayer_last_context', JSON.stringify(fallbackContext)).catch(() => {});
+        return fallbackContext;
       });
     }
 
@@ -963,6 +1055,37 @@ export const PlayerProvider = ({ children }) => {
     });
   }, [setPlaylists]);
 
+  const reorderPlaylistTracks = useCallback((playlistId, newTrackIds) => {
+    if (!playlistId || !Array.isArray(newTrackIds)) return;
+    setPlaylists((prev) => {
+      const next = prev.map((pl) => {
+        if (pl.id !== playlistId) return pl;
+        return {
+          ...pl,
+          trackIds: newTrackIds,
+        };
+      });
+      safeStorage.setItem('@musicplayer_playlists', JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, [setPlaylists]);
+
+  const removeTracksFromPlaylist = useCallback((playlistId, trackIdsToRemove) => {
+    if (!playlistId || !Array.isArray(trackIdsToRemove) || trackIdsToRemove.length === 0) return;
+    const removeSet = new Set(trackIdsToRemove);
+    setPlaylists((prev) => {
+      const next = prev.map((pl) => {
+        if (pl.id !== playlistId) return pl;
+        return {
+          ...pl,
+          trackIds: pl.trackIds.filter((id) => !removeSet.has(id)),
+        };
+      });
+      safeStorage.setItem('@musicplayer_playlists', JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  }, [setPlaylists]);
+
   const deleteTrack = useCallback(async (trackId) => {
     if (!trackId) return;
 
@@ -1201,6 +1324,8 @@ export const PlayerProvider = ({ children }) => {
     deletePlaylist,
     deleteTrack,
     toggleTrackInPlaylist,
+    reorderPlaylistTracks,
+    removeTracksFromPlaylist,
     compactProgress,
     onScrollForPlayer,
     trackCovers,
@@ -1274,6 +1399,8 @@ export const PlayerProvider = ({ children }) => {
     deletePlaylist,
     deleteTrack,
     toggleTrackInPlaylist,
+    reorderPlaylistTracks,
+    removeTracksFromPlaylist,
     compactProgress,
     onScrollForPlayer,
     isFullPlayerOpen,
@@ -1305,6 +1432,7 @@ export const PlayerProvider = ({ children }) => {
         isPlaying={isPlaying}
         currentTrack={currentTrack}
         onTrackEnded={handleTrackEnded}
+        initialPosition={initialSavedPosition}
       >
         {children}
       </PlayerProgressProvider>
