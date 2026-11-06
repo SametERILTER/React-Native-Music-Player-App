@@ -10,6 +10,8 @@ import { useTheme } from './ThemeContext';
 import { useLanguage } from './LanguageContext';
 
 const PlayerContext = createContext(null);
+const PlayerStateContext = createContext(null);
+const PlayerActionsContext = createContext(null);
 const PlayerProgressContext = createContext({
   position: 0,
   duration: 180,
@@ -1293,69 +1295,30 @@ export const PlayerProvider = ({ children }) => {
     }
   }, [scanDeviceTracks]);
 
-  const playerValue = useMemo(() => ({
+  // Frequently changing data (track, queue, favorites, ...)
+  const stateValue = useMemo(() => ({
     tracks,
     currentTrack,
     isPlaying,
     favorites,
     playlists,
     queue,
-    setQueue,
     playbackContext,
-    setPlaybackContext,
-    removeFromQueue,
-    clearUpcomingQueue,
-    toggleRepeatMode,
     isShuffle,
     repeatMode,
-    setRepeatMode,
     isScanningDevice,
     hasDevicePermission,
     deviceTrackCount,
-    scanDeviceTracks,
-    playTrack,
-    togglePlayPause,
-    playNext,
-    playPrevious,
-    toggleFavorite,
-    toggleShuffle,
-    createPlaylist,
-    updatePlaylist,
-    deletePlaylist,
-    deleteTrack,
-    toggleTrackInPlaylist,
-    reorderPlaylistTracks,
-    removeTracksFromPlaylist,
-    compactProgress,
-    onScrollForPlayer,
     trackCovers,
-    updateTrackCover,
     customTrackMeta,
-    updateTrackInfo,
-    assignRandomCoversToAll,
-    resetAllCovers,
     isDownloadingCovers,
     downloadCoversProgress,
-    startDownloadAllCovers,
-    cancelDownloadCovers,
-    batchUpdateTrackCovers,
     autoPlayNext,
-    setAutoPlayNext,
     isArtworkGradientEnabled,
-    toggleArtworkGradient,
     isFullPlayerOpen,
-    openFullPlayer,
-    closeFullPlayer,
     playlistModalTrack,
     songOptionsTrack,
-    openSongOptions,
-    closeSongOptions,
-    openAddToPlaylist,
-    closeAddToPlaylist,
     isPermissionModalOpen,
-    openPermissionModal,
-    closePermissionModal,
-    requestPermissionsAndScan,
   }), [
     tracks,
     currentTrack,
@@ -1364,29 +1327,31 @@ export const PlayerProvider = ({ children }) => {
     playlists,
     queue,
     playbackContext,
-    removeFromQueue,
-    clearUpcomingQueue,
-    toggleRepeatMode,
-    trackCovers,
-    updateTrackCover,
-    customTrackMeta,
-    updateTrackInfo,
-    assignRandomCoversToAll,
-    resetAllCovers,
-    isDownloadingCovers,
-    downloadCoversProgress,
-    startDownloadAllCovers,
-    cancelDownloadCovers,
-    batchUpdateTrackCovers,
-    autoPlayNext,
-    setAutoPlayNext,
-    isArtworkGradientEnabled,
-    toggleArtworkGradient,
     isShuffle,
     repeatMode,
     isScanningDevice,
     hasDevicePermission,
     deviceTrackCount,
+    trackCovers,
+    customTrackMeta,
+    isDownloadingCovers,
+    downloadCoversProgress,
+    autoPlayNext,
+    isArtworkGradientEnabled,
+    isFullPlayerOpen,
+    playlistModalTrack,
+    songOptionsTrack,
+    isPermissionModalOpen,
+  ]);
+
+  // Mostly stable functions
+  const actionsValue = useMemo(() => ({
+    setQueue,
+    setPlaybackContext,
+    setRepeatMode,
+    removeFromQueue,
+    clearUpcomingQueue,
+    toggleRepeatMode,
     scanDeviceTracks,
     playTrack,
     togglePlayPause,
@@ -1403,20 +1368,72 @@ export const PlayerProvider = ({ children }) => {
     removeTracksFromPlaylist,
     compactProgress,
     onScrollForPlayer,
-    isFullPlayerOpen,
+    updateTrackCover,
+    updateTrackInfo,
+    assignRandomCoversToAll,
+    resetAllCovers,
+    startDownloadAllCovers,
+    cancelDownloadCovers,
+    batchUpdateTrackCovers,
+    setAutoPlayNext,
+    toggleArtworkGradient,
     openFullPlayer,
     closeFullPlayer,
-    playlistModalTrack,
-    songOptionsTrack,
     openSongOptions,
     closeSongOptions,
     openAddToPlaylist,
     closeAddToPlaylist,
-    isPermissionModalOpen,
+    openPermissionModal,
+    closePermissionModal,
+    requestPermissionsAndScan,
+  }), [
+    setQueue,
+    setPlaybackContext,
+    setRepeatMode,
+    removeFromQueue,
+    clearUpcomingQueue,
+    toggleRepeatMode,
+    scanDeviceTracks,
+    playTrack,
+    togglePlayPause,
+    playNext,
+    playPrevious,
+    toggleFavorite,
+    toggleShuffle,
+    createPlaylist,
+    updatePlaylist,
+    deletePlaylist,
+    deleteTrack,
+    toggleTrackInPlaylist,
+    reorderPlaylistTracks,
+    removeTracksFromPlaylist,
+    compactProgress,
+    onScrollForPlayer,
+    updateTrackCover,
+    updateTrackInfo,
+    assignRandomCoversToAll,
+    resetAllCovers,
+    startDownloadAllCovers,
+    cancelDownloadCovers,
+    batchUpdateTrackCovers,
+    setAutoPlayNext,
+    toggleArtworkGradient,
+    openFullPlayer,
+    closeFullPlayer,
+    openSongOptions,
+    closeSongOptions,
+    openAddToPlaylist,
+    closeAddToPlaylist,
     openPermissionModal,
     closePermissionModal,
     requestPermissionsAndScan,
   ]);
+
+  // Backwards compatibility: usePlayer() still returns the merged object
+  const playerValue = useMemo(
+    () => ({ ...stateValue, ...actionsValue }),
+    [stateValue, actionsValue]
+  );
 
   if (!isLibraryLoaded) {
     return (
@@ -1427,6 +1444,8 @@ export const PlayerProvider = ({ children }) => {
   }
 
   return (
+    <PlayerStateContext.Provider value={stateValue}>
+    <PlayerActionsContext.Provider value={actionsValue}>
     <PlayerContext.Provider value={playerValue}>
       <PlayerProgressProvider
         isPlaying={isPlaying}
@@ -1437,6 +1456,8 @@ export const PlayerProvider = ({ children }) => {
         {children}
       </PlayerProgressProvider>
     </PlayerContext.Provider>
+    </PlayerActionsContext.Provider>
+    </PlayerStateContext.Provider>
   );
 };
 
@@ -1452,6 +1473,22 @@ export const usePlayer = () => {
   const context = useContext(PlayerContext);
   if (!context) {
     throw new Error('usePlayer, PlayerProvider içinde kullanılmalıdır.');
+  }
+  return context;
+};
+
+export const usePlayerState = () => {
+  const context = useContext(PlayerStateContext);
+  if (!context) {
+    throw new Error('usePlayerState must be used within PlayerProvider');
+  }
+  return context;
+};
+
+export const usePlayerActions = () => {
+  const context = useContext(PlayerActionsContext);
+  if (!context) {
+    throw new Error('usePlayerActions must be used within PlayerProvider');
   }
   return context;
 };
