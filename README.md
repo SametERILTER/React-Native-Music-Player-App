@@ -1,4 +1,4 @@
-# MusicPlayer
+# Sonorus - Music Player
 
 A modern, high-performance local audio player for Android built with React Native and Expo. The interface draws inspiration from the dot-matrix minimalism of Nothing OS, the fluid ergonomics and tactile sheet transitions of Apple Music, and polished interaction patterns found in leading modern design systems.
 
@@ -6,7 +6,7 @@ A modern, high-performance local audio player for Android built with React Nativ
 
 ## Overview
 
-MusicPlayer was developed as a clean, local-first alternative to bloated streaming clients. Most modern mobile players prioritize algorithmic feeds, social integrations, and subscription banners over the actual music stored on the user's device. 
+Sonorus (Music Player) was developed as a clean, local-first alternative to bloated streaming clients. Most modern mobile players prioritize algorithmic feeds, social integrations, and subscription banners over the actual music stored on the user's device. 
 
 This project strips away all external distractions, providing a focused, responsive listening environment. It marries strict visual restraint with robust native audio playback, offering comprehensive queue control, sound personalization, and an intelligent device scanner that keeps local libraries clean from voice notes and notification sounds.
 
@@ -27,12 +27,12 @@ The application's aesthetic sits at the intersection of several distinct industr
 
 ### 1. Audio Engine and Background Playback
 * **Native Foreground Service**: Uses `react-native-track-player` to anchor playback in an Android foreground service. Playback remains uninterrupted when switching apps, locking the device, or when the system enters deep battery-saving states.
+* **Crossfade (Experimental / Deneysel)**: Smooth overlapping audio transitions between tracks with customizable duration (Off, 3s, 5s, 8s, 12s) configured directly in Settings. Utilizes a dual-engine orchestration mechanism to gracefully fade out the ending track while fading in the next track.
 * **Lock Screen and Notification Center**: Full system media notification support with artwork thumbnail, scrubbing timeline, skip back/forward, and play/pause controls.
 * **DSP and Audio Customization**:
   * Variable playback rate (from 0.5x up to 2.0x).
   * Pitch adjustments for altered playback tuning.
   * Simulated audio effect presets: Bass Boost, Treble Boost, and Spatial Ambience.
-  * Configurable crossfade between queue items to eliminate awkward gaps.
 * **Dynamic Artwork Gradient**: An optional visual mode that samples dominant color profiles from album artwork and renders an ambient top-down linear gradient directly inside the full-screen player modal.
 
 ### 2. Smart Media Indexer and Junk Filter

@@ -4,6 +4,23 @@ import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import { safeStorage } from '../services/storageService';
 import { fetchDeviceAudioTracks, extractTrackMetadata, checkMediaPermissions, requestMediaPermissions } from '../services/musicService';
 import { setupTrackPlayer, getTrackPlayer, Event, State, registerServiceCallbacks } from '../services/trackPlayerService';
+import {
+  getCrossfadeSeconds,
+  setCrossfadeSecondsValue,
+  normalizeCrossfadeSeconds,
+  isFadingOut,
+  hasOverlapStarted,
+  markOverlapStarted,
+  clearOverlapStart,
+  prepareOverlap,
+  beginOverlap,
+  fadeOut,
+  fadeIn,
+  cancelFade,
+  setVolumeImmediately,
+  markAutoTransition,
+  consumeAutoTransition,
+} from '../services/crossfadeService';
 import { ALL_COVERS } from '../constants/playlistCovers';
 import { downloadAllOnlineCovers } from '../services/albumArtService';
 import { useTheme } from './ThemeContext';
@@ -43,6 +60,11 @@ export const PlayerProgressProvider = ({ isPlaying, currentTrack, onTrackEnded, 
   const [position, setPosition] = useState(initialPosition || 0);
   const [actualDuration, setActualDuration] = useState(currentTrack?.duration || 180);
   const onTrackEndedRef = useRef(onTrackEnded);
+  const trackRef = useRef(currentTrack);
+
+  useEffect(() => {
+    trackRef.current = currentTrack;
+  }, [currentTrack]);
 
   useEffect(() => {
     onTrackEndedRef.current = onTrackEnded;
@@ -79,6 +101,30 @@ export const PlayerProgressProvider = ({ isPlaying, currentTrack, onTrackEnded, 
               setPosition(currentPos);
               if (prog.duration > 0 && Math.round(prog.duration) !== actualDuration) {
                 setActualDuration(Math.round(prog.duration));
+              }
+
+              // Crossfade: şarkı bitmeden önce sıradakine yumuşak geçiş yap
+              const xfSeconds = getCrossfadeSeconds();
+              const xfTrack = trackRef.current;
+              if (xfSeconds > 0 && xfTrack && trackDur > xfSeconds * 2 + 8) {
+                const remaining = trackDur - prog.position;
+                if (remaining > xfSeconds + 7) {
+                  // Geri sarıldıysa hazırlıkları iptal et
+                  if (isFadingOut() || hasOverlapStarted(xfTrack.id)) cancelFade(true);
+                } else if (remaining > xfSeconds) {
+                  prepareOverlap(xfTrack.uri);
+                } else if (remaining > 1 && !hasOverlapStarted(xfTrack.id)) {
+                  markOverlapStarted(xfTrack.id);
+                  const fadeMs = Math.max(remaining * 1000 - 500, 600);
+                  beginOverlap(xfTrack.uri, fadeMs).then((result) => {
+                    if (result === true) {
+                      markAutoTransition();
+                      onTrackEndedRef.current?.();
+                    } else if (result === false) {
+                      fadeOut(Math.max((remaining - 1) * 1000, 400));
+                    }
+                  });
+                }
               }
 
               // Güvenlik kontrolü: Şarkı sonuna gelindiğinde sıradaki parçaya otomatik geçişi tetikle
@@ -170,10 +216,18 @@ export const PlayerProvider = ({ children }) => {
   const cancelDownloadCoversRef = useRef(false);
 
   const [isArtworkGradientEnabled, setIsArtworkGradientEnabledState] = useState(true);
+  const [crossfadeSeconds, setCrossfadeSecondsState] = useState(0);
 
   useEffect(() => {
     safeStorage.getItem('@settings_auto_play_next').then((val) => {
       if (val !== null) setAutoPlayNextState(val === 'true');
+    });
+    safeStorage.getItem('@settings_crossfade_seconds').then((val) => {
+      if (val !== null) {
+        const seconds = normalizeCrossfadeSeconds(val);
+        setCrossfadeSecondsValue(seconds);
+        setCrossfadeSecondsState(seconds);
+      }
     });
     safeStorage.getItem('@settings_artwork_gradient').then((val) => {
       if (val !== null) setIsArtworkGradientEnabledState(val === 'true');
@@ -183,6 +237,13 @@ export const PlayerProvider = ({ children }) => {
   const setAutoPlayNext = useCallback((val) => {
     setAutoPlayNextState(val);
     safeStorage.setItem('@settings_auto_play_next', String(val)).catch(() => {});
+  }, []);
+
+  const setCrossfadeSeconds = useCallback((val) => {
+    const seconds = normalizeCrossfadeSeconds(val);
+    setCrossfadeSecondsValue(seconds);
+    setCrossfadeSecondsState(seconds);
+    safeStorage.setItem('@settings_crossfade_seconds', String(seconds)).catch(() => {});
   }, []);
 
   const toggleArtworkGradient = useCallback(() => {
@@ -728,6 +789,7 @@ export const PlayerProvider = ({ children }) => {
     if (!track) return;
     lastEndedTrackIdRef.current = null;
     isEndingRef.current = false;
+    clearOverlapStart();
 
     const activeCover = trackCoversRef.current[track.id] || track.coverId || null;
     const trackWithCover = { ...track, coverId: activeCover };
@@ -775,6 +837,7 @@ export const PlayerProvider = ({ children }) => {
     const TrackPlayer = getTrackPlayer();
     if (isTrackPlayerReady.current && TrackPlayer) {
       try {
+        const fadeInMs = consumeAutoTransition();
         await TrackPlayer.reset();
         await TrackPlayer.add({
           id: String(track.id),
@@ -785,7 +848,15 @@ export const PlayerProvider = ({ children }) => {
           duration: track.duration,
           artwork: track.coverArt,
         });
+        if (fadeInMs > 0) {
+          await setVolumeImmediately(0);
+        } else {
+          cancelFade(true);
+        }
         await TrackPlayer.play();
+        if (fadeInMs > 0) {
+          fadeIn(fadeInMs);
+        }
       } catch (err) {
         console.warn('TrackPlayer parça çalma uyarısı:', err?.message || err);
       }
@@ -801,6 +872,7 @@ export const PlayerProvider = ({ children }) => {
           if (nextState) {
             TrackPlayer.play();
           } else {
+            cancelFade(true);
             TrackPlayer.pause();
           }
         } catch (err) {
@@ -832,6 +904,7 @@ export const PlayerProvider = ({ children }) => {
         nextIndex = 0;
       } else if (currentIndex + 1 >= activeList.length) {
         if (repeatModeRef.current === 'off' && !autoPlayNextRef.current) {
+          cancelFade(true);
           setIsPlaying(false);
           const TrackPlayer = getTrackPlayer();
           if (isTrackPlayerReady.current && TrackPlayer) {
@@ -898,6 +971,7 @@ export const PlayerProvider = ({ children }) => {
 
     const mode = repeatModeRef.current;
     if (mode === 'one') {
+      cancelFade(true);
       const TrackPlayer = getTrackPlayer();
       if (isTrackPlayerReady.current && TrackPlayer) {
         try {
@@ -913,6 +987,7 @@ export const PlayerProvider = ({ children }) => {
     }
 
     if (!autoPlayNextRef.current) {
+      cancelFade(true);
       setIsPlaying(false);
       const TrackPlayer = getTrackPlayer();
       if (isTrackPlayerReady.current && TrackPlayer) {
@@ -921,6 +996,7 @@ export const PlayerProvider = ({ children }) => {
       return;
     }
 
+    markAutoTransition();
     playNext();
   }, [playNext]);
 
@@ -934,6 +1010,7 @@ export const PlayerProvider = ({ children }) => {
         if (TP) TP.play().catch(() => {});
       },
       onPause: () => {
+        cancelFade(true);
         setIsPlaying(false);
         const TP = getTrackPlayer();
         if (TP) TP.pause().catch(() => {});
@@ -1314,6 +1391,7 @@ export const PlayerProvider = ({ children }) => {
     isDownloadingCovers,
     downloadCoversProgress,
     autoPlayNext,
+    crossfadeSeconds,
     isArtworkGradientEnabled,
     isFullPlayerOpen,
     playlistModalTrack,
@@ -1337,6 +1415,7 @@ export const PlayerProvider = ({ children }) => {
     isDownloadingCovers,
     downloadCoversProgress,
     autoPlayNext,
+    crossfadeSeconds,
     isArtworkGradientEnabled,
     isFullPlayerOpen,
     playlistModalTrack,
@@ -1376,6 +1455,7 @@ export const PlayerProvider = ({ children }) => {
     cancelDownloadCovers,
     batchUpdateTrackCovers,
     setAutoPlayNext,
+    setCrossfadeSeconds,
     toggleArtworkGradient,
     openFullPlayer,
     closeFullPlayer,
@@ -1417,6 +1497,7 @@ export const PlayerProvider = ({ children }) => {
     cancelDownloadCovers,
     batchUpdateTrackCovers,
     setAutoPlayNext,
+    setCrossfadeSeconds,
     toggleArtworkGradient,
     openFullPlayer,
     closeFullPlayer,

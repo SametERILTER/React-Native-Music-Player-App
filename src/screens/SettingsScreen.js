@@ -41,6 +41,7 @@ import {
 } from 'lucide-react-native';
 import { typography, spacing, radius } from '../theme';
 import { usePlayer } from '../context/PlayerContext';
+import { CROSSFADE_OPTIONS } from '../services/crossfadeService';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { safeStorage } from '../services/storageService';
@@ -64,6 +65,8 @@ export const SettingsScreen = () => {
     playlists,
     autoPlayNext,
     setAutoPlayNext,
+    crossfadeSeconds,
+    setCrossfadeSeconds,
     isArtworkGradientEnabled,
     toggleArtworkGradient,
     hasDevicePermission,
@@ -583,6 +586,38 @@ export const SettingsScreen = () => {
                 trackColor={{ false: colors.borderLight, true: colors.primary }}
                 thumbColor={colors.primaryContrast}
               />
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.themeModeSection}>
+              <View style={styles.settingRowCompact}>
+                <View style={styles.menuIconBox}>
+                  <Music size={18} color={colors.textPrimary} />
+                </View>
+                <View style={styles.settingTextWrap}>
+                  <Text style={styles.settingTitle}>{t('settings.crossfadeTitle')}</Text>
+                  <Text style={styles.settingSubtitle}>{t('settings.crossfadeDesc')}</Text>
+                </View>
+              </View>
+
+              <View style={styles.themeSegmentContainer}>
+                {CROSSFADE_OPTIONS.map((seconds) => {
+                  const isSelected = crossfadeSeconds === seconds;
+                  return (
+                    <TouchableOpacity
+                      key={seconds}
+                      style={[styles.themeSegmentBtn, isSelected && styles.themeSegmentBtnActive]}
+                      onPress={() => setCrossfadeSeconds(seconds)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.themeSegmentText, isSelected && styles.themeSegmentTextActive]}>
+                        {seconds === 0 ? t('settings.crossfadeOff') : `${seconds} ${t('settings.secondsShort')}`}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </View>
           </View>
         )}
