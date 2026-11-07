@@ -753,15 +753,30 @@ export const LibraryScreen = ({ route }) => {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Music2 size={32} color={colors.textTertiary} />
+              <Music2 size={36} color={colors.textTertiary} />
               <Text style={styles.emptyTitle}>
-                {playlistSearchQuery ? t('library.searchNoResultTitle') : t('library.emptyListTitle')}
+                {playlistSearchQuery && activePlaylist.trackIds.length > 0
+                  ? t('library.searchNoResultTitle')
+                  : t('library.emptyListTitle')}
               </Text>
               <Text style={styles.emptyDesc}>
-                {playlistSearchQuery
+                {playlistSearchQuery && activePlaylist.trackIds.length > 0
                   ? t('library.searchNoResultDesc', { query: playlistSearchQuery })
                   : t('library.emptyListDesc')}
               </Text>
+              {activePlaylist.trackIds.length === 0 && (
+                <TouchableOpacity
+                  style={styles.emptyAddBtn}
+                  onPress={() => {
+                    setAddSongsSearchQuery('');
+                    setIsAddSongsModalVisible(true);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Plus size={16} color={colors.primaryContrast} strokeWidth={2.4} />
+                  <Text style={styles.emptyAddBtnText}>{t('library.addSongsBtn')}</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
         />
@@ -1768,6 +1783,22 @@ const createStyles = (colors, isDark) => StyleSheet.create({
     color: colors.textMuted,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  emptyAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 11,
+    paddingHorizontal: 20,
+    borderRadius: radius.full,
+    gap: 7,
+    marginTop: spacing.md,
+  },
+  emptyAddBtnText: {
+    fontFamily: typography.fonts.semiBold,
+    fontSize: typography.sizes.sm,
+    color: colors.primaryContrast,
   },
   modalOverlay: {
     flex: 1,

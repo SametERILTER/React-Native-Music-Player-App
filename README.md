@@ -27,7 +27,7 @@ The application's aesthetic sits at the intersection of several distinct industr
 
 ### 1. Audio Engine and Background Playback
 * **Native Foreground Service**: Uses `react-native-track-player` to anchor playback in an Android foreground service. Playback remains uninterrupted when switching apps, locking the device, or when the system enters deep battery-saving states.
-* **Crossfade (Experimental / Deneysel)**: Smooth overlapping audio transitions between tracks with customizable duration (Off, 3s, 5s, 8s, 12s) configured directly in Settings. Utilizes a dual-engine orchestration mechanism to gracefully fade out the ending track while fading in the next track.
+* **Crossfade (Experimental)**: Smooth overlapping audio transitions between tracks with customizable duration (Off, 3s, 5s, 8s, 12s) configured directly in Settings. Utilizes a dual-engine orchestration mechanism to gracefully fade out the ending track while fading in the next track.
 * **Lock Screen and Notification Center**: Full system media notification support with artwork thumbnail, scrubbing timeline, skip back/forward, and play/pause controls.
 * **DSP and Audio Customization**:
   * Variable playback rate (from 0.5x up to 2.0x).
