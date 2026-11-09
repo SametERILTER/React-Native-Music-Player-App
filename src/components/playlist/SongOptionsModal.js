@@ -31,6 +31,7 @@ import {
   Plus,
   Check,
   ListMusic,
+  SkipForward,
   Info,
   Clock,
   HardDrive,
@@ -60,6 +61,8 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
     createPlaylist,
     toggleTrackInPlaylist,
     deleteTrack,
+    playTrackNext,
+    addToQueue,
   } = usePlayer();
 
   const [viewMode, setViewMode] = useState('options');
@@ -204,6 +207,48 @@ export const SongOptionsModal = ({ visible, track, onClose }) => {
 
             {viewMode === 'options' && (
               <View style={styles.optionsList}>
+                <TouchableOpacity
+                  style={styles.optionItem}
+                  onPress={() => {
+                    if (playTrackNext && track) {
+                      playTrackNext(track);
+                    }
+                    handleClose();
+                  }}
+                  activeOpacity={0.65}
+                >
+                  <View style={styles.optionIconContainer}>
+                    <SkipForward size={20} color={colors.textPrimary} />
+                  </View>
+                  <View style={styles.optionContent}>
+                    <Text style={styles.optionTitle}>{t('songOptions.playNext')}</Text>
+                    <Text style={styles.optionDesc}>
+                      {t('songOptions.playNextDesc')}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.optionItem}
+                  onPress={() => {
+                    if (addToQueue && track) {
+                      addToQueue(track);
+                    }
+                    handleClose();
+                  }}
+                  activeOpacity={0.65}
+                >
+                  <View style={styles.optionIconContainer}>
+                    <ListMusic size={20} color={colors.textPrimary} />
+                  </View>
+                  <View style={styles.optionContent}>
+                    <Text style={styles.optionTitle}>{t('songOptions.addToQueue')}</Text>
+                    <Text style={styles.optionDesc}>
+                      {t('songOptions.addToQueueDesc')}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={styles.optionItem}
                   onPress={() => setViewMode('playlists')}

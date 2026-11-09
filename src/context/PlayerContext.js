@@ -906,7 +906,9 @@ export const PlayerProvider = ({ children }) => {
     const currentIndex = activeList.findIndex((t) => t.id === curr?.id);
     let nextIndex = 0;
 
-    if (isShuffleRef.current) {
+    if (currentIndex !== -1 && activeList[currentIndex + 1]?._userQueued) {
+      nextIndex = currentIndex + 1;
+    } else if (isShuffleRef.current) {
       if (activeList.length > 1) {
         do {
           nextIndex = Math.floor(Math.random() * activeList.length);
@@ -937,6 +939,93 @@ export const PlayerProvider = ({ children }) => {
     if (nextTrack) {
       playTrack(nextTrack, activeList);
     }
+  }, [playTrack]);
+
+  const playTrackNext = useCallback((track) => {
+    if (!track) return;
+    const curr = currentTrackRef.current;
+    if (!curr) {
+      playTrack(track);
+      return;
+    }
+
+    const activeCover = trackCoversRef.current[track.id] || track.coverId || null;
+    const queuedTrack = { ...track, coverId: activeCover, _userQueued: true };
+
+    setQueue((prevQueue) => {
+      const baseList = prevQueue && prevQueue.length > 0
+        ? prevQueue
+        : (tracksRef.current && tracksRef.current.length > 0 ? tracksRef.current : [curr]);
+
+      const firstCurrIdx = baseList.findIndex((item) => item.id === curr.id);
+      const filtered = baseList.filter((t, idx) => {
+        if (t.id === curr.id && idx === firstCurrIdx) {
+          return true;
+        }
+        return t.id !== track.id;
+      });
+
+      const currentIndex = filtered.findIndex((t) => t.id === curr.id);
+      const insertIndex = currentIndex === -1 ? 0 : currentIndex + 1;
+
+      const nextQueue = [
+        ...filtered.slice(0, insertIndex),
+        queuedTrack,
+        ...filtered.slice(insertIndex),
+      ];
+      queueRef.current = nextQueue;
+      const queueIds = nextQueue.map((t) => t.id);
+      safeStorage.setItem('@musicplayer_last_queue', JSON.stringify(queueIds)).catch(() => {});
+      return nextQueue;
+    });
+  }, [playTrack]);
+
+  const addToQueue = useCallback((track) => {
+    if (!track) return;
+    const curr = currentTrackRef.current;
+    if (!curr) {
+      playTrack(track);
+      return;
+    }
+
+    const activeCover = trackCoversRef.current[track.id] || track.coverId || null;
+    const queuedTrack = { ...track, coverId: activeCover, _userQueued: true };
+
+    setQueue((prevQueue) => {
+      const baseList = prevQueue && prevQueue.length > 0
+        ? prevQueue
+        : (tracksRef.current && tracksRef.current.length > 0 ? tracksRef.current : [curr]);
+
+      const firstCurrIdx = baseList.findIndex((item) => item.id === curr.id);
+      const filtered = baseList.filter((t, idx) => {
+        if (t.id === curr.id && idx === firstCurrIdx) {
+          return true;
+        }
+        return t.id !== track.id;
+      });
+
+      const currentIndex = filtered.findIndex((t) => t.id === curr.id);
+      if (currentIndex === -1) {
+        const nextQueue = [...filtered, queuedTrack];
+        queueRef.current = nextQueue;
+        return nextQueue;
+      }
+
+      let insertIndex = currentIndex + 1;
+      while (insertIndex < filtered.length && filtered[insertIndex]._userQueued) {
+        insertIndex += 1;
+      }
+
+      const nextQueue = [
+        ...filtered.slice(0, insertIndex),
+        queuedTrack,
+        ...filtered.slice(insertIndex),
+      ];
+      queueRef.current = nextQueue;
+      const queueIds = nextQueue.map((t) => t.id);
+      safeStorage.setItem('@musicplayer_last_queue', JSON.stringify(queueIds)).catch(() => {});
+      return nextQueue;
+    });
   }, [playTrack]);
 
   const playPrevious = useCallback(() => {
@@ -1496,6 +1585,8 @@ export const PlayerProvider = ({ children }) => {
     toggleRepeatMode,
     scanDeviceTracks,
     playTrack,
+    playTrackNext,
+    addToQueue,
     togglePlayPause,
     playNext,
     playPrevious,
@@ -1538,6 +1629,8 @@ export const PlayerProvider = ({ children }) => {
     toggleRepeatMode,
     scanDeviceTracks,
     playTrack,
+    playTrackNext,
+    addToQueue,
     togglePlayPause,
     playNext,
     playPrevious,
