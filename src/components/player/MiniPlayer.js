@@ -1,13 +1,15 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, PanResponder } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { Play, Pause, SkipForward, Heart, Headphones } from 'lucide-react-native';
 import { typography, spacing, radius } from '../../theme';
 import { usePlayer } from '../../context/PlayerContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 import AlbumArtwork from '../home/AlbumArtwork';
+
+const APPLE_EASE_OUT = Easing.bezier(0.22, 1, 0.36, 1);
 
 export const MiniPlayer = ({ onOpenFullPlayer }) => {
   const insets = useSafeAreaInsets();
@@ -19,18 +21,136 @@ export const MiniPlayer = ({ onOpenFullPlayer }) => {
     isPlaying,
     togglePlayPause,
     playNext,
+    playPrevious,
     favorites,
     toggleFavorite,
     compactProgress,
     audioDevice,
   } = usePlayer();
 
+  const swipeX = useSharedValue(0);
+  const swipeY = useSharedValue(0);
+  const trackSlideX = useSharedValue(0);
+
+  /* eslint-disable react-hooks/immutability */
+  const panResponder = useMemo(() => {
+    let lockedAxis = null;
+    let hasTriggered = false;
+
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        const { dx, dy } = gestureState;
+        return Math.abs(dx) > 6 || Math.abs(dy) > 6;
+      },
+      onMoveShouldSetPanResponderCapture: (_, gestureState) => {
+        const { dx, dy } = gestureState;
+        return Math.abs(dx) > 8 || Math.abs(dy) > 8;
+      },
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
+        lockedAxis = null;
+        hasTriggered = false;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (hasTriggered) return;
+        const { dx, dy } = gestureState;
+
+        if (!lockedAxis && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+          lockedAxis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+        }
+
+        if (lockedAxis === 'x') {
+          swipeX.value = Math.sign(dx) * Math.min(Math.abs(dx) * 0.28, 22);
+          trackSlideX.value = Math.sign(dx) * Math.min(Math.abs(dx) * 0.22, 14);
+          swipeY.value = 0;
+        } else if (lockedAxis === 'y') {
+          swipeX.value = 0;
+          trackSlideX.value = 0;
+          if (dy < 0) {
+            swipeY.value = Math.max(dy * 0.2, -10);
+            if (dy < -24) {
+              hasTriggered = true;
+              swipeY.value = withTiming(0, { duration: 180, easing: APPLE_EASE_OUT });
+              onOpenFullPlayer?.();
+            }
+          } else {
+            swipeY.value = Math.min(dy * 0.08, 4);
+          }
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (hasTriggered) {
+          swipeX.value = withTiming(0, { duration: 200, easing: APPLE_EASE_OUT });
+          swipeY.value = withTiming(0, { duration: 180, easing: APPLE_EASE_OUT });
+          trackSlideX.value = withTiming(0, { duration: 200, easing: APPLE_EASE_OUT });
+          return;
+        }
+
+        const { dx, dy, vx, vy } = gestureState;
+
+        // Normal tap: Open full player
+        if (!lockedAxis && Math.abs(dx) < 8 && Math.abs(dy) < 8) {
+          swipeX.value = withTiming(0, { duration: 150, easing: APPLE_EASE_OUT });
+          swipeY.value = withTiming(0, { duration: 150, easing: APPLE_EASE_OUT });
+          trackSlideX.value = withTiming(0, { duration: 150, easing: APPLE_EASE_OUT });
+          onOpenFullPlayer?.();
+          return;
+        }
+
+        // Horizontal swipe: right -> next, left -> previous
+        if (lockedAxis === 'x' && (Math.abs(dx) > 24 || Math.abs(vx) > 0.25)) {
+          hasTriggered = true;
+          swipeY.value = withTiming(0, { duration: 180, easing: APPLE_EASE_OUT });
+          swipeX.value = withTiming(0, { duration: 240, easing: APPLE_EASE_OUT });
+          if (dx > 0) {
+            trackSlideX.value = withSequence(
+              withTiming(-12, { duration: 0 }),
+              withTiming(0, { duration: 240, easing: APPLE_EASE_OUT })
+            );
+            playNext?.();
+          } else {
+            trackSlideX.value = withSequence(
+              withTiming(12, { duration: 0 }),
+              withTiming(0, { duration: 240, easing: APPLE_EASE_OUT })
+            );
+            playPrevious?.();
+          }
+          return;
+        }
+
+        // Short vertical flick up: Open full player
+        if (lockedAxis === 'y' && (dy < -12 || vy < -0.22)) {
+          hasTriggered = true;
+          swipeX.value = withTiming(0, { duration: 180, easing: APPLE_EASE_OUT });
+          swipeY.value = withTiming(0, { duration: 180, easing: APPLE_EASE_OUT });
+          trackSlideX.value = withTiming(0, { duration: 180, easing: APPLE_EASE_OUT });
+          onOpenFullPlayer?.();
+          return;
+        }
+
+        // Smooth Apple-style settle if threshold not reached
+        swipeX.value = withTiming(0, { duration: 220, easing: APPLE_EASE_OUT });
+        swipeY.value = withTiming(0, { duration: 200, easing: APPLE_EASE_OUT });
+        trackSlideX.value = withTiming(0, { duration: 220, easing: APPLE_EASE_OUT });
+      },
+      onPanResponderTerminate: () => {
+        swipeX.value = withTiming(0, { duration: 220, easing: APPLE_EASE_OUT });
+        swipeY.value = withTiming(0, { duration: 200, easing: APPLE_EASE_OUT });
+        trackSlideX.value = withTiming(0, { duration: 220, easing: APPLE_EASE_OUT });
+      },
+    });
+  }, [swipeX, swipeY, trackSlideX, playNext, playPrevious, onOpenFullPlayer]);
+  /* eslint-enable react-hooks/immutability */
+
   const containerAnimatedStyle = useAnimatedStyle(() => {
     const scale = 1 - compactProgress.value * 0.12;
-    const translateY = compactProgress.value * 6;
+    const translateY = compactProgress.value * 6 + swipeY.value;
+    const translateX = swipeX.value;
 
     return {
-      transform: [{ scale }, { translateY }],
+      transform: [{ scale }, { translateY }, { translateX }],
     };
   });
 
@@ -48,7 +168,10 @@ export const MiniPlayer = ({ onOpenFullPlayer }) => {
 
   const titleWrapperAnimatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateY: compactProgress.value * 7 }],
+      transform: [
+        { translateY: compactProgress.value * 7 },
+        { translateX: trackSlideX.value },
+      ],
     };
   });
 
@@ -81,88 +204,86 @@ export const MiniPlayer = ({ onOpenFullPlayer }) => {
 
   return (
     <View style={[styles.outerContainer, { bottom: bottomOffset }]} pointerEvents="box-none">
-      <TouchableOpacity
-        activeOpacity={0.92}
-        onPress={onOpenFullPlayer}
+      <Animated.View
+        style={[styles.container, containerAnimatedStyle]}
+        {...panResponder.panHandlers}
       >
-        <Animated.View style={[styles.container, containerAnimatedStyle]}>
-          <View style={styles.contentRow}>
-            <View style={styles.leftInfo}>
-              <Animated.View style={artworkAnimatedStyle}>
-                <AlbumArtwork
-                  size={40}
-                  index={currentTrack.trackNumber || 1}
-                  track={currentTrack}
-                  coverId={currentTrack.coverId}
-                  artwork={currentTrack.coverArt || currentTrack.artwork}
-                />
-              </Animated.View>
+        <View style={styles.contentRow}>
+          <View style={styles.leftInfo}>
+            <Animated.View style={artworkAnimatedStyle}>
+              <AlbumArtwork
+                size={40}
+                index={currentTrack.trackNumber || 1}
+                track={currentTrack}
+                coverId={currentTrack.coverId}
+                artwork={currentTrack.coverArt || currentTrack.artwork}
+              />
+            </Animated.View>
 
-              <Animated.View style={[styles.textWrapper, titleWrapperAnimatedStyle]}>
-                <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
-                  {trackTitle}
-                </Text>
-                <Animated.View style={artistAnimatedStyle}>
-                  <View style={styles.artistRow}>
-                    {audioDevice?.isConnected && (
-                      <Headphones
-                        size={11}
-                        color={colors.accent || colors.miniPlayerTextSecondary}
-                        style={styles.deviceIcon}
-                      />
-                    )}
-                    <Text style={styles.artist} numberOfLines={1} ellipsizeMode="tail">
-                      {trackArtist}
-                    </Text>
-                  </View>
-                </Animated.View>
-              </Animated.View>
-            </View>
-
-            <View style={styles.controlsRow}>
-              <Animated.View style={heartAnimatedStyle}>
-                <TouchableOpacity
-                  style={styles.iconBtn}
-                  onPress={() => toggleFavorite(currentTrack.id)}
-                  activeOpacity={0.6}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Heart
-                    size={18}
-                    color={isFav ? '#FFFFFF' : colors.miniPlayerTextSecondary}
-                    fill={isFav ? '#FFFFFF' : 'transparent'}
-                  />
-                </TouchableOpacity>
-              </Animated.View>
-
-              <Animated.View style={playBtnAnimatedStyle}>
-                <TouchableOpacity
-                  style={styles.playBtn}
-                  onPress={togglePlayPause}
-                  activeOpacity={0.8}
-                >
-                  {isPlaying ? (
-                    <Pause size={16} color={colors.miniPlayerBackground} fill={colors.miniPlayerBackground} />
-                  ) : (
-                    <Play size={16} color={colors.miniPlayerBackground} fill={colors.miniPlayerBackground} style={{ marginLeft: 2 }} />
+            <Animated.View style={[styles.textWrapper, titleWrapperAnimatedStyle]}>
+              <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+                {trackTitle}
+              </Text>
+              <Animated.View style={artistAnimatedStyle}>
+                <View style={styles.artistRow}>
+                  {audioDevice?.isConnected && (
+                    <Headphones
+                      size={11}
+                      color={colors.accent || colors.miniPlayerTextSecondary}
+                      style={styles.deviceIcon}
+                    />
                   )}
-                </TouchableOpacity>
+                  <Text style={styles.artist} numberOfLines={1} ellipsizeMode="tail">
+                    {trackArtist}
+                  </Text>
+                </View>
               </Animated.View>
-
-              <Animated.View style={skipBtnAnimatedStyle}>
-                <TouchableOpacity
-                  style={styles.iconBtn}
-                  onPress={playNext}
-                  activeOpacity={0.7}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <SkipForward size={18} color="#FFFFFF" fill="#FFFFFF" />
-                </TouchableOpacity>
-              </Animated.View>
-            </View>
+            </Animated.View>
           </View>
-        </Animated.View>
-      </TouchableOpacity>
+
+          <View style={styles.controlsRow}>
+            <Animated.View style={heartAnimatedStyle}>
+              <TouchableOpacity
+                style={styles.iconBtn}
+                onPress={() => toggleFavorite(currentTrack.id)}
+                activeOpacity={0.6}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Heart
+                  size={18}
+                  color={isFav ? '#FFFFFF' : colors.miniPlayerTextSecondary}
+                  fill={isFav ? '#FFFFFF' : 'transparent'}
+                />
+              </TouchableOpacity>
+            </Animated.View>
+
+            <Animated.View style={playBtnAnimatedStyle}>
+              <TouchableOpacity
+                style={styles.playBtn}
+                onPress={togglePlayPause}
+                activeOpacity={0.8}
+              >
+                {isPlaying ? (
+                  <Pause size={16} color={colors.miniPlayerBackground} fill={colors.miniPlayerBackground} />
+                ) : (
+                  <Play size={16} color={colors.miniPlayerBackground} fill={colors.miniPlayerBackground} style={{ marginLeft: 2 }} />
+                )}
+              </TouchableOpacity>
+            </Animated.View>
+
+            <Animated.View style={skipBtnAnimatedStyle}>
+              <TouchableOpacity
+                style={styles.iconBtn}
+                onPress={playNext}
+                activeOpacity={0.7}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <SkipForward size={18} color="#FFFFFF" fill="#FFFFFF" />
+              </TouchableOpacity>
+            </Animated.View>
+          </View>
+        </View>
+      </Animated.View>
     </View>
   );
 };
