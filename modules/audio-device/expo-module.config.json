@@ -1,0 +1,11 @@
+{
+  "name": "audio-device",
+  "platforms": ["android", "ios"],
+  "android": {
+    "package": "expo.modules.audiodevice",
+    "modules": [
+      "expo.modules.audiodevice.AudioDeviceModule"
+    ]
+  }
+}
+

@@ -43,6 +43,8 @@ import SongItem from '../components/home/SongItem';
 import AlbumArtwork from '../components/home/AlbumArtwork';
 import PlaylistOptionsModal from '../components/playlist/PlaylistOptionsModal';
 import EditPlaylistModal from '../components/playlist/EditPlaylistModal';
+import TrackSortBar from '../components/common/TrackSortBar';
+import { sortTrackList, SORT_MODES } from '../utils/trackSorter';
 import { getPlaylistCoverSource, getPlaylistScreenGradientColors } from '../constants/playlistCovers';
 
 
@@ -91,6 +93,8 @@ export const LibraryScreen = ({ route }) => {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedTrackIds, setSelectedTrackIds] = useState([]);
+  const [playlistSortMode, setPlaylistSortMode] = useState(SORT_MODES.DEFAULT);
+  const [addSongsSortMode, setAddSongsSortMode] = useState(SORT_MODES.DEFAULT);
 
   const isFocused = useIsFocused();
   const [animScale] = useState(() => new Animated.Value(0));
@@ -173,6 +177,7 @@ export const LibraryScreen = ({ route }) => {
     setIsDetailStickyVisible(false);
     setIsEditMode(false);
     setSelectedTrackIds([]);
+    setPlaylistSortMode(SORT_MODES.DEFAULT);
     setPlaylistSearchQuery('');
     setIsPlaylistOptionsModalVisible(false);
     setIsAddSongsModalVisible(false);
@@ -216,18 +221,23 @@ export const LibraryScreen = ({ route }) => {
   const activePlaylistTracks = useMemo(() => {
     if (!activePlaylist) return [];
     const trackMap = new Map(tracks.map((t) => [t.id, t]));
-    const listTracks = activePlaylist.trackIds
+    let listTracks = activePlaylist.trackIds
       .map((id) => trackMap.get(id))
       .filter(Boolean);
-    if (!playlistSearchQuery.trim()) return listTracks;
-    const q = playlistSearchQuery.toLowerCase().trim();
-    return listTracks.filter(
-      (t) =>
-        t.title?.toLowerCase().includes(q) ||
-        t.artist?.toLowerCase().includes(q) ||
-        t.album?.toLowerCase().includes(q)
-    );
-  }, [activePlaylist, tracks, playlistSearchQuery]);
+    if (playlistSearchQuery.trim()) {
+      const q = playlistSearchQuery.toLowerCase().trim();
+      listTracks = listTracks.filter(
+        (t) =>
+          t.title?.toLowerCase().includes(q) ||
+          t.artist?.toLowerCase().includes(q) ||
+          t.album?.toLowerCase().includes(q)
+      );
+    }
+    if (playlistSortMode !== SORT_MODES.DEFAULT) {
+      listTracks = sortTrackList(listTracks, playlistSortMode);
+    }
+    return listTracks;
+  }, [activePlaylist, tracks, playlistSearchQuery, playlistSortMode]);
 
   const handleCreatePlaylist = () => {
     if (newPlaylistName.trim()) {
@@ -280,14 +290,20 @@ export const LibraryScreen = ({ route }) => {
   };
 
   const allFilteredTracks = useMemo(() => {
-    if (!addSongsSearchQuery.trim()) return tracks;
-    const q = addSongsSearchQuery.toLowerCase().trim();
-    return tracks.filter(
-      (t) =>
-        t.title?.toLowerCase().includes(q) ||
-        t.artist?.toLowerCase().includes(q)
-    );
-  }, [tracks, addSongsSearchQuery]);
+    let list = tracks;
+    if (addSongsSearchQuery.trim()) {
+      const q = addSongsSearchQuery.toLowerCase().trim();
+      list = tracks.filter(
+        (t) =>
+          t.title?.toLowerCase().includes(q) ||
+          t.artist?.toLowerCase().includes(q)
+      );
+    }
+    if (addSongsSortMode !== SORT_MODES.DEFAULT) {
+      list = sortTrackList(list, addSongsSortMode);
+    }
+    return list;
+  }, [tracks, addSongsSearchQuery, addSongsSortMode]);
 
   const addSongKeyExtractor = useCallback((item) => item.id.toString(), []);
   const addSongItemLayout = useCallback(
@@ -651,6 +667,13 @@ export const LibraryScreen = ({ route }) => {
                   ) : null}
                 </View>
 
+                {activePlaylist.trackIds.length > 1 && !isEditMode && (
+                  <TrackSortBar
+                    activeSort={playlistSortMode}
+                    onSelectSort={setPlaylistSortMode}
+                  />
+                )}
+
                 <View style={styles.detailActionsRow}>
                   {isEditMode ? (
                     <>
@@ -939,6 +962,12 @@ export const LibraryScreen = ({ route }) => {
                   </TouchableOpacity>
                 ) : null}
               </View>
+              <TrackSortBar
+                activeSort={addSongsSortMode}
+                onSelectSort={setAddSongsSortMode}
+                showDefault={false}
+                style={{ paddingHorizontal: spacing.lg }}
+              />
             </View>
 
             <FlatList

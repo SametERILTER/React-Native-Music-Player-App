@@ -23,6 +23,7 @@ import {
 } from '../services/crossfadeService';
 import { ALL_COVERS } from '../constants/playlistCovers';
 import { downloadAllOnlineCovers } from '../services/albumArtService';
+import { audioDeviceService } from '../services/audioDeviceService';
 import { useTheme } from './ThemeContext';
 import { useLanguage } from './LanguageContext';
 
@@ -217,6 +218,20 @@ export const PlayerProvider = ({ children }) => {
 
   const [isArtworkGradientEnabled, setIsArtworkGradientEnabledState] = useState(true);
   const [crossfadeSeconds, setCrossfadeSecondsState] = useState(0);
+  const [audioDevice, setAudioDevice] = useState({
+    isConnected: false,
+    type: 'speaker',
+    name: '',
+  });
+
+  useEffect(() => {
+    const unsub = audioDeviceService.subscribe((device) => {
+      if (device) setAudioDevice(device);
+    });
+    return () => {
+      unsub();
+    };
+  }, []);
 
   useEffect(() => {
     safeStorage.getItem('@settings_auto_play_next').then((val) => {
@@ -1016,6 +1031,25 @@ export const PlayerProvider = ({ children }) => {
         if (TP) TP.pause().catch(() => {});
       },
       onTrackEnded: handleTrackEnded,
+      onDuck: async (event) => {
+        const TP = getTrackPlayer();
+        if (!TP) return;
+        if (event?.permanent || event?.paused) {
+          cancelFade(true);
+          setIsPlaying(false);
+          try {
+            await TP.pause();
+          } catch (_) {}
+        } else if (event?.ducking) {
+          try {
+            await TP.setVolume(0.25);
+          } catch (_) {}
+        } else {
+          try {
+            await TP.setVolume(1);
+          } catch (_) {}
+        }
+      },
     });
   }, [playNext, playPrevious, handleTrackEnded]);
 
@@ -1025,6 +1059,7 @@ export const PlayerProvider = ({ children }) => {
 
     let subQueueEnded = null;
     let subPlaybackState = null;
+    let subRemoteDuck = null;
 
     try {
       const queueEndedEvent = Event?.PlaybackQueueEnded || 'playback-queue-ended';
@@ -1048,12 +1083,38 @@ export const PlayerProvider = ({ children }) => {
       console.warn('PlaybackState listener hatası:', e);
     }
 
+    try {
+      const duckEvent = Event?.RemoteDuck || 'remote-duck';
+      subRemoteDuck = TrackPlayer.addEventListener(duckEvent, async (event) => {
+        if (event?.permanent || event?.paused) {
+          cancelFade(true);
+          setIsPlaying(false);
+          try {
+            await TrackPlayer.pause();
+          } catch (_) {}
+        } else if (event?.ducking) {
+          try {
+            await TrackPlayer.setVolume(0.25);
+          } catch (_) {}
+        } else {
+          try {
+            await TrackPlayer.setVolume(1);
+          } catch (_) {}
+        }
+      });
+    } catch (e) {
+      console.warn('RemoteDuck listener hatası:', e);
+    }
+
     return () => {
       try {
         subQueueEnded?.remove?.();
       } catch (_) {}
       try {
         subPlaybackState?.remove?.();
+      } catch (_) {}
+      try {
+        subRemoteDuck?.remove?.();
       } catch (_) {}
     };
   }, [handleTrackEnded]);
@@ -1397,6 +1458,7 @@ export const PlayerProvider = ({ children }) => {
     playlistModalTrack,
     songOptionsTrack,
     isPermissionModalOpen,
+    audioDevice,
   }), [
     tracks,
     currentTrack,
@@ -1421,6 +1483,7 @@ export const PlayerProvider = ({ children }) => {
     playlistModalTrack,
     songOptionsTrack,
     isPermissionModalOpen,
+    audioDevice,
   ]);
 
   // Mostly stable functions

@@ -35,6 +35,7 @@ import {
   ImageDown,
   Sparkles,
   RefreshCw,
+  Headphones,
 } from 'lucide-react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -58,7 +59,7 @@ import QueueModal from './QueueModal';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('screen');
 const ARTWORK_WIDTH = SCREEN_WIDTH - 56;
-const ARTWORK_HEIGHT = Math.min(Math.round(ARTWORK_WIDTH * 0.94), 310);
+const ARTWORK_HEIGHT = Math.min(Math.round(ARTWORK_WIDTH * 0.86), SCREEN_HEIGHT < 750 ? 250 : 280);
 const LYRICS_WIDTH = SCREEN_WIDTH - 16;
 
 const OPEN_DURATION = 360;
@@ -90,6 +91,7 @@ export const FullPlayerModal = ({ visible, onClose }) => {
     tracks,
     queue,
     playTrack,
+    audioDevice,
   } = usePlayer();
   const { position, duration, seekTo } = usePlayerProgress();
   const trackColors = useTrackColors(currentTrack, colors.background);
@@ -751,6 +753,21 @@ export const FullPlayerModal = ({ visible, onClose }) => {
                   <Text style={[styles.trackArtist, isDark && styles.trackArtistDark]} numberOfLines={1}>
                     {currentTrack.artist}
                   </Text>
+                  {audioDevice?.isConnected && (
+                    <View style={[styles.devicePill, isDark && styles.devicePillDark]}>
+                      <Headphones
+                        size={10}
+                        color={isDark ? '#93C5FD' : colors.accent || colors.primary}
+                        style={{ marginRight: 4 }}
+                      />
+                      <Text
+                        style={[styles.devicePillText, isDark && styles.devicePillTextDark]}
+                        numberOfLines={1}
+                      >
+                        {audioDevice.name || (audioDevice.type === 'bluetooth' ? 'Bluetooth Kulaklık' : 'Kablolu Kulaklık')}
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 <View style={styles.metaActionsCol}>
@@ -1299,6 +1316,29 @@ const createStyles = (colors) => StyleSheet.create({
   metaSection: {
     marginBottom: spacing.xs,
     paddingHorizontal: 4,
+  },
+  devicePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+    borderRadius: radius.full,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    marginTop: 4,
+  },
+  devicePillDark: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  devicePillText: {
+    fontFamily: typography.fonts.medium,
+    fontSize: 10,
+    color: colors.textSecondary,
+    letterSpacing: 0.2,
+    maxWidth: 200,
+  },
+  devicePillTextDark: {
+    color: 'rgba(255, 255, 255, 0.85)',
   },
   titleRow: {
     flexDirection: 'row',

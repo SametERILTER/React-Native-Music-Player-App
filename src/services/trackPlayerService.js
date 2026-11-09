@@ -24,6 +24,7 @@ let serviceCallbacks = {
   onPlay: null,
   onPause: null,
   onTrackEnded: null,
+  onDuck: null,
 };
 
 export const registerServiceCallbacks = (callbacks) => {
@@ -72,6 +73,13 @@ export const PlaybackService = async () => {
         serviceCallbacks.onTrackEnded();
       }
     });
+    TrackPlayerModule.addEventListener(EventModule.RemoteDuck || 'remote-duck', (event) => {
+      if (serviceCallbacks.onDuck) {
+        serviceCallbacks.onDuck(event);
+      } else if (event?.permanent || event?.paused) {
+        TrackPlayerModule.pause();
+      }
+    });
   } catch (e) {
     console.warn('PlaybackService event ekleme uyarısı:', e);
   }
@@ -93,7 +101,9 @@ export const setupTrackPlayer = async () => {
   setupPromise = (async () => {
     let isSetup = false;
     try {
-      await TrackPlayerModule.setupPlayer({});
+      await TrackPlayerModule.setupPlayer({
+        autoHandleInterruptions: true,
+      });
       await TrackPlayerModule.updateOptions({
         capabilities: [
           CapabilityModule.Play,

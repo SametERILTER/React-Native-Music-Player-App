@@ -369,6 +369,14 @@ export const translations = {
       deniedAlertMsg: 'Cihazınızdaki müzikleri dinlemek için medya iznine ihtiyaç vardır. Dilediğiniz zaman Kitaplık veya Ayarlar bölümünden izin verebilirsiniz.',
       openSettings: 'Ayarları Aç',
     },
+    sort: {
+      default: 'Varsayılan',
+      titleAsc: 'A → Z',
+      titleDesc: 'Z → A',
+      dateDesc: 'En Yeniler',
+      durationDesc: 'En Uzun',
+      durationAsc: 'En Kısa',
+    },
   },
   en: {
     common: {
@@ -739,6 +747,14 @@ export const translations = {
       deniedAlertTitle: 'Permission Required',
       deniedAlertMsg: 'Media access is needed to play your device music. You can grant access anytime from Settings or the Library tab.',
       openSettings: 'Open Settings',
+    },
+    sort: {
+      default: 'Default',
+      titleAsc: 'A → Z',
+      titleDesc: 'Z → A',
+      dateDesc: 'Newest',
+      durationDesc: 'Longest',
+      durationAsc: 'Shortest',
     },
   },
 };

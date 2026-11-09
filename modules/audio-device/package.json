@@ -1,0 +1,8 @@
+{
+  "name": "audio-device",
+  "version": "1.0.0",
+  "description": "Local Expo module for detecting audio output device and bluetooth headset",
+  "main": "index.js",
+  "types": "index.d.ts"
+}
+

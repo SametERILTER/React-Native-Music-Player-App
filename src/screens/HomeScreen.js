@@ -36,6 +36,12 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { Header } from '../components/common/Header';
 import { TypewriterTitle } from '../components/common/TypewriterTitle';
+import TrackSortBar from '../components/common/TrackSortBar';
+import { sortTrackList, SORT_MODES } from '../utils/trackSorter';
+import { SongItem } from '../components/home/SongItem';
+import { FolderSection } from '../components/home/FolderSection';
+import { getPlaylistCoverSource } from '../constants/playlistCovers';
+import { groupTracksByFolder } from '../utils/folderUtils';
 
 const getGreetingText = (t) => {
   const hour = new Date().getHours();
@@ -44,10 +50,6 @@ const getGreetingText = (t) => {
   if (hour >= 18 && hour < 23) return t('home.greetingEvening');
   return t('home.greetingNight');
 };
-import { SongItem } from '../components/home/SongItem';
-import { FolderSection } from '../components/home/FolderSection';
-import { getPlaylistCoverSource } from '../constants/playlistCovers';
-import { groupTracksByFolder } from '../utils/folderUtils';
 
 export const HomeScreen = () => {
   const { colors } = useTheme();
@@ -79,6 +81,7 @@ export const HomeScreen = () => {
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [folderSearchQuery, setFolderSearchQuery] = useState('');
   const [allFoldersSearchQuery, setAllFoldersSearchQuery] = useState('');
+  const [folderSortMode, setFolderSortMode] = useState(SORT_MODES.DEFAULT);
 
   // Animation values for All Folders page
   const [allFoldersOpacity] = useState(() => new Animated.Value(0));
@@ -176,6 +179,7 @@ export const HomeScreen = () => {
   const handleBackFromDetail = useCallback(() => {
     detailScrollY.setValue(0);
     setFolderSearchQuery('');
+    setFolderSortMode(SORT_MODES.DEFAULT);
     Animated.parallel([
       Animated.timing(detailOpacity, {
         toValue: 0,
@@ -228,16 +232,21 @@ export const HomeScreen = () => {
 
   const filteredFolderTracks = useMemo(() => {
     if (!activeFolder) return [];
-    const fTracks = activeFolder.tracks || [];
-    if (!folderSearchQuery.trim()) return fTracks;
-    const q = folderSearchQuery.toLowerCase().trim();
-    return fTracks.filter(
-      (t) =>
-        t.title?.toLowerCase().includes(q) ||
-        t.artist?.toLowerCase().includes(q) ||
-        t.album?.toLowerCase().includes(q)
-    );
-  }, [activeFolder, folderSearchQuery]);
+    let fTracks = activeFolder.tracks || [];
+    if (folderSearchQuery.trim()) {
+      const q = folderSearchQuery.toLowerCase().trim();
+      fTracks = fTracks.filter(
+        (t) =>
+          t.title?.toLowerCase().includes(q) ||
+          t.artist?.toLowerCase().includes(q) ||
+          t.album?.toLowerCase().includes(q)
+      );
+    }
+    if (folderSortMode !== SORT_MODES.DEFAULT) {
+      fTracks = sortTrackList(fTracks, folderSortMode);
+    }
+    return fTracks;
+  }, [activeFolder, folderSearchQuery, folderSortMode]);
 
   const handlePlayFolder = useCallback((folder, shuffle = false, customQueue = null) => {
     if (!folder) return;
@@ -377,6 +386,13 @@ export const HomeScreen = () => {
                     </TouchableOpacity>
                   ) : null}
                 </View>
+
+                {activeFolder.tracks?.length > 1 && (
+                  <TrackSortBar
+                    activeSort={folderSortMode}
+                    onSelectSort={setFolderSortMode}
+                  />
+                )}
 
                 <View style={styles.detailActionsRow}>
                   <TouchableOpacity

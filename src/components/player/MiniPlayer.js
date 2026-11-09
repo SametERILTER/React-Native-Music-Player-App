@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
-import { Play, Pause, SkipForward, Heart } from 'lucide-react-native';
+import { Play, Pause, SkipForward, Heart, Headphones } from 'lucide-react-native';
 import { typography, spacing, radius } from '../../theme';
 import { usePlayer } from '../../context/PlayerContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -22,6 +22,7 @@ export const MiniPlayer = ({ onOpenFullPlayer }) => {
     favorites,
     toggleFavorite,
     compactProgress,
+    audioDevice,
   } = usePlayer();
 
   const containerAnimatedStyle = useAnimatedStyle(() => {
@@ -102,9 +103,18 @@ export const MiniPlayer = ({ onOpenFullPlayer }) => {
                   {trackTitle}
                 </Text>
                 <Animated.View style={artistAnimatedStyle}>
-                  <Text style={styles.artist} numberOfLines={1} ellipsizeMode="tail">
-                    {trackArtist}
-                  </Text>
+                  <View style={styles.artistRow}>
+                    {audioDevice?.isConnected && (
+                      <Headphones
+                        size={11}
+                        color={colors.accent || colors.miniPlayerTextSecondary}
+                        style={styles.deviceIcon}
+                      />
+                    )}
+                    <Text style={styles.artist} numberOfLines={1} ellipsizeMode="tail">
+                      {trackArtist}
+                    </Text>
+                  </View>
                 </Animated.View>
               </Animated.View>
             </View>
@@ -201,10 +211,18 @@ const createStyles = (colors) =>
       color: colors.miniPlayerTextPrimary,
       letterSpacing: typography.letterSpacing.tight,
     },
+    artistRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    deviceIcon: {
+      marginRight: 4,
+    },
     artist: {
       fontFamily: typography.fonts.regular,
       fontSize: typography.sizes.xs,
       color: colors.miniPlayerTextSecondary,
+      flexShrink: 1,
     },
     controlsRow: {
       flexDirection: 'row',

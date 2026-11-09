@@ -20,6 +20,8 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import Header from '../components/common/Header';
 import SongItem from '../components/home/SongItem';
+import TrackSortBar from '../components/common/TrackSortBar';
+import { sortTrackList, SORT_MODES } from '../utils/trackSorter';
 
 const DOT_HEART_LIGHT = require('../../assets/favorites_dot_light.png');
 const DOT_HEART_DARK = require('../../assets/favorites_dot_dark.png');
@@ -41,6 +43,7 @@ export const FavoritesScreen = () => {
   } = usePlayer();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [favoriteSortMode, setFavoriteSortMode] = useState(SORT_MODES.DEFAULT);
   const [stickyBarAnim] = useState(() => new Animated.Value(0));
   const [isStickyVisible, setIsStickyVisible] = useState(false);
   const isStickyRef = useRef(false);
@@ -90,15 +93,21 @@ export const FavoritesScreen = () => {
   }, [tracks, favorites]);
 
   const favoriteTracks = useMemo(() => {
-    if (!searchQuery.trim()) return allFavoriteTracks;
-    const q = searchQuery.toLowerCase().trim();
-    return allFavoriteTracks.filter(
-      (tItem) =>
-        tItem.title?.toLowerCase().includes(q) ||
-        tItem.artist?.toLowerCase().includes(q) ||
-        tItem.album?.toLowerCase().includes(q)
-    );
-  }, [allFavoriteTracks, searchQuery]);
+    let list = allFavoriteTracks;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(
+        (tItem) =>
+          tItem.title?.toLowerCase().includes(q) ||
+          tItem.artist?.toLowerCase().includes(q) ||
+          tItem.album?.toLowerCase().includes(q)
+      );
+    }
+    if (favoriteSortMode !== SORT_MODES.DEFAULT) {
+      list = sortTrackList(list, favoriteSortMode);
+    }
+    return list;
+  }, [allFavoriteTracks, searchQuery, favoriteSortMode]);
 
   const handlePlayFavorites = useCallback(
     (shouldShuffle = false) => {
@@ -163,6 +172,13 @@ export const FavoritesScreen = () => {
                   </TouchableOpacity>
                 ) : null}
               </View>
+
+              {allFavoriteTracks.length > 1 && (
+                <TrackSortBar
+                  activeSort={favoriteSortMode}
+                  onSelectSort={setFavoriteSortMode}
+                />
+              )}
 
               <View style={styles.actionsRow}>
                 <TouchableOpacity
